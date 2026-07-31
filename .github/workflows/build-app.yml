@@ -58,5 +58,5 @@ jobs:
           args: ${{ matrix.args }}
           tagName: ${{ github.ref_type == 'tag' && github.ref_name || 'app-v__VERSION__' }}
           releaseName: "Catalyst App v__VERSION__"
-          releaseBody: "Optional Catalyst desktop app. Windows installer + universal macOS .dmg."
-          releaseDraft: true
+          releaseBody: "Optional Catalyst desktop app. Windows installer + universal macOS .dmg. This release also carries the signed `latest.json` the app's auto-updater pulls from."
+          releaseDraft: false
