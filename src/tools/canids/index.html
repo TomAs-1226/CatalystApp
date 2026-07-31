@@ -1,0 +1,649 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Catalyst CAN ID Planner</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root {
+      --bg: #0f1424;
+      --panel: #1b2240;
+      --panel2: #131831;
+      --accent: #e94560;
+      --accent2: #f0648a;
+      --text: #f4f4f8;
+      --muted: #8a8aa8;
+      --border: rgba(255,255,255,0.07);
+      --good: #4ade80;
+      --warn: #fbbf24;
+      --err:  #f87171;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0;
+      background:
+        radial-gradient(ellipse at 0% 0%, rgba(74,222,128,0.06), transparent 60%),
+        radial-gradient(ellipse at 100% 100%, rgba(233,69,96,0.08), transparent 60%),
+        var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, "SF Pro Text", Segoe UI, sans-serif;
+      min-height: 100vh;
+    }
+    header {
+      padding: 16px 28px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+      backdrop-filter: blur(6px);
+      position: sticky; top: 0; z-index: 5;
+      background: linear-gradient(180deg, rgba(27,34,64,0.85) 0%, transparent 100%);
+    }
+    header h1 { margin: 0; font-size: 18px; font-weight: 700; }
+    header .badge { padding: 2px 10px; border-radius: 999px; background: var(--accent); color: #fff; font-size: 11px; font-weight: 600; }
+    header .hint { color: var(--muted); font-size: 13px; }
+    header .back { color: var(--accent2); text-decoration: none; font-size: 13px; margin-left: auto; }
+
+    main {
+      display: grid; grid-template-columns: 360px 1fr;
+      gap: 20px; padding: 22px 24px;
+    }
+    .left, .right {
+      background: linear-gradient(180deg, var(--panel) 0%, var(--panel2) 100%);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    }
+    h2 { margin: 0 0 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 1.4px; color: var(--muted); font-weight: 700; }
+    h2:not(:first-child) { margin-top: 22px; }
+
+    .row { display: grid; grid-template-columns: 1fr; gap: 6px; margin-bottom: 10px; }
+    .row label { color: var(--muted); font-size: 12px; }
+    .row input, .row select {
+      background: var(--bg); color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 7px 10px; font-size: 13px;
+      font-family: inherit;
+    }
+    .row input:focus, .row select:focus { border-color: var(--accent); outline: none; }
+    .row.compact { grid-template-columns: 70px 1fr; align-items: center; }
+
+    .btn {
+      background: linear-gradient(135deg, var(--accent), #ff6b8a);
+      color: #fff; border: 0; border-radius: 8px;
+      padding: 9px 14px; font-size: 13px; font-weight: 600;
+      cursor: pointer; box-shadow: 0 4px 12px rgba(233,69,96,0.35);
+      transition: transform 0.12s ease;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn.ghost {
+      background: transparent; color: var(--text);
+      border: 1px solid var(--border); box-shadow: none;
+    }
+    .btn.ghost:hover { border-color: var(--accent); color: var(--accent2); }
+    .btn.danger {
+      background: transparent; color: var(--err);
+      border: 1px solid rgba(248,113,113,0.3);
+      padding: 4px 8px; font-size: 11px;
+      box-shadow: none;
+    }
+    .btn.danger:hover { background: rgba(248,113,113,0.12); }
+
+    .device-list { display: flex; flex-direction: column; gap: 8px; }
+    .device {
+      display: grid;
+      grid-template-columns: 56px 1fr auto;
+      gap: 12px; align-items: center;
+      padding: 10px 12px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      transition: border-color 0.12s ease, transform 0.12s ease;
+    }
+    .device.conflict { border-color: var(--err); background: rgba(248,113,113,0.06); }
+    .device.bus-canivore { border-left: 3px solid #fbbf24; }
+    .device.bus-rio      { border-left: 3px solid #60a5fa; }
+
+    .id-chip {
+      font-family: ui-monospace, monospace;
+      font-weight: 700; font-size: 16px;
+      text-align: center;
+      padding: 6px 8px;
+      background: var(--bg);
+      border-radius: 6px;
+      color: var(--accent2);
+    }
+    .device.conflict .id-chip { color: var(--err); }
+    .name { font-size: 13px; font-weight: 600; }
+    .meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .meta .tag {
+      display: inline-block; padding: 1px 6px;
+      border-radius: 999px; margin-left: 4px;
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .tag.kraken    { background: rgba(96,165,250,0.18); color: #60a5fa; }
+    .tag.falcon    { background: rgba(96,165,250,0.18); color: #60a5fa; }
+    .tag.cancoder  { background: rgba(233,69,96,0.16);  color: var(--accent2); }
+    .tag.pigeon    { background: rgba(251,191,36,0.18); color: var(--warn); }
+    .tag.candle    { background: rgba(252,165,165,0.16);color: #fcd34d; }
+    .tag.candi     { background: rgba(165,180,252,0.18);color: #a5b4fc; }
+    .tag.pdh       { background: rgba(165,243,252,0.18);color: #67e8f9; }
+    .tag.rev       { background: rgba(74,222,128,0.18); color: var(--good); }
+    .tag.wcp       { background: rgba(251,191,36,0.18); color: var(--warn); }
+    .tag.canivore  { background: rgba(251,191,36,0.18); color: var(--warn); }
+    .tag.rio       { background: rgba(96,165,250,0.18); color: #60a5fa; }
+
+    .summary {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 10px; margin-bottom: 18px;
+    }
+    .summary .card {
+      padding: 12px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      text-align: center;
+    }
+    .summary .label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+    .summary .val { font-size: 24px; font-weight: 700; color: var(--accent2); margin-top: 4px; }
+    .summary .card.err .val { color: var(--err); }
+    .summary .card.warn .val { color: var(--warn); }
+
+    .empty {
+      text-align: center; padding: 32px;
+      color: var(--muted); font-size: 13px;
+      border: 1px dashed var(--border);
+      border-radius: 10px;
+    }
+
+    .output {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px;
+      font-family: ui-monospace, monospace; font-size: 12px;
+      max-height: 360px; overflow: auto;
+      white-space: pre;
+    }
+    .actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    .seg-mode {
+      display: inline-flex; gap: 0;
+      border: 1px solid var(--border); border-radius: 8px;
+      overflow: hidden; margin-bottom: 8px;
+    }
+    .seg-btn {
+      background: transparent; color: var(--muted);
+      border: 0; padding: 6px 14px; font-size: 12px;
+      cursor: pointer; font-family: inherit;
+      transition: all 0.12s ease;
+    }
+    .seg-btn + .seg-btn { border-left: 1px solid var(--border); }
+    .seg-btn:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+    .seg-btn.active {
+      background: var(--accent); color: #fff;
+    }
+    .output .kw  { color: #ef798a; }
+    .output .str { color: #9ee493; }
+    .output .num { color: #f4d35e; }
+    .output .cmt { color: #6a7088; font-style: italic; }
+
+    .credit { padding: 14px 28px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--border); }
+    .credit a { color: var(--accent2); text-decoration: none; }
+    .credit a:hover { text-decoration: underline; }
+
+    @media (max-width: 900px) { main { grid-template-columns: 1fr; padding: 14px; } }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>CAN ID Planner</h1>
+  <span class="badge">v1.3.3</span>
+  <span class="hint">Plan + audit your robot's CAN bus before wiring.</span>
+  <a href="../" class="back">← Catalyst tools</a>
+</header>
+
+<main>
+  <div class="left">
+    <h2>Add device</h2>
+    <div class="row compact"><label>Name</label><input type="text" id="dName" placeholder="LeftFrontDrive" /></div>
+    <div class="row compact"><label>CAN ID</label><input type="number" id="dId" min="0" max="62" value="1" /></div>
+    <div class="row compact">
+      <label>Type</label>
+      <select id="dType">
+        <option>Kraken X60</option>
+        <option>Kraken X44</option>
+        <option>Falcon 500</option>
+        <option>NEO</option>
+        <option>NEO Vortex</option>
+        <option>NEO 550</option>
+        <option>Minion</option>
+        <option>CANcoder</option>
+        <option>Pigeon 2</option>
+        <option>CANdle</option>
+        <option>CANdi</option>
+        <option>PDH</option>
+        <option>Other</option>
+      </select>
+    </div>
+    <div class="row compact">
+      <label>Bus</label>
+      <select id="dBus">
+        <option>canivore</option>
+        <option>rio</option>
+      </select>
+    </div>
+    <button class="btn" id="addBtn">+ Add</button>
+
+    <h2>Quick presets</h2>
+    <div class="actions">
+      <button class="btn ghost" data-preset="swerve">Swerve drivetrain</button>
+      <button class="btn ghost" data-preset="elevator-arm">Elevator + Arm</button>
+      <button class="btn ghost" data-preset="shooter">Shooter</button>
+    </div>
+
+    <h2>Storage</h2>
+    <div class="actions">
+      <button class="btn ghost" id="exportJson">Export JSON</button>
+      <button class="btn ghost" id="importBtn">Import</button>
+      <button class="btn ghost" id="clearAll">Clear all</button>
+    </div>
+    <input type="file" id="importFile" accept=".json" style="display:none">
+  </div>
+
+  <div class="right">
+    <div class="summary">
+      <div class="card"><div class="label">Devices</div><div class="val" id="sumCount">0</div></div>
+      <div class="card"><div class="label">CANivore</div><div class="val" id="sumCanivore">0</div></div>
+      <div class="card"><div class="label">roboRIO bus</div><div class="val" id="sumRio">0</div></div>
+      <div class="card" id="conflictCard"><div class="label">Conflicts</div><div class="val" id="sumConflicts">0</div></div>
+    </div>
+
+    <h2>Devices</h2>
+    <div id="deviceList" class="device-list"></div>
+    <div id="empty" class="empty" style="display:none">
+      Add your first device on the left, or pick a preset.
+    </div>
+
+    <h2 style="margin-top:22px">Output</h2>
+    <div class="seg-mode">
+      <button class="seg-btn active" data-mode="text">Wiring summary</button>
+      <button class="seg-btn" data-mode="java">Catalyst Java</button>
+    </div>
+    <pre id="output" class="output">— add devices to see the summary —</pre>
+    <div class="actions" id="textActions">
+      <button class="btn" id="copyOutput">Copy</button>
+      <button class="btn ghost" id="downloadTxt">Download .txt</button>
+    </div>
+    <div class="actions" id="javaActions" style="display:none">
+      <input type="text" id="javaPkg" placeholder="frc.robot" value="frc.robot" style="background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:12px;font-family:ui-monospace,monospace;flex:1">
+      <button class="btn" id="copyJava">Copy</button>
+      <button class="btn ghost" id="downloadJava">Download CANIds.java</button>
+    </div>
+  </div>
+</main>
+
+<div class="credit">
+  Stores everything in <code>localStorage</code> — your plan survives reload. Export to JSON to share with your wiring team or check into the robot repo.
+  &nbsp;·&nbsp; <a href="../wiring/" style="color:var(--accent2)">⚡ Generate a wiring diagram →</a> imports these devices directly.
+</div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const STORAGE_KEY = "catalyst-canids-v1";
+  let devices = [];
+
+  function save() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(devices)); } catch {}
+  }
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) devices = JSON.parse(raw) || [];
+    } catch {}
+  }
+
+  function tagClass(type) {
+    const t = type.toLowerCase();
+    if (t.includes("kraken")) return "kraken";
+    if (t.includes("falcon")) return "falcon";
+    if (t.includes("cancoder")) return "cancoder";
+    if (t.includes("pigeon")) return "pigeon";
+    if (t.includes("candle")) return "candle";
+    if (t.includes("candi")) return "candi";
+    if (t.includes("pdh")) return "pdh";
+    if (t.includes("neo")) return "rev";
+    if (t.includes("minion")) return "wcp";
+    return "";
+  }
+
+  function detectConflicts() {
+    // Conflict = same CAN ID on the same bus.
+    // NOTE: CANcoder + TalonFX *can* share an ID on the same bus per CTRE
+    // (different device types), but most teams treat any duplicate as a
+    // mistake to be safe. Flag any duplicate.
+    const seen = new Map();
+    const conflicts = new Set();
+    devices.forEach((d, i) => {
+      const key = `${d.bus}/${d.id}`;
+      if (seen.has(key)) {
+        conflicts.add(i);
+        conflicts.add(seen.get(key));
+      } else {
+        seen.set(key, i);
+      }
+    });
+    return conflicts;
+  }
+
+  function render() {
+    const conflicts = detectConflicts();
+    const list = $("deviceList");
+    list.innerHTML = "";
+    // Sort by bus then id for stable display.
+    const sorted = devices.map((d, i) => ({ ...d, _i: i }))
+      .sort((a, b) => a.bus.localeCompare(b.bus) || a.id - b.id);
+    sorted.forEach(d => {
+      const conflict = conflicts.has(d._i);
+      const el = document.createElement("div");
+      el.className = "device bus-" + d.bus + (conflict ? " conflict" : "");
+      const cls = tagClass(d.type);
+      el.innerHTML = `
+        <div class="id-chip">${d.id}</div>
+        <div>
+          <div class="name">${escapeHtml(d.name || "(unnamed)")}</div>
+          <div class="meta">
+            <span class="tag ${cls}">${escapeHtml(d.type)}</span>
+            <span class="tag ${d.bus}">${d.bus}</span>
+            ${conflict ? '<span class="tag" style="background:rgba(248,113,113,0.16);color:var(--err)">conflict</span>' : ''}
+          </div>
+        </div>
+        <button class="btn danger" data-i="${d._i}">remove</button>
+      `;
+      list.appendChild(el);
+    });
+
+    $("empty").style.display = devices.length === 0 ? "" : "none";
+    $("sumCount").textContent = devices.length;
+    $("sumCanivore").textContent = devices.filter(d => d.bus === "canivore").length;
+    $("sumRio").textContent      = devices.filter(d => d.bus === "rio").length;
+    $("sumConflicts").textContent = conflicts.size;
+    $("conflictCard").classList.toggle("err",  conflicts.size > 0);
+
+    renderOutput(sorted, conflicts);
+    save();
+    // Wire remove buttons
+    list.querySelectorAll(".btn.danger").forEach(b => {
+      b.onclick = () => {
+        const i = parseInt(b.dataset.i, 10);
+        devices.splice(i, 1);
+        render();
+      };
+    });
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+  }
+
+  // ---- UI wiring ----
+  $("addBtn").onclick = () => {
+    const id = parseInt($("dId").value, 10);
+    if (isNaN(id) || id < 0 || id > 62) { alert("CAN ID must be 0–62."); return; }
+    devices.push({
+      name: $("dName").value.trim(),
+      id,
+      type: $("dType").value,
+      bus:  $("dBus").value,
+    });
+    $("dName").value = "";
+    $("dId").value = String(id + 1);
+    render();
+  };
+
+  $("clearAll").onclick = () => {
+    if (!confirm("Clear every device?")) return;
+    devices = [];
+    render();
+  };
+
+  // -------------------------------------------------------------
+  // Output rendering — text summary OR Catalyst Java
+  // -------------------------------------------------------------
+  let outputMode = "text";   // "text" | "java"
+
+  function renderOutput(sorted, conflicts) {
+    if (devices.length === 0) {
+      $("output").textContent = "— add devices to see the output —";
+      return;
+    }
+    if (outputMode === "text") {
+      $("output").textContent = buildText(sorted, conflicts);
+    } else {
+      $("output").innerHTML = highlightJava(buildJava(sorted, conflicts));
+    }
+  }
+
+  function buildText(sorted, conflicts) {
+    const buses = ["canivore", "rio"];
+    const lines = [];
+    for (const bus of buses) {
+      const onBus = sorted.filter(d => d.bus === bus);
+      if (onBus.length === 0) continue;
+      lines.push(`[${bus}]`);
+      for (const d of onBus) {
+        const conflict = conflicts.has(d._i) ? "  ⚠ conflict" : "";
+        lines.push(`  ${String(d.id).padStart(3, " ")}  ${(d.type).padEnd(12, " ")}  ${d.name || ""}${conflict}`);
+      }
+      lines.push("");
+    }
+    lines.push(conflicts.size > 0
+        ? `# ${conflicts.size} conflicting ID(s) — same CAN ID on the same bus.`
+        : `# No conflicts. ${devices.length} device(s) planned.`);
+    return lines.join("\n");
+  }
+
+  // Turn a free-form device name into a SCREAMING_SNAKE_CASE constant.
+  function toConst(s) {
+    if (!s) return "UNNAMED";
+    return s.replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+            .replace(/[^A-Za-z0-9]+/g, "_")
+            .replace(/^_+|_+$/g, "")
+            .toUpperCase() || "UNNAMED";
+  }
+
+  function buildJava(sorted, conflicts) {
+    const pkg = ($("javaPkg").value.trim() || "frc.robot");
+    const out = [];
+    out.push(`package ${pkg};`);
+    out.push(``);
+    out.push(`import frc.lib.catalyst.hardware.CANRegistry;`);
+    out.push(``);
+    out.push(`/**`);
+    out.push(` * Generated by the Catalyst CAN ID Planner.`);
+    out.push(` * Source of truth for every CAN device on this robot.`);
+    out.push(` *`);
+    out.push(` * Just referencing one of these constants triggers the static`);
+    out.push(` * initializer, which pre-registers every planned device with`);
+    out.push(` * {@link CANRegistry}. If a mechanism later tries to claim an`);
+    out.push(` * id that isn't in this file, or claims one with a different`);
+    out.push(` * name, CANRegistry throws a CANConflictException at robotInit.`);
+    out.push(` */`);
+    out.push(`public final class CANIds {`);
+    out.push(``);
+    out.push(`    /** Bus name passed to TalonFX / CANcoder for devices on the CANivore. */`);
+    const canivoreUsed = sorted.some(d => d.bus === "canivore");
+    const rioUsed      = sorted.some(d => d.bus === "rio");
+    if (canivoreUsed) out.push(`    public static final String CANIVORE = "canivore";`);
+    if (rioUsed)      out.push(`    public static final String RIO      = "";`);
+    out.push(``);
+
+    const groups = [
+      { bus: "canivore", title: "CANivore bus" },
+      { bus: "rio",      title: "roboRIO CAN bus" },
+    ];
+    for (const g of groups) {
+      const onBus = sorted.filter(d => d.bus === g.bus);
+      if (onBus.length === 0) continue;
+      out.push(`    // -- ${g.title} ----------------------------------------`);
+      for (const d of onBus) {
+        const c = conflicts.has(d._i) ? "  // ⚠ CONFLICT — same id used twice" : "";
+        out.push(`    public static final int ${toConst(d.name).padEnd(28)} = ${d.id};${c}`);
+      }
+      out.push(``);
+    }
+
+    out.push(`    private CANIds() {}`);
+    out.push(``);
+    out.push(`    static {`);
+    out.push(`        // Pre-register every planned device. Catalyst mechanisms`);
+    out.push(`        // re-claim these ids when their builders run; matching`);
+    out.push(`        // claims are idempotent, mismatched ones throw.`);
+    for (const d of sorted) {
+      const constName = toConst(d.name);
+      const busRef = d.bus === "canivore" ? "CANIVORE" : "RIO";
+      out.push(`        CANRegistry.register("${d.name}", ${constName}, ${busRef}, "${d.type}");`);
+    }
+    out.push(`    }`);
+    out.push(``);
+    out.push(`    /**`);
+    out.push(`     * Touch the class so its static initializer runs early,`);
+    out.push(`     * e.g. from Robot.robotInit() before subsystem construction.`);
+    out.push(`     * This makes conflicts surface immediately at boot.`);
+    out.push(`     */`);
+    out.push(`    public static void init() { /* loading the class is enough */ }`);
+    out.push(`}`);
+    return out.join("\n");
+  }
+
+  function highlightJava(code) {
+    return code
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/(\".*?\")/g, '<span class="str">$1</span>')
+        .replace(/\b(package|import|public|final|class|static|int|String|private|void)\b/g, '<span class="kw">$1</span>')
+        .replace(/\b(\d+)\b/g, '<span class="num">$1</span>')
+        .replace(/(\/\/[^\n]*)/g, '<span class="cmt">$1</span>');
+  }
+
+  // -------------------------------------------------------------
+  // Mode switching + actions
+  // -------------------------------------------------------------
+  document.querySelectorAll(".seg-btn").forEach(b => {
+    b.onclick = () => {
+      document.querySelectorAll(".seg-btn").forEach(x => x.classList.remove("active"));
+      b.classList.add("active");
+      outputMode = b.dataset.mode;
+      $("textActions").style.display = outputMode === "text" ? "" : "none";
+      $("javaActions").style.display = outputMode === "java" ? "" : "none";
+      render();
+    };
+  });
+
+  $("javaPkg").addEventListener("input", () => { if (outputMode === "java") render(); });
+
+  $("copyOutput").onclick = async () => {
+    try {
+      await navigator.clipboard.writeText($("output").textContent);
+      $("copyOutput").textContent = "Copied ✓";
+      setTimeout(() => $("copyOutput").textContent = "Copy", 900);
+    } catch { alert("Clipboard blocked."); }
+  };
+
+  $("copyJava").onclick = async () => {
+    try {
+      await navigator.clipboard.writeText($("output").textContent);
+      $("copyJava").textContent = "Copied ✓";
+      setTimeout(() => $("copyJava").textContent = "Copy", 900);
+    } catch { alert("Clipboard blocked."); }
+  };
+
+  $("downloadJava").onclick = () => {
+    const blob = new Blob([$("output").textContent], { type: "text/x-java-source;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "CANIds.java";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 250);
+  };
+
+  $("downloadTxt").onclick = () => {
+    const blob = new Blob([$("output").textContent], { type: "text/plain;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "canids.txt";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 250);
+  };
+
+  $("exportJson").onclick = () => {
+    const blob = new Blob([JSON.stringify({ catalyst: "canids", devices }, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "catalyst-canids.json";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 250);
+  };
+
+  $("importBtn").onclick = () => $("importFile").click();
+  $("importFile").onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const obj = JSON.parse(reader.result);
+        if (Array.isArray(obj.devices)) {
+          devices = obj.devices;
+          render();
+        } else {
+          alert("File doesn't look like a Catalyst CAN ID plan.");
+        }
+      } catch (err) {
+        alert("Couldn't parse JSON: " + err.message);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
+
+  // Presets
+  const PRESETS = {
+    swerve: [
+      { name: "FrontLeftDrive",  id: 1, type: "Kraken X60", bus: "canivore" },
+      { name: "FrontLeftSteer",  id: 2, type: "Kraken X60", bus: "canivore" },
+      { name: "FrontLeftCANcoder", id: 3, type: "CANcoder", bus: "canivore" },
+      { name: "FrontRightDrive", id: 4, type: "Kraken X60", bus: "canivore" },
+      { name: "FrontRightSteer", id: 5, type: "Kraken X60", bus: "canivore" },
+      { name: "FrontRightCANcoder", id: 6, type: "CANcoder", bus: "canivore" },
+      { name: "RearLeftDrive",   id: 7, type: "Kraken X60", bus: "canivore" },
+      { name: "RearLeftSteer",   id: 8, type: "Kraken X60", bus: "canivore" },
+      { name: "RearLeftCANcoder", id: 9, type: "CANcoder", bus: "canivore" },
+      { name: "RearRightDrive",  id: 10, type: "Kraken X60", bus: "canivore" },
+      { name: "RearRightSteer",  id: 11, type: "Kraken X60", bus: "canivore" },
+      { name: "RearRightCANcoder", id: 12, type: "CANcoder", bus: "canivore" },
+      { name: "Pigeon",          id: 13, type: "Pigeon 2", bus: "canivore" },
+    ],
+    "elevator-arm": [
+      { name: "ElevatorMaster",  id: 20, type: "Kraken X60", bus: "rio" },
+      { name: "ElevatorFollower", id: 21, type: "Kraken X60", bus: "rio" },
+      { name: "ArmMaster",       id: 22, type: "Kraken X60", bus: "rio" },
+      { name: "ArmCANcoder",     id: 23, type: "CANcoder", bus: "rio" },
+    ],
+    shooter: [
+      { name: "ShooterTop",      id: 30, type: "Kraken X60", bus: "rio" },
+      { name: "ShooterBottom",   id: 31, type: "Kraken X60", bus: "rio" },
+      { name: "Indexer",         id: 32, type: "Kraken X44", bus: "rio" },
+    ],
+  };
+  document.querySelectorAll("[data-preset]").forEach(b => {
+    b.onclick = () => {
+      if (devices.length > 0 && !confirm("Replace current list with this preset?")) return;
+      devices = PRESETS[b.dataset.preset].map(d => ({ ...d }));
+      render();
+    };
+  });
+
+  load();
+  render();
+</script>
+</body>
+</html>

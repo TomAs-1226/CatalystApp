@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Catalyst Wiring Diagram Generator</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root{--bg:#0f1424;--panel:#1b2240;--panel2:#131831;--accent:#e94560;--accent2:#f0648a;
+          --text:#f4f4f8;--muted:#8a8aa8;--border:rgba(255,255,255,.08);--ok:#4ade80;--warn:#fbbf24;--err:#f87171;
+          --pwr:#e94560;--gnd:#1f2640;--can:#fbbf24;--sig:#60a5fa;--reg:#4ade80;}
+    *{box-sizing:border-box}
+    html,body{margin:0;background:radial-gradient(ellipse at 100% 0%,rgba(96,165,250,.10),transparent 60%),
+      radial-gradient(ellipse at 0% 100%,rgba(233,69,96,.08),transparent 60%),var(--bg);color:var(--text);
+      font-family:ui-sans-serif,system-ui,-apple-system,"SF Pro Text",Segoe UI,sans-serif;min-height:100vh}
+    header{padding:16px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+      position:sticky;top:0;z-index:5;background:linear-gradient(180deg,rgba(27,34,64,.85),transparent);backdrop-filter:blur(6px)}
+    header h1{margin:0;font-size:18px;font-weight:700}
+    header .badge{padding:2px 10px;border-radius:999px;background:var(--accent);color:#fff;font-size:11px;font-weight:600}
+    header .hint{color:var(--muted);font-size:13px}
+    header .back{color:var(--accent2);text-decoration:none;font-size:13px;margin-left:auto}
+    main{display:grid;grid-template-columns:330px 1fr;gap:20px;padding:22px 24px}
+    aside,.card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--border);
+      border-radius:14px;padding:18px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+    aside h2,.card h2{margin:0 0 12px;font-size:11px;text-transform:uppercase;letter-spacing:1.3px;color:var(--muted);font-weight:700}
+    aside h2:not(:first-child){margin-top:18px}
+    label{color:var(--muted);font-size:12px;display:block;margin-bottom:5px}
+    select,input{width:100%;background:#0d1226;color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px;font-size:13px}
+    .form{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:end}
+    .form .full{grid-column:span 2}
+    button{background:rgba(255,255,255,.04);color:var(--text);border:1px solid var(--border);border-radius:8px;
+      padding:9px;font-size:13px;font-weight:600;cursor:pointer;transition:.12s}
+    button:hover{border-color:var(--accent);transform:translateY(-1px)}
+    button.primary{background:linear-gradient(135deg,var(--accent),#ff6b8a);border-color:transparent;color:#fff}
+    .devs{margin-top:10px;max-height:230px;overflow:auto}
+    .dev{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:7px;font-size:12px;border-bottom:1px solid var(--border)}
+    .dev .nm{flex:1;font-weight:600}.dev .br{font-family:ui-monospace,monospace;color:var(--accent2)}
+    .dev .x{cursor:pointer;color:var(--muted)}.dev .x:hover{color:var(--err)}
+    .diagram{overflow:auto;border-radius:10px;background:#0a0f1e}
+    svg{display:block}
+    .recs{font-size:13px;line-height:1.55}
+    .recs .r{display:flex;gap:9px;padding:5px 0;border-bottom:1px dashed var(--border)}
+    .recs .r b{color:var(--accent2)}
+    .warnbar{background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3);color:var(--warn);border-radius:9px;padding:9px 12px;font-size:13px;margin-bottom:10px}
+    table{width:100%;border-collapse:collapse;font-size:12.5px}
+    th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--border)}
+    th{color:var(--muted);font-weight:600;text-transform:uppercase;font-size:10.5px;letter-spacing:.5px}
+    td.m{font-family:ui-monospace,monospace;color:var(--accent2)}
+    .legend{display:flex;gap:18px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:10px}
+    .legend i{display:inline-block;width:16px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle}
+    input.cell{width:54px;background:#0d1226;color:var(--accent2);border:1px solid var(--border);border-radius:6px;
+      padding:3px 5px;font-family:ui-monospace,monospace;font-size:12px;text-align:center}
+    input.cell:focus{border-color:var(--accent);outline:none}
+    td.vd{font-family:ui-monospace,monospace}
+    td.vd.warn{color:var(--warn)} td.vd.bad{color:var(--err);font-weight:700}
+    .chk{display:flex;gap:10px;align-items:flex-start;padding:6px 0;font-size:13px;border-bottom:1px dashed var(--border)}
+    .chk .ic{font-size:15px;line-height:1.3}
+    .chk.pass .ic{color:var(--ok)} .chk.warn .ic{color:var(--warn)} .chk.bad .ic{color:var(--err)}
+    .chk .t b{color:var(--text)}
+    .exp{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+    @media(max-width:920px){main{grid-template-columns:1fr}}
+    @media print{header,aside,.no-print{display:none}main{grid-template-columns:1fr;padding:0}.card{border:0;box-shadow:none}}
+  </style>
+</head>
+<body>
+<header>
+  <h1>Wiring Diagram Generator</h1>
+  <span class="badge">v1.3.3</span>
+  <span class="hint">Imports your <a href="../canids/" style="color:var(--accent2)">CAN ID Planner</a> and builds an optimal power tree + CAN bus.</span>
+  <a href="../" class="back">← Catalyst tools</a>
+</header>
+<main>
+  <aside>
+    <h2>Power distribution</h2>
+    <select id="pdu">
+      <option value="PDH">REV PDH (20× 40A + 3× low-current)</option>
+      <option value="PDP">CTRE PDP (8× 40A + 8× 30A)</option>
+    </select>
+
+    <h2>Devices</h2>
+    <button class="primary" id="import" style="width:100%;margin-bottom:8px">⇪ Import from CAN ID Planner</button>
+    <div class="form">
+      <div class="full"><label>Name</label><input id="dName" placeholder="Front-Left Drive"></div>
+      <div><label>Type</label>
+        <select id="dType">
+          <option>Kraken X60</option><option>Kraken X44</option><option>Falcon 500</option>
+          <option>NEO</option><option>NEO Vortex</option><option>NEO 550</option><option>Minion</option>
+          <option>CANcoder</option><option>Pigeon 2</option><option>CANdi</option><option>CANdle</option>
+          <option>PH (Pneumatic Hub)</option><option>PCM</option><option>Other</option>
+        </select>
+      </div>
+      <div><label>CAN bus</label><select id="dBus"><option>rio</option><option>canivore</option></select></div>
+      <button class="full primary" id="add">+ Add device</button>
+    </div>
+    <div class="devs" id="devs"></div>
+    <div class="exp">
+      <button id="sample">Sample swerve</button>
+      <button id="clear">Clear</button>
+      <button id="print">🖨 Print</button>
+      <button id="dlSvg">⬇ Diagram SVG</button>
+      <button id="saveJson">💾 Save JSON</button>
+      <button id="loadJson">📂 Load JSON</button>
+    </div>
+    <input type="file" id="loadFile" accept=".json" style="display:none">
+
+    <h2>Default wire length</h2>
+    <label>Used when a device's length is blank · <span id="defLenV" style="color:var(--accent2)">6 ft</span></label>
+    <input type="range" id="defLen" min="2" max="20" step="1" value="6">
+    <p style="font-size:12px;color:var(--muted);margin:8px 0 0">Voltage drop is computed from each run's gauge, current and length. Edit breaker/length per device in the schedule table.</p>
+  </aside>
+
+  <div style="display:flex;flex-direction:column;gap:20px;min-width:0">
+    <div class="card">
+      <h2 class="no-print">Wiring diagram</h2>
+      <div id="warn"></div>
+      <div class="diagram"><svg id="svg" width="760" height="420" viewBox="0 0 760 420"></svg></div>
+      <div class="legend no-print">
+        <span><i style="background:var(--pwr)"></i>+12 V power</span>
+        <span><i style="background:var(--reg)"></i>regulated / low-current</span>
+        <span><i style="background:var(--can)"></i>CAN bus (CANH/CANL)</span>
+        <span><i style="background:var(--sig)"></i>Ethernet / signal</span>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Pre-flight checklist <span style="color:var(--muted);font-weight:600;text-transform:none;letter-spacing:0">· auto-validated</span></h2>
+      <div id="checks"></div>
+    </div>
+    <div class="card">
+      <h2>Optimal recommendations</h2>
+      <div class="recs" id="recs"></div>
+    </div>
+    <div class="card">
+      <h2>Channel &amp; wire schedule</h2>
+      <table><thead><tr><th>Device</th><th>Type</th><th>Chan</th><th>Breaker</th><th>Typ.A</th><th>Len ft</th><th>V-drop</th><th>Wire</th><th>Bus</th></tr></thead>
+        <tbody id="tbody"></tbody></table>
+    </div>
+    <div class="card">
+      <h2>Bill of materials <span class="h2sub" style="color:var(--muted);font-weight:600;text-transform:none;letter-spacing:0">· estimated</span></h2>
+      <table><thead><tr><th>Qty</th><th>Item</th><th>Notes</th></tr></thead><tbody id="bom"></tbody></table>
+      <button id="bomCsv" style="margin-top:10px">⬇ Export BOM (CSV)</button>
+    </div>
+  </div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+// Electrical spec per device type (FRC best practice).
+// br = recommended breaker (A), g = wire gauge, pwr = needs a power channel,
+// typ = typical running current (A, not stall), pneu = pneumatic hub, sol = solenoid channels.
+const SPEC={
+  'Kraken X60':{br:40,g:'12 AWG',pwr:true,typ:12},'Kraken X44':{br:40,g:'12 AWG',pwr:true,typ:8},
+  'Falcon 500':{br:40,g:'12 AWG',pwr:true,typ:12},'NEO':{br:40,g:'12 AWG',pwr:true,typ:12},
+  'NEO Vortex':{br:40,g:'12 AWG',pwr:true,typ:13},'NEO 550':{br:30,g:'14 AWG',pwr:true,typ:6},
+  'Minion':{br:40,g:'12 AWG',pwr:true,typ:11},
+  'CANcoder':{br:0,g:'CAN',pwr:false,typ:0.1},'Pigeon 2':{br:0,g:'CAN',pwr:false,typ:0.1},'CANdi':{br:0,g:'CAN',pwr:false,typ:0.1},
+  'CANdle':{br:20,g:'18 AWG',pwr:true,typ:2},
+  'PH (Pneumatic Hub)':{br:20,g:'14 AWG',pwr:true,typ:1,pneu:true,sol:16},
+  'PCM':{br:20,g:'14 AWG',pwr:true,typ:1,pneu:true,sol:8},
+  'Other':{br:20,g:'—',pwr:true,typ:5},
+};
+const COMPRESSOR_TYP=11;  // running current of a typical FRC compressor (through the PH/PCM)
+const AWG_R={'12 AWG':1.588,'14 AWG':2.525,'16 AWG':4.016,'18 AWG':6.385}; // copper Ω per 1000 ft
+let defLen=6;             // default one-way wire run length (ft)
+// Voltage drop over a 2-conductor run: V = I · 2·len · (Ω/1000ft)/1000
+function vdrop(gauge,amps,lenFt){const r=AWG_R[gauge];return(!r||!amps)?0:amps*2*lenFt*r/1000;}
+function effBr(d,s){return(d.br!=null&&d.br!=='')?+d.br:s.br;}
+function effLen(d){return(d.len!=null&&d.len!=='')?+d.len:defLen;}
+let devices=[], pdu='PDH';
+const KEY='catalyst-wiring-v1', CANKEY='catalyst-canids-v1';
+
+function save(){try{localStorage.setItem(KEY,JSON.stringify({pdu,devices}))}catch{}}
+function load(){try{const o=JSON.parse(localStorage.getItem(KEY));if(o){pdu=o.pdu||'PDH';devices=o.devices||[]}}catch{}}
+
+$('pdu').onchange=()=>{pdu=$('pdu').value;render()};
+$('add').onclick=()=>{const n=$('dName').value.trim()||$('dType').value;
+  devices.push({name:n,type:$('dType').value,bus:$('dBus').value});$('dName').value='';render()};
+$('clear').onclick=()=>{if(confirm('Clear all devices?')){devices=[];render()}};
+$('import').onclick=()=>{
+  try{const o=JSON.parse(localStorage.getItem(CANKEY));
+    if(!o||!o.length&&!(o.devices)){alert('No CAN ID Planner data found. Open the CAN ID Planner and add devices first.');return;}
+    const list=Array.isArray(o)?o:o.devices||[];
+    devices=list.filter(d=>SPEC[d.type]||d.type==='PDH'? d.type!=='PDH':true)
+                .map(d=>({name:d.name||d.type,type:SPEC[d.type]?d.type:'Other',bus:d.bus||'rio'}));
+    alert('Imported '+devices.length+' device(s) from the CAN ID Planner.');render();
+  }catch{alert('Could not read CAN ID Planner data.')}
+};
+$('sample').onclick=()=>{
+  devices=[
+    ['FL Drive','Kraken X60'],['FL Steer','Kraken X60'],['FL Encoder','CANcoder'],
+    ['FR Drive','Kraken X60'],['FR Steer','Kraken X60'],['FR Encoder','CANcoder'],
+    ['BL Drive','Kraken X60'],['BL Steer','Kraken X60'],['BL Encoder','CANcoder'],
+    ['BR Drive','Kraken X60'],['BR Steer','Kraken X60'],['BR Encoder','CANcoder'],
+    ['Pigeon','Pigeon 2'],['Intake','Kraken X44'],['Shooter','Kraken X60'],['LEDs','CANdle'],
+  ].map(([name,type])=>({name,type,bus:'rio'}));
+  render();
+};
+$('print').onclick=()=>window.print();
+// edit breaker / wire length inline in the schedule (delegated; survives re-render)
+$('tbody').addEventListener('change',e=>{
+  const inp=e.target.closest('input.cell'); if(!inp) return;
+  const i=+inp.dataset.i, f=inp.dataset.f, v=inp.value.trim();
+  devices[i][f] = v==='' ? undefined : (f==='br' ? Math.max(0,Math.min(120,+v||0)) : Math.max(1,+v||defLen));
+  render();
+});
+$('defLen').oninput=()=>{defLen=+$('defLen').value;$('defLenV').textContent=defLen+' ft';render();};
+$('dlSvg').onclick=()=>{const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([$('svg').outerHTML],{type:'image/svg+xml'}));a.download='catalyst-wiring.svg';a.click();};
+$('saveJson').onclick=()=>{const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify({catalyst:'wiring',pdu,defLen,devices},null,2)],{type:'application/json'}));a.download='catalyst-wiring.json';a.click();};
+$('loadJson').onclick=()=>$('loadFile').click();
+$('loadFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{try{const o=JSON.parse(r.result);if(o.devices){devices=o.devices;pdu=o.pdu||pdu;
+    if(o.defLen){defLen=o.defLen;$('defLen').value=defLen;$('defLenV').textContent=defLen+' ft';}render();}}
+    catch{alert('Invalid wiring JSON.')}};r.readAsText(f);};
+
+function pduChannels(){return pdu==='PDH'?{hi:20,hiA:40,lo:3,loA:15}:{hi:8,hiA:40,lo:8,loA:30};}
+
+function render(){
+  $('pdu').value=pdu; save();
+  // device list
+  $('devs').innerHTML=devices.map((d,i)=>{const s=SPEC[d.type]||SPEC.Other;
+    return `<div class="dev"><span class="nm">${esc(d.name)}</span><span style="color:var(--muted)">${d.type}</span>`
+      +`<span class="br">${s.br?s.br+'A':'CAN'}</span><span class="x" onclick="del(${i})">✕</span></div>`;}).join('')
+    ||'<div style="color:var(--muted);font-size:12px;padding:8px">No devices. Import from the CAN planner or add some.</div>';
+  buildSchedule();
+  drawDiagram();
+  buildRecs();
+  buildBom();
+  buildValidation();
+}
+
+function buildValidation(){
+  const pwr=assigned.filter(a=>a.spec.pwr);
+  const typSum=pwr.reduce((s,a)=>s+(a.spec.typ||0),0)+3+(hasPneu()?COMPRESSOR_TYP:0);
+  const ch=pduChannels(); let hi=0,lo=0;
+  pwr.forEach(a=>{ if(a.br>=40||a.br>ch.loA) hi++; else lo++; });
+  const canivore=devices.some(d=>d.bus==='canivore'), rio=devices.some(d=>d.bus!=='canivore');
+  const vds=assigned.filter(a=>a.spec.pwr).map(a=>vdrop(a.spec.g,a.spec.typ,a.len));
+  const bad=vds.filter(v=>v>0.5).length, warn=vds.filter(v=>v>0.3&&v<=0.5).length;
+  const C=[
+    ['pass','Main breaker & battery','120 A main between battery (+) and the '+pdu+', 6 AWG leads.'],
+    ['pass','RoboRIO & radio powered','RoboRIO on the regulated 12 V output; radio on a low-current channel.'],
+    [hi>ch.hi?'bad':'pass', hi+' / '+ch.hi+' high-current (40 A) channels',
+      hi>ch.hi?'Out of 40 A bays — add a second PDU or an MPM breakout.':'Within the '+pdu+'.'],
+    [lo>ch.lo?'warn':'pass', lo+' / '+ch.lo+' low-current channels',
+      lo>ch.lo?'Exceeded — share via fused breakouts.':'OK.'],
+    ['pass','CAN termination','120 Ω at both ends'+(canivore?'; the CANivore bus needs its own terminator pair too.':' (RoboRIO has one built in).')],
+    [canivore&&rio?'warn':'pass','CAN buses', canivore&&rio?'Two buses (rio + CANivore) — keep them physically separate, each terminated.':'Single CAN bus.'],
+    [typSum>120?'warn':'pass','Running current','~'+typSum.toFixed(0)+' A est.'+(typSum>120?' — over the 120 A main on paper; the breaker is time-delayed, but watch sustained load & brownouts.':' within the 120 A main.')],
+    [bad?'bad':warn?'warn':'pass','Voltage drop', bad? bad+' run(s) over 0.5 V — shorten or up-gauge.' : warn? warn+' run(s) 0.3–0.5 V — acceptable, tighten if you can.' : 'All runs under 0.3 V.'],
+  ];
+  $('checks').innerHTML=C.map(([s,t,d])=>`<div class="chk ${s}"><span class="ic">${s==='pass'?'✓':s==='warn'?'▲':'✕'}</span><div class="t"><b>${t}</b><br><span style="color:var(--muted)">${d}</span></div></div>`).join('');
+}
+function del(i){devices.splice(i,1);render()}
+function esc(t){return(t+'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}
+
+let assigned=[];
+function buildSchedule(){
+  const ch=pduChannels(); let hi=0, lo=0; assigned=[];
+  devices.forEach((d,i)=>{const s=SPEC[d.type]||SPEC.Other; const br=effBr(d,s);
+    let chan='—';
+    if(s.pwr){ if(br>=40||br>ch.loA){ chan='Ch '+(hi); hi++; } else { chan='Ch '+(ch.hi+lo); lo++; } }
+    assigned.push({...d,i,spec:s,br,len:effLen(d),chan});
+  });
+  const t=$('tbody'); t.innerHTML='';
+  t.innerHTML += sysRow('RoboRIO','ctrl','reg 12V/10A','—',2,3,'18 AWG','—');
+  t.innerHTML += sysRow('Radio','radio','low-current','15 A',1,3,'18 AWG','Eth');
+  assigned.forEach(a=>{
+    const vd=a.spec.pwr?vdrop(a.spec.g,a.spec.typ,a.len):0;
+    const vc=vd>0.5?'bad':vd>0.3?'warn':'';
+    t.innerHTML += `<tr><td>${esc(a.name)}</td><td>${a.type}</td><td class="m">${a.chan}</td>`
+      +`<td>${a.spec.pwr?`<input class="cell" data-i="${a.i}" data-f="br" value="${a.br}">`:'—'}</td>`
+      +`<td class="m">${a.spec.typ}</td>`
+      +`<td>${a.spec.pwr?`<input class="cell" data-i="${a.i}" data-f="len" value="${a.len}">`:'—'}</td>`
+      +`<td class="vd ${vc}">${a.spec.pwr?vd.toFixed(2)+' V':'—'}</td>`
+      +`<td class="m">${a.spec.g}</td><td class="m">${a.bus}</td></tr>`;
+  });
+  if(hasPneu()) t.innerHTML += sysRow('Compressor','pneu','PH port','—',COMPRESSOR_TYP,8,'14 AWG','—');
+  const overHi=hi>ch.hi, overLo=lo>ch.lo;
+  $('warn').innerHTML=(overHi||overLo)
+    ? `<div class="warnbar">⚠ ${overHi?hi+' devices need 40A channels but '+pdu+' has only '+ch.hi+'. ':''}${overLo?lo+' low-current devices but only '+ch.lo+' channels. ':''}Add a second PDU or an MPM/MXP breakout.</div>` : '';
+}
+function sysRow(n,t,c,b,typ,len,g,bus){const vd=vdrop(g,typ,len);const vc=vd>0.5?'bad':vd>0.3?'warn':'';
+  return `<tr><td>${n}</td><td>${t}</td><td class="m">${c}</td><td class="m">${b}</td><td class="m">${typ}</td><td class="m">${len}</td><td class="vd ${vc}">${vd?vd.toFixed(2)+' V':'—'}</td><td class="m">${g}</td><td class="m">${bus}</td></tr>`;}
+function hasPneu(){return devices.some(d=>(SPEC[d.type]||{}).pneu);}
+
+function buildRecs(){
+  const pwr=assigned.filter(a=>a.spec.pwr);
+  const totalBr=pwr.reduce((s,a)=>s+a.spec.br,0);
+  const canCount=devices.length;
+  const r=[];
+  r.push(['Main breaker','120 A Cooper-Bussmann between battery (+) and the PDU. 6 AWG battery leads.']);
+  r.push(['Breaker sizing','Krakens / Falcons / NEOs → <b>40 A</b>; NEO 550 → <b>30 A</b>; CANdle → <b>20 A</b>. Snap-action breakers in the PDH high-current bays.']);
+  r.push(['Wire gauge','40 A motor runs → <b>12 AWG</b>; 30 A → <b>14 AWG</b>; RoboRIO / radio / LEDs → <b>18 AWG</b>.']);
+  r.push(['CAN bus','Daisy-chain CANH/CANL through all '+canCount+' device(s). <b>120 Ω termination at BOTH ends</b> — the RoboRIO has one built in; set the PDH switch (or add a resistor) at the far end. Keep CANivore on its own bus if present.']);
+  const typSum=pwr.reduce((s,a)=>s+(a.spec.typ||0),0)+3+(hasPneu()?COMPRESSOR_TYP:0);
+  const heavy=typSum>110;
+  r.push(['Estimated current','~<b>'+typSum.toFixed(0)+' A</b> typical running draw (motors at active-driving average + RoboRIO + radio'+(hasPneu()?' + compressor':'')+'). Peak if every breaker tripped at once would be <b>'+totalBr+' A</b>, but motors never all stall together. '+(heavy?'⚠ That running estimate is high — the 120 A main is time-delayed so brief bursts are fine, but watch sustained current and battery sag on the heaviest mechanisms.':'The 120 A main + an 18 Ah battery carry this comfortably.')]);
+  if(hasPneu()) r.push(['Pneumatics','Compressor wires to the Pneumatic Hub compressor port (not the PDU). Add an analog pressure transducer (PH) or pressure switch (PCM); solenoids plug into the hub\'s channels.']);
+  r.push(['Colors','Red = +12 V, black = ground, twisted yellow/green = CAN. Label both ends of every run.']);
+  $('recs').innerHTML=r.map(([k,v])=>`<div class="r"><b style="min-width:120px">${k}</b><span>${v}</span></div>`).join('');
+}
+
+let bomRows=[];
+function buildBom(){
+  const pwr=assigned.filter(a=>a.spec.pwr);
+  const brk={}; pwr.forEach(a=>{if(a.spec.br) brk[a.spec.br]=(brk[a.spec.br]||0)+1;});
+  const gauge={}; pwr.forEach(a=>{const g=a.spec.g; if(g&&g!=='—'&&g!=='CAN') gauge[g]=(gauge[g]||0)+1;});
+  const canCount=devices.length;
+  const rows=[];
+  rows.push([1, pdu==='PDH'?'REV Power Distribution Hub':'CTRE Power Distribution Panel','CAN-connected; fed from the 120 A main breaker']);
+  rows.push([1,'120 A main breaker','Battery (+) → PDU, with a breaker cover']);
+  rows.push([2,'12 V 18 Ah SLA battery','One on the robot, one charging']);
+  rows.push([2,'Anderson SB-50 connector','Battery + main breaker leads (6 AWG)']);
+  Object.keys(brk).sort((a,b)=>b-a).forEach(sz=>rows.push([brk[sz], sz+' A snap-action breaker','For the '+sz+' A motor channels']));
+  Object.keys(gauge).forEach(g=>{const runs=gauge[g]; rows.push([Math.ceil(runs*12)+' ft', g+' wire (red + black)', runs+' run(s) ≈ 6 ft each, ×2 for +/−']);});
+  rows.push([Math.ceil((canCount+2)*3)+' ft','CAN wire (twisted pair)','Daisy-chain through '+canCount+' device(s) + RoboRIO']);
+  rows.push([1,'120 Ω CAN terminator','Far end of the bus (RoboRIO has one built in)']);
+  rows.push([Math.ceil((canCount+pwr.length)*2),'Ferrules / Wago connectors','Both ends of every power + CAN run']);
+  if(hasPneu()){
+    const sol=devices.filter(d=>(SPEC[d.type]||{}).pneu).reduce((s,d)=>s+((SPEC[d.type]||{}).sol||0),0);
+    rows.push([1,'Compressor','12 V → PH/PCM compressor port']);
+    rows.push([1,'Pressure transducer / switch','PH analog port (or PCM pressure switch)']);
+    rows.push(['≤'+sol,'Solenoid valves','Hub has '+sol+' channels — populate as needed']);
+    rows.push(['—','Pneumatic tubing + fittings','Compressor → tank → regulator → solenoids']);
+  }
+  bomRows=rows;
+  $('bom').innerHTML=rows.map(([q,i,n])=>`<tr><td class="m">${q}</td><td>${esc(i)}</td><td style="color:var(--muted)">${esc(n)}</td></tr>`).join('');
+}
+$('bomCsv').onclick=()=>{
+  const csv='Qty,Item,Notes\n'+bomRows.map(r=>r.map(c=>`"${(''+c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='catalyst-wiring-bom.csv';a.click();
+};
+
+function drawDiagram(){
+  const pwr=assigned.filter(a=>a.spec.pwr);
+  const sys=[{name:'RoboRIO',col:'var(--reg)'},{name:'Radio',col:'var(--reg)'}];
+  const rows=sys.length+pwr.length+(hasPneu()?1:0);
+  const rowH=40, top=70, W=760, H=Math.max(420, top+rows*rowH+40);
+  const pduX=250, pduY=top, pduH=rows*rowH+10, devX=470;
+  const canX=W-26, hasCv=devices.some(d=>d.bus==='canivore'), canX2=canX-26;
+  let s=`<svg id="svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+  const box=(x,y,w,h,fill,stroke,label,sub)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="7" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>`
+    +`<text x="${x+w/2}" y="${y+(sub?h/2-2:h/2+4)}" text-anchor="middle" font-family="ui-sans-serif" font-size="12" font-weight="700" fill="#fff">${label}</text>`
+    +(sub?`<text x="${x+w/2}" y="${y+h/2+13}" text-anchor="middle" font-family="ui-monospace" font-size="10" fill="#9aa3c4">${sub}</text>`:'');
+  const wire=(x1,y1,x2,y2,col,w=2.5)=>`<path d="M${x1},${y1} C${(x1+x2)/2},${y1} ${(x1+x2)/2},${y2} ${x2},${y2}" fill="none" stroke="${col}" stroke-width="${w}"/>`;
+  // battery + main breaker
+  s+=box(24,top+10,90,46,'#10182e','#3a4366','Battery','12 V');
+  s+=box(24,top+78,90,42,'#10182e','#3a4366','Main 120 A','breaker');
+  s+=`<text x="24" y="${top+150}" font-family="ui-monospace" font-size="10" fill="#566087">6 AWG</text>`;
+  s+=wire(114,top+33,pduX,pduY+24,'var(--pwr)',3.5);
+  s+=wire(114,top+99,pduX,pduY+24,'var(--pwr)',2);
+  // PDU
+  s+=box(pduX,pduY,150,pduH,'#16203c','var(--accent)',pdu,pduChannels().hi+'× 40A bays');
+  // CAN rail(s): the RIO bus always, plus a separate CANivore bus if present
+  const rail=(rx,label)=>{
+    s+=`<line x1="${rx}" y1="${top}" x2="${rx}" y2="${H-30}" stroke="var(--can)" stroke-width="2.5"/>`;
+    s+=`<text x="${rx-2}" y="${top-8}" text-anchor="end" font-family="ui-monospace" font-size="10" fill="var(--can)">${label}</text>`;
+    s+=`<circle cx="${rx}" cy="${top}" r="4" fill="var(--can)"/><text x="${rx-8}" y="${top+4}" text-anchor="end" font-size="9" fill="var(--can)">120Ω</text>`;
+    s+=`<circle cx="${rx}" cy="${H-30}" r="4" fill="var(--can)"/><text x="${rx-8}" y="${H-26}" text-anchor="end" font-size="9" fill="var(--can)">120Ω</text>`;
+  };
+  rail(canX, hasCv?'rio CAN':'CAN bus');
+  if(hasCv) rail(canX2,'CANivore');
+  // rows: system then powered devices
+  let y=top;
+  const drawRow=(name,sub,col,railX,fromPduReg)=>{
+    const cy=y+rowH/2;
+    s+=box(devX,y+4,170,rowH-8,'#10182e','#2a3658',name,sub);
+    s+=wire(pduX+150, cy, devX, cy, fromPduReg?'var(--reg)':'var(--pwr)', fromPduReg?2:2.5);
+    if(railX){ s+=`<line x1="${devX+170}" y1="${cy}" x2="${railX}" y2="${cy}" stroke="var(--can)" stroke-width="2"/>`
+              +`<circle cx="${railX}" cy="${cy}" r="3.5" fill="var(--can)"/>`; }
+    y+=rowH;
+  };
+  drawRow('RoboRIO','reg 12V · CAN','var(--reg)',canX,true);
+  drawRow('Radio','PoE / 12V','var(--reg)',null,true);
+  pwr.forEach(a=>{ drawRow(a.name.slice(0,18),a.br+'A · '+a.spec.g+' · '+a.chan,'var(--pwr)', a.bus==='canivore'?canX2:canX, false); });
+  if(hasPneu()) drawRow('Compressor','via PH port · '+COMPRESSOR_TYP+'A','var(--pwr)',null,false);
+  // CAN-only sensors (no power row) — tap onto their bus rail
+  const canOnly=assigned.filter(a=>!a.spec.pwr);
+  if(canOnly.length){ s+=`<text x="${devX}" y="${y+22}" font-family="ui-sans-serif" font-size="11" fill="#9aa3c4">CAN-only: ${canOnly.map(a=>esc(a.name)).join(', ').slice(0,56)}</text>`;
+    s+=`<line x1="${devX+250}" y1="${y+18}" x2="${canX}" y2="${y+18}" stroke="var(--can)" stroke-width="2"/>`;
+    if(hasCv&&canOnly.some(a=>a.bus==='canivore')) s+=`<line x1="${devX+250}" y1="${y+18}" x2="${canX2}" y2="${y+18}" stroke="var(--can)" stroke-width="2"/>`; }
+  s+='</svg>';
+  $('svg').outerHTML=s;
+}
+
+load();render();
+</script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "_comment": "Authoritative Catalyst MotorType presets (from frc.lib.catalyst.hardware.MotorType). Nominal 12 V.",
+  "motors": [
+    { "id": "KRAKEN_X60",     "name": "Kraken X60",     "vendor": "CTRE", "stallTorqueNm": 7.09, "freeSpeedRPM": 6000,  "stallCurrentA": 366, "freeCurrentA": 2.0 },
+    { "id": "KRAKEN_X60_FOC", "name": "Kraken X60 FOC", "vendor": "CTRE", "stallTorqueNm": 9.37, "freeSpeedRPM": 5800,  "stallCurrentA": 483, "freeCurrentA": 2.0 },
+    { "id": "KRAKEN_X44",     "name": "Kraken X44",     "vendor": "CTRE", "stallTorqueNm": 4.05, "freeSpeedRPM": 7530,  "stallCurrentA": 275, "freeCurrentA": 1.4 },
+    { "id": "KRAKEN_X44_FOC", "name": "Kraken X44 FOC", "vendor": "CTRE", "stallTorqueNm": 5.45, "freeSpeedRPM": 7200,  "stallCurrentA": 366, "freeCurrentA": 1.4 },
+    { "id": "FALCON_500",     "name": "Falcon 500",     "vendor": "CTRE", "stallTorqueNm": 4.69, "freeSpeedRPM": 6380,  "stallCurrentA": 257, "freeCurrentA": 1.5 },
+    { "id": "FALCON_500_FOC", "name": "Falcon 500 FOC", "vendor": "CTRE", "stallTorqueNm": 5.84, "freeSpeedRPM": 6080,  "stallCurrentA": 304, "freeCurrentA": 1.5 },
+    { "id": "MINION",         "name": "Minion",         "vendor": "WCP",  "stallTorqueNm": 3.1,  "freeSpeedRPM": 7200,  "stallCurrentA": 200, "freeCurrentA": 1.5 },
+    { "id": "NEO",            "name": "NEO",            "vendor": "REV",  "stallTorqueNm": 2.6,  "freeSpeedRPM": 5676,  "stallCurrentA": 105, "freeCurrentA": 1.8 },
+    { "id": "NEO_VORTEX",     "name": "NEO Vortex",     "vendor": "REV",  "stallTorqueNm": 3.6,  "freeSpeedRPM": 6784,  "stallCurrentA": 211, "freeCurrentA": 3.6 },
+    { "id": "NEO_550",        "name": "NEO 550",        "vendor": "REV",  "stallTorqueNm": 0.97, "freeSpeedRPM": 11000, "stallCurrentA": 100, "freeCurrentA": 1.4 }
+  ]
+}

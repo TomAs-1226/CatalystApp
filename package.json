@@ -1,0 +1,14 @@
+{
+  "name": "catalyst-app",
+  "version": "1.4.0",
+  "description": "FrcCatalyst desktop companion (Tauri)",
+  "private": true,
+  "scripts": {
+    "tauri": "tauri",
+    "dev": "tauri dev",
+    "build": "tauri build"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2"
+  }
+}

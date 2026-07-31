@@ -1,0 +1,1416 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Catalyst Builder</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root {
+      --bg: #1a1a2e;
+      --panel: #16213e;
+      --panel2: #0f1a30;
+      --accent: #e94560;
+      --accent2: #f0648a;
+      --text: #f4f4f8;
+      --muted: #8a8aa8;
+      --good: #4caf50;
+      --warn: #ffb020;
+      --border: #2a3050;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, "SF Pro Text", Segoe UI, sans-serif;
+      min-height: 100vh;
+    }
+    header {
+      padding: 18px 28px;
+      background: linear-gradient(180deg, var(--panel) 0%, var(--bg) 100%);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+    }
+    header h1 {
+      margin: 0; font-size: 18px; font-weight: 700; letter-spacing: 0.2px;
+    }
+    header .badge {
+      display: inline-block; padding: 2px 10px; border-radius: 999px;
+      background: var(--accent); color: #fff; font-size: 11px; font-weight: 600;
+    }
+    header .hint { color: var(--muted); font-size: 13px; }
+    main {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 0;
+      min-height: calc(100vh - 60px);
+    }
+    aside {
+      background: var(--panel2);
+      border-right: 1px solid var(--border);
+      padding: 18px 14px;
+      overflow-y: auto;
+    }
+    aside h2 {
+      margin: 0 0 10px;
+      font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px;
+      color: var(--muted); font-weight: 700;
+    }
+    .mech-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 18px; }
+
+    /* ---------- Quick-start presets ---------- */
+    .preset-list {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+      margin-bottom: 18px;
+    }
+    .preset-btn-card {
+      display: flex; flex-direction: column; align-items: flex-start;
+      padding: 8px 10px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer; color: var(--text);
+      font-family: inherit;
+      transition: transform 0.12s ease, border-color 0.12s ease,
+                  background 0.12s ease;
+      text-align: left;
+    }
+    .preset-btn-card:hover {
+      transform: translateY(-1px);
+      border-color: var(--accent);
+      background: rgba(233,69,96,0.06);
+    }
+    .preset-btn-card .pname {
+      font-weight: 700; font-size: 12px; color: var(--accent2);
+    }
+    .preset-btn-card .pmech {
+      font-size: 10px; color: var(--muted);
+      margin-top: 2px;
+    }
+    .mech-btn {
+      display: block; width: 100%; text-align: left;
+      background: transparent; color: var(--text);
+      border: 1px solid transparent; border-radius: 8px;
+      padding: 9px 12px; cursor: pointer; font-size: 14px;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .mech-btn:hover { background: rgba(255,255,255,0.04); }
+    .mech-btn.active {
+      background: rgba(233,69,96,0.12);
+      border-color: var(--accent);
+      color: var(--accent2);
+      font-weight: 600;
+    }
+    .mech-btn .mech-sub {
+      display: block; font-size: 11px; color: var(--muted); margin-top: 2px;
+    }
+    .form-area {
+      padding: 20px 24px;
+      overflow-y: auto;
+      border-right: 1px solid var(--border);
+    }
+    .field-group {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 14px;
+    }
+    .field-group h3 {
+      margin: 0 0 12px;
+      font-size: 12px; text-transform: uppercase; letter-spacing: 1px;
+      color: var(--muted); font-weight: 700;
+    }
+    .row { display: grid; grid-template-columns: 160px 1fr; gap: 12px; align-items: center; margin-bottom: 10px; }
+    .row:last-child { margin-bottom: 0; }
+    .row label { color: var(--muted); font-size: 13px; }
+    .row label .opt { font-style: italic; opacity: 0.6; font-size: 11px; }
+    .row input[type=text], .row input[type=number], .row select {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 6px;
+      padding: 7px 10px;
+      font-size: 13px;
+      width: 100%;
+      font-family: inherit;
+    }
+    .row input[type=text]:focus, .row input[type=number]:focus, .row select:focus {
+      border-color: var(--accent); outline: none;
+    }
+    .row input[type=checkbox] { transform: scale(1.15); }
+    .row.subrow { grid-template-columns: 160px repeat(3, 1fr); gap: 8px; }
+    .row.subrow input { padding: 6px 8px; font-size: 12px; }
+    .followers { display: flex; flex-direction: column; gap: 6px; }
+    .follower-row { display: grid; grid-template-columns: 1fr auto auto; gap: 6px; align-items: center; }
+    .follower-row input { padding: 5px 8px; font-size: 12px; }
+    .pos-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 6px; align-items: center; }
+    .pos-row input { padding: 5px 8px; font-size: 12px; }
+    .help-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 15px; height: 15px; margin-left: 6px; border-radius: 50%;
+      border: 1px solid var(--muted); color: var(--muted);
+      font-size: 10px; font-weight: 700; cursor: help; user-select: none; vertical-align: middle;
+    }
+    .help-badge:hover { border-color: var(--accent); color: var(--accent); }
+    .btn {
+      background: var(--accent);
+      color: #fff;
+      border: none; border-radius: 6px;
+      padding: 7px 12px;
+      font-size: 12px; font-weight: 600;
+      cursor: pointer;
+    }
+    .btn:hover { background: var(--accent2); }
+    .btn.ghost {
+      background: transparent; color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn.ghost:hover { border-color: var(--accent); color: var(--accent2); }
+    .btn.danger { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+    .btn.danger:hover { background: var(--accent); color: #fff; }
+    .preview-area {
+      background: var(--panel2);
+      padding: 20px 24px;
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    .preview-area .preview-head {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 12px;
+    }
+    .preview-area .preview-head h2 {
+      margin: 0; font-size: 12px; text-transform: uppercase;
+      letter-spacing: 1.2px; color: var(--muted); font-weight: 700;
+    }
+    .preview-area pre {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 18px;
+      font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 13px;
+      line-height: 1.5;
+      overflow: auto;
+      flex: 1;
+      margin: 0;
+      color: #d9e0f0;
+      white-space: pre;
+    }
+    .preview-area pre .kw { color: #ef798a; }
+    .preview-area pre .lit { color: #f4d35e; }
+    .preview-area pre .str { color: #9ee493; }
+    .preview-area pre .cmt { color: var(--muted); font-style: italic; }
+    .toast {
+      position: fixed; bottom: 20px; right: 20px;
+      background: var(--good); color: #082; padding: 10px 16px;
+      border-radius: 8px; font-weight: 600; opacity: 0;
+      transition: opacity 0.2s; pointer-events: none;
+    }
+    .toast.show { opacity: 1; }
+    .credit {
+      padding: 14px 24px; color: var(--muted); font-size: 12px;
+      border-top: 1px solid var(--border); background: var(--panel2);
+    }
+    .credit a { color: var(--accent2); text-decoration: none; }
+    .credit a:hover { text-decoration: underline; }
+    .mode-toggle {
+      display: inline-flex; align-items: center; gap: 6px;
+      color: var(--muted); font-size: 12px; margin-right: 6px;
+      cursor: pointer; user-select: none;
+    }
+    .mode-toggle input { margin: 0; }
+    .persist-note {
+      margin-top: 8px; font-size: 11px; color: var(--muted);
+    }
+    .persist-note a { color: var(--accent2); text-decoration: none; }
+    .persist-note a:hover { text-decoration: underline; }
+    dialog {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      padding: 18px 22px;
+      max-width: 640px; width: 90vw;
+    }
+    dialog::backdrop { background: rgba(0,0,0,0.55); }
+    dialog h3 { color: var(--accent2); }
+    dialog textarea {
+      width: 100%; min-height: 240px;
+      background: var(--bg); color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      font-size: 12px; padding: 10px;
+      resize: vertical;
+    }
+    dialog .dialog-row {
+      display: flex; gap: 8px; justify-content: flex-end;
+      margin-top: 14px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Catalyst Builder</h1>
+  <span class="badge" id="version">v1.3.3</span>
+  <span class="hint">Generate ready-to-paste mechanism config code.</span>
+</header>
+
+<main>
+  <aside>
+    <h2>Quick start</h2>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">
+      One click fills the form with recommended values for a typical subsystem.
+    </div>
+    <div class="preset-list" id="presetList"></div>
+
+    <h2>Mechanism</h2>
+    <div class="mech-list" id="mechList"></div>
+
+    <h2>Tips</h2>
+    <div style="font-size:12px;color:var(--muted);line-height:1.55;">
+      Fill the form and the Java updates live. Empty fields are omitted from
+      the builder, so the library's own defaults apply. Hover the <b>?</b> next to
+      a field for what it does. Click <b>Full wrapper class</b> in the preview
+      header to wrap the snippet in a small holder class with a <code>get()</code>
+      accessor (the mechanism is already a subsystem, so it isn't wrapped in a
+      second <code>SubsystemBase</code>).
+    </div>
+  </aside>
+
+  <div class="form-area" id="formArea"></div>
+
+  <div class="preview-area">
+    <div class="preview-head">
+      <h2>Generated <span id="modeLabel">config</span></h2>
+      <div>
+        <label class="mode-toggle">
+          <input type="checkbox" id="fullClassToggle"> <span>Full wrapper class</span>
+        </label>
+        <button class="btn ghost" id="importBtn" title="Paste an existing config snippet to populate the form">Import</button>
+        <button class="btn ghost" id="downloadBtn" title="Download as .java file">Download</button>
+        <button class="btn ghost" id="resetBtn">Reset</button>
+        <button class="btn" id="copyBtn">Copy</button>
+      </div>
+    </div>
+    <pre id="preview"></pre>
+    <div class="persist-note" id="persistNote">Auto-saved to this browser • <a href="#" id="clearAllBtn">clear all saved data</a></div>
+  </div>
+</main>
+
+<!-- Import dialog -->
+<dialog id="importDialog">
+  <h3 style="margin-top:0">Import existing config</h3>
+  <p style="color:var(--muted);font-size:13px;margin-top:0">
+    Paste a Catalyst <code>Foo.Config.builder()...build()</code> snippet below.
+    The form on the left will populate from it. Anything that doesn't parse
+    cleanly is skipped.
+  </p>
+  <textarea id="importInput" placeholder="LinearMechanism.Config.builder()&#10;    .name(&quot;Elevator&quot;)&#10;    .motor(20)..."></textarea>
+  <div class="dialog-row">
+    <button class="btn ghost" id="importCancelBtn">Cancel</button>
+    <button class="btn" id="importApplyBtn">Import</button>
+  </div>
+</dialog>
+
+<div class="credit">
+  Inspired by <a href="https://yteam3211.github.io/frc-catalyst-subsystem-generator" target="_blank" rel="noopener">tcrvo / yteam3211's FRC Catalyst Subsystem Generator</a> — thanks!
+</div>
+
+<div class="toast" id="toast">Copied</div>
+
+<script>
+  // ============================================================
+  // Mechanism schemas — single source of truth for what fields
+  // each mechanism exposes and how they map onto the Java builder.
+  // ============================================================
+  const SCHEMA = {
+    linear: {
+      label: "LinearMechanism",
+      sub: "Elevator, telescope, lift",
+      java: "LinearMechanism",
+      groups: [
+        { title: "Identity", fields: [
+          { id: "name", label: "name", type: "text", placeholder: "Elevator", required: true },
+          { id: "motor", label: "motor CAN ID", type: "int", placeholder: "20", required: true, builder: "motor" },
+          { id: "canBus", label: "canBus", type: "text", placeholder: "rio (or canivore)", builder: "canBus" },
+          { id: "motorType", label: "motorType", type: "motorType", builder: "motorType" },
+          { id: "inverted", label: "inverted", type: "bool", builder: "inverted" },
+        ]},
+        { title: "Followers", fields: [
+          { id: "followers", label: "followers", type: "followers", builder: "follower" },
+        ]},
+        { title: "Geometry", fields: [
+          { id: "gearRatio", label: "gearRatio", type: "double", placeholder: "10.0", builder: "gearRatio" },
+          { id: "drumRadius", label: "drumRadius (m)", type: "double", placeholder: "0.0254", builder: "drumRadius" },
+          { id: "minPos", label: "min position (m)", type: "double", placeholder: "0.0", builder: "range", group: "range" },
+          { id: "maxPos", label: "max position (m)", type: "double", placeholder: "1.2", builder: "range", group: "range" },
+        ]},
+        { title: "Limits", fields: [
+          { id: "currentLimit", label: "currentLimit (A)", type: "double", placeholder: "40", builder: "currentLimit" },
+          { id: "statorCurrentLimit", label: "statorCurrentLimit (A)", type: "double", placeholder: "80", builder: "statorCurrentLimit" },
+          { id: "tolerance", label: "tolerance (m)", type: "double", placeholder: "0.01", builder: "positionTolerance" },
+        ]},
+        { title: "Control", fields: [
+          { id: "kP", label: "kP", type: "double", builder: "pid", group: "pid" },
+          { id: "kI", label: "kI", type: "double", builder: "pid", group: "pid" },
+          { id: "kD", label: "kD", type: "double", builder: "pid", group: "pid" },
+          { id: "kS", label: "kS", type: "double", builder: "feedforward", group: "ff" },
+          { id: "kV", label: "kV", type: "double", builder: "feedforward", group: "ff" },
+          { id: "kA", label: "kA", type: "double", builder: "feedforward", group: "ff" },
+          { id: "kG", label: "kG", type: "double", builder: "gravityGain" },
+          { id: "mmCruise", label: "MM cruise (rps)", type: "double", builder: "motionMagic", group: "mm" },
+          { id: "mmAccel", label: "MM accel (rps²)", type: "double", builder: "motionMagic", group: "mm" },
+          { id: "mmJerk", label: "MM jerk (rps³)", type: "double", builder: "motionMagic", group: "mm" },
+        ]},
+        { title: "Named positions", fields: [
+          { id: "positions", label: "named positions", type: "positions", builder: "position" },
+        ]},
+      ],
+    },
+
+    rotational: {
+      label: "RotationalMechanism",
+      sub: "Arm, turret, pivot",
+      java: "RotationalMechanism",
+      groups: [
+        { title: "Identity", fields: [
+          { id: "name", label: "name", type: "text", placeholder: "Arm", required: true },
+          { id: "motor", label: "motor CAN ID", type: "int", placeholder: "30", required: true, builder: "motor" },
+          { id: "canBus", label: "canBus", type: "text", builder: "canBus" },
+          { id: "motorType", label: "motorType", type: "motorType", builder: "motorType" },
+          { id: "inverted", label: "inverted", type: "bool", builder: "inverted" },
+        ]},
+        { title: "Followers", fields: [
+          { id: "followers", label: "followers", type: "followers", builder: "follower" },
+        ]},
+        { title: "Geometry", fields: [
+          { id: "gearRatio", label: "gearRatio", type: "double", placeholder: "100.0", builder: "gearRatio" },
+          { id: "minPos", label: "min angle (deg)", type: "double", placeholder: "-90", builder: "range", group: "range" },
+          { id: "maxPos", label: "max angle (deg)", type: "double", placeholder: "90", builder: "range", group: "range" },
+        ]},
+        { title: "Limits", fields: [
+          { id: "currentLimit", label: "currentLimit (A)", type: "double", builder: "currentLimit" },
+          { id: "statorCurrentLimit", label: "statorCurrentLimit (A)", type: "double", builder: "statorCurrentLimit" },
+          { id: "tolerance", label: "tolerance (deg)", type: "double", placeholder: "1.0", builder: "tolerance" },
+        ]},
+        { title: "Control", fields: [
+          { id: "kP", label: "kP", type: "double", builder: "pid", group: "pid" },
+          { id: "kI", label: "kI", type: "double", builder: "pid", group: "pid" },
+          { id: "kD", label: "kD", type: "double", builder: "pid", group: "pid" },
+          { id: "kS", label: "kS", type: "double", builder: "feedforward", group: "ff" },
+          { id: "kV", label: "kV", type: "double", builder: "feedforward", group: "ff" },
+          { id: "kA", label: "kA", type: "double", builder: "feedforward", group: "ff" },
+          { id: "kG", label: "kG (gravity)", type: "double", builder: "gravityGain" },
+          { id: "mmCruise", label: "MM cruise (rps)", type: "double", builder: "motionMagic", group: "mm" },
+          { id: "mmAccel", label: "MM accel (rps²)", type: "double", builder: "motionMagic", group: "mm" },
+          { id: "mmJerk", label: "MM jerk (rps³)", type: "double", builder: "motionMagic", group: "mm" },
+        ]},
+        { title: "Named positions", fields: [
+          { id: "positions", label: "named positions", type: "positions", builder: "position" },
+        ]},
+      ],
+    },
+
+    flywheel: {
+      label: "FlywheelMechanism",
+      sub: "Shooter, hopper",
+      java: "FlywheelMechanism",
+      groups: [
+        { title: "Identity", fields: [
+          { id: "name", label: "name", type: "text", placeholder: "Shooter", required: true },
+          { id: "motor", label: "primary CAN ID", type: "int", placeholder: "50", required: true, builder: "motor" },
+          { id: "secondMotor", label: "secondary CAN ID (opt)", type: "int", builder: "secondMotor" },
+          { id: "canBus", label: "canBus", type: "text", builder: "canBus" },
+          { id: "motorType", label: "motorType", type: "motorType", builder: "motorType" },
+          { id: "primaryInverted", label: "primaryInverted", type: "bool", builder: "primaryInverted" },
+          { id: "secondaryInverted", label: "secondaryInverted", type: "bool", builder: "secondaryInverted" },
+        ]},
+        { title: "Followers", fields: [
+          { id: "primaryFollowers", label: "primary followers", type: "followers", builder: "primaryFollower" },
+          { id: "secondaryFollowers", label: "secondary followers", type: "followers", builder: "secondaryFollower" },
+        ]},
+        { title: "Physics", fields: [
+          { id: "gearRatio", label: "gearRatio", type: "double", placeholder: "1.0", builder: "gearRatio" },
+          { id: "moi", label: "MoI (kg·m²)", type: "double", placeholder: "0.01", builder: "moi" },
+          { id: "tolerance", label: "velocity tol (rps)", type: "double", placeholder: "3.0", builder: "velocityTolerance" },
+        ]},
+        { title: "Limits", fields: [
+          { id: "currentLimit", label: "currentLimit (A)", type: "double", builder: "currentLimit" },
+          { id: "statorCurrentLimit", label: "statorCurrentLimit (A)", type: "double", builder: "statorCurrentLimit" },
+        ]},
+        { title: "Control", fields: [
+          { id: "kP", label: "kP", type: "double", builder: "pid", group: "pid" },
+          { id: "kI", label: "kI", type: "double", builder: "pid", group: "pid" },
+          { id: "kD", label: "kD", type: "double", builder: "pid", group: "pid" },
+          { id: "kS", label: "kS", type: "double", builder: "feedforward", group: "ff" },
+          { id: "kV", label: "kV", type: "double", builder: "feedforward", group: "ff" },
+          { id: "kA", label: "kA", type: "double", builder: "feedforward", group: "ff" },
+        ]},
+      ],
+    },
+
+    roller: {
+      label: "RollerMechanism",
+      sub: "Intake, indexer",
+      java: "RollerMechanism",
+      groups: [
+        { title: "Identity", fields: [
+          { id: "name", label: "name", type: "text", placeholder: "Intake", required: true },
+          { id: "motor", label: "motor CAN ID", type: "int", placeholder: "40", required: true, builder: "motor" },
+          { id: "canBus", label: "canBus", type: "text", builder: "canBus" },
+          { id: "inverted", label: "inverted", type: "bool", builder: "inverted" },
+          { id: "brakeMode", label: "brakeMode", type: "bool", builder: "brakeMode" },
+        ]},
+        { title: "Followers", fields: [
+          { id: "followers", label: "followers", type: "followers", builder: "follower" },
+        ]},
+        { title: "Limits", fields: [
+          { id: "currentLimit", label: "currentLimit (A)", type: "double", builder: "currentLimit" },
+          { id: "statorCurrentLimit", label: "statorCurrentLimit (A)", type: "double", builder: "statorCurrentLimit" },
+        ]},
+        { title: "Speeds", fields: [
+          { id: "intakeSpeed", label: "intake speed [-1,1]", type: "double", placeholder: "0.8", builder: "intakeSpeed" },
+          { id: "ejectSpeed", label: "eject speed [-1,1]", type: "double", placeholder: "-0.6", builder: "ejectSpeed" },
+        ]},
+        { title: "Detection", fields: [
+          { id: "stallAmps", label: "stall current (A)", type: "double", builder: "stallDetection", group: "stall" },
+          { id: "stallTime", label: "stall time (s)", type: "double", placeholder: "0.2", builder: "stallDetection", group: "stall" },
+          { id: "beamBreak", label: "beam break DIO", type: "int", builder: "beamBreak" },
+        ]},
+      ],
+    },
+
+    winch: {
+      label: "WinchMechanism",
+      sub: "Climber, deployment",
+      java: "WinchMechanism",
+      groups: [
+        { title: "Identity", fields: [
+          { id: "name", label: "name", type: "text", placeholder: "Climber", required: true },
+          { id: "motor", label: "motor CAN ID", type: "int", required: true, builder: "motor" },
+          { id: "secondMotor", label: "second motor (opt)", type: "int", builder: "secondMotor" },
+          { id: "canBus", label: "canBus", type: "text", builder: "canBus" },
+          { id: "inverted", label: "inverted", type: "bool", builder: "inverted" },
+          { id: "secondInverted", label: "secondInverted", type: "bool", builder: "secondInverted" },
+        ]},
+        { title: "Geometry", fields: [
+          { id: "gearRatio", label: "gearRatio", type: "double", placeholder: "25.0", builder: "gearRatio" },
+          { id: "spoolRadius", label: "spoolRadius (m)", type: "double", placeholder: "0.02", builder: "spoolRadius" },
+          { id: "minPos", label: "min extension (m)", type: "double", placeholder: "0.0", builder: "range", group: "range" },
+          { id: "maxPos", label: "max extension (m)", type: "double", placeholder: "0.6", builder: "range", group: "range" },
+        ]},
+        { title: "Limits / speeds", fields: [
+          { id: "currentLimit", label: "currentLimit (A)", type: "double", placeholder: "80", builder: "currentLimit" },
+          { id: "statorCurrentLimit", label: "statorCurrentLimit (A)", type: "double", placeholder: "120", builder: "statorCurrentLimit" },
+          { id: "extendSpeed", label: "extend speed", type: "double", placeholder: "0.8", builder: "extendSpeed" },
+          { id: "retractSpeed", label: "retract speed", type: "double", placeholder: "-1.0", builder: "retractSpeed" },
+        ]},
+      ],
+    },
+
+    claw: {
+      label: "ClawMechanism",
+      sub: "Motor-driven gripper",
+      java: "ClawMechanism",
+      groups: [
+        { title: "Identity", fields: [
+          { id: "name", label: "name", type: "text", placeholder: "Claw", required: true },
+          { id: "motor", label: "motor CAN ID", type: "int", required: true, builder: "motor" },
+          { id: "canBus", label: "canBus", type: "text", builder: "canBus" },
+          { id: "inverted", label: "inverted", type: "bool", builder: "inverted" },
+          { id: "brakeMode", label: "brakeMode", type: "bool", builder: "brakeMode", defaultVal: true },
+        ]},
+        { title: "Followers", fields: [
+          { id: "followers", label: "followers", type: "followers", builder: "follower" },
+        ]},
+        { title: "Limits", fields: [
+          { id: "currentLimit", label: "currentLimit (A)", type: "double", builder: "currentLimit" },
+          { id: "statorCurrentLimit", label: "statorCurrentLimit (A)", type: "double", builder: "statorCurrentLimit" },
+        ]},
+        { title: "Voltages", fields: [
+          { id: "closeVoltage", label: "close voltage", type: "double", placeholder: "6.0", builder: "closeVoltage" },
+          { id: "openVoltage", label: "open voltage", type: "double", placeholder: "-4.0", builder: "openVoltage" },
+          { id: "holdVoltage", label: "hold voltage", type: "double", placeholder: "1.5", builder: "holdVoltage" },
+        ]},
+        { title: "Detection", fields: [
+          { id: "stallAmps", label: "stall current (A)", type: "double", builder: "stallDetection", group: "stall" },
+          { id: "stallTime", label: "stall time (s)", type: "double", placeholder: "0.2", builder: "stallDetection", group: "stall" },
+          { id: "beamBreak", label: "beam break DIO", type: "int", builder: "beamBreak" },
+        ]},
+      ],
+    },
+
+    diffwrist: {
+      label: "DifferentialWristMechanism",
+      sub: "Diffy wrist (CTRE native)",
+      java: "DifferentialWristMechanism",
+      groups: [
+        { title: "Identity", fields: [
+          { id: "name", label: "name", type: "text", placeholder: "Wrist", required: true },
+          { id: "leftMotor", label: "left CAN ID (master)", type: "int", required: true, builder: "leftMotor" },
+          { id: "rightMotor", label: "right CAN ID (slave)", type: "int", required: true, builder: "rightMotor" },
+          { id: "canBus", label: "canBus", type: "text", builder: "canBus" },
+          { id: "leftInverted", label: "leftInverted", type: "bool", builder: "leftInverted" },
+          { id: "rightInverted", label: "rightInverted", type: "bool", builder: "rightInverted" },
+        ]},
+        { title: "Geometry", fields: [
+          { id: "gearRatio", label: "gearRatio", type: "double", placeholder: "20.0", builder: "gearRatio" },
+          { id: "minPitch", label: "min pitch (deg)", type: "double", placeholder: "-90", builder: "pitchRange", group: "pitch" },
+          { id: "maxPitch", label: "max pitch (deg)", type: "double", placeholder: "90", builder: "pitchRange", group: "pitch" },
+          { id: "minRoll", label: "min roll (deg)", type: "double", placeholder: "-180", builder: "rollRange", group: "roll" },
+          { id: "maxRoll", label: "max roll (deg)", type: "double", placeholder: "180", builder: "rollRange", group: "roll" },
+          { id: "tolerance", label: "tolerance (deg)", type: "double", placeholder: "2.0", builder: "tolerance" },
+        ]},
+        { title: "Limits", fields: [
+          { id: "currentLimit", label: "currentLimit (A)", type: "double", builder: "currentLimit" },
+          { id: "statorCurrentLimit", label: "statorCurrentLimit (A)", type: "double", builder: "statorCurrentLimit" },
+        ]},
+        { title: "Pitch (Slot 0)", fields: [
+          { id: "kP", label: "kP", type: "double", builder: "pid", group: "pid" },
+          { id: "kI", label: "kI", type: "double", builder: "pid", group: "pid" },
+          { id: "kD", label: "kD", type: "double", builder: "pid", group: "pid" },
+          { id: "kS", label: "kS", type: "double", builder: "feedforward", group: "ff" },
+          { id: "kV", label: "kV", type: "double", builder: "feedforward", group: "ff" },
+          { id: "kA", label: "kA", type: "double", builder: "feedforward", group: "ff" },
+        ]},
+        { title: "Roll (Slot 1 — optional)", fields: [
+          { id: "diffKP", label: "diff kP", type: "double", builder: "differentialPid", group: "diffpid" },
+          { id: "diffKI", label: "diff kI", type: "double", builder: "differentialPid", group: "diffpid" },
+          { id: "diffKD", label: "diff kD", type: "double", builder: "differentialPid", group: "diffpid" },
+        ]},
+        { title: "Motion Magic", fields: [
+          { id: "mmCruise", label: "MM cruise (rps)", type: "double", builder: "motionMagic", group: "mm" },
+          { id: "mmAccel", label: "MM accel (rps²)", type: "double", builder: "motionMagic", group: "mm" },
+          { id: "mmJerk", label: "MM jerk (rps³)", type: "double", builder: "motionMagic", group: "mm" },
+        ]},
+      ],
+    },
+
+    pneumatic: {
+      label: "PneumaticMechanism",
+      sub: "Solenoid / piston",
+      java: "PneumaticMechanism",
+      groups: [
+        { title: "Identity", fields: [
+          { id: "name", label: "name", type: "text", placeholder: "ClimbHook", required: true },
+        ]},
+        { title: "Solenoid", fields: [
+          { id: "moduleType", label: "module", type: "enum", options: ["REVPH", "CTREPCM"], defaultVal: "REVPH" },
+          { id: "isDouble", label: "double solenoid", type: "bool", defaultVal: true },
+          { id: "forwardChannel", label: "forward channel", type: "int", placeholder: "0", required: true },
+          { id: "reverseChannel", label: "reverse channel", type: "int", placeholder: "1" },
+        ]},
+        { title: "Compressor (optional)", fields: [
+          { id: "attachCompressor", label: "attach compressor", type: "bool" },
+          { id: "minPressurePSI", label: "require pressure > (psi)", type: "double", placeholder: "40", builder: "requirePressureAbove" },
+        ]},
+      ],
+    },
+  };
+
+  // ============================================================
+  // State + rendering
+  // ============================================================
+  const MOTOR_TYPES = [
+    "KRAKEN_X60", "KRAKEN_X60_FOC",
+    "KRAKEN_X44", "KRAKEN_X44_FOC",
+    "FALCON_500", "FALCON_500_FOC",
+    "NEO", "NEO_VORTEX", "NEO_550", "MINION",
+  ];
+
+  // ============================================================
+  // One-click subsystem presets
+  //
+  // Each preset is a fully-filled-in configuration for a common FRC
+  // pattern. Clicking a preset switches to the right mechanism type
+  // and populates every field with the recommended starting value
+  // matching the corresponding section in docs/mechanisms/.
+  //
+  // Add new presets here — schema is { label, sub, mech, state, followers }.
+  // ============================================================
+  const PRESETS = {
+    "elevator": {
+      label: "Elevator", sub: "Linear · 2 motor",
+      mech: "linear",
+      state: {
+        name: "Elevator",
+        motor: 10, motorType: "KRAKEN_X60",
+        gearRatio: 10.0, drumRadius: 0.0254,
+        minPos: 0.0, maxPos: 1.2,
+        currentLimit: 40, statorCurrentLimit: 80,
+        tolerance: 0.01,
+        kP: 50, kI: 0, kD: 0.5,
+        kS: 0.10, kV: 1.2, kA: 0,
+        kG: 0.35,
+        mmCruise: 2.0, mmAccel: 4.0, mmJerk: 20.0,
+      },
+      followers: { followers: [{ canId: 11, oppose: true }] },
+    },
+    "arm": {
+      label: "Arm", sub: "Rotational · w/ cosine gravity",
+      mech: "rotational",
+      state: {
+        name: "Arm",
+        motor: 20, motorType: "KRAKEN_X60",
+        gearRatio: 100.0,
+        minPos: -90, maxPos: 90,
+        currentLimit: 30, statorCurrentLimit: 60,
+        tolerance: 1.0,
+        kP: 12, kI: 0, kD: 0.4,
+        kS: 0.20, kV: 0.7, kA: 0,
+        kG: 0.45,
+        mmCruise: 1.0, mmAccel: 2.0, mmJerk: 10.0,
+      },
+      followers: { followers: [{ canId: 21, oppose: false }] },
+    },
+    "shooter": {
+      label: "Shooter", sub: "Flywheel · top + bottom",
+      mech: "flywheel",
+      state: {
+        name: "Shooter",
+        motor: 30, secondMotor: 32,
+        motorType: "KRAKEN_X60",
+        gearRatio: 1.0,
+        moi: 0.01,
+        tolerance: 3.0,
+        currentLimit: 60, statorCurrentLimit: 120,
+        kP: 0.4, kI: 0, kD: 0,
+        kS: 0.08, kV: 0.12, kA: 0,
+      },
+      followers: {
+        primaryFollowers:   [{ canId: 31, oppose: true }],
+        secondaryFollowers: [{ canId: 33, oppose: true }],
+      },
+    },
+    "intake": {
+      label: "Intake", sub: "Roller · 2 motor + beam-break",
+      mech: "roller",
+      state: {
+        name: "Intake",
+        motor: 40,
+        inverted: false, brakeMode: false,
+        currentLimit: 40, statorCurrentLimit: 80,
+        intakeSpeed: 0.8, ejectSpeed: -0.6,
+        stallAmps: 25, stallTime: 0.2,
+        beamBreak: 0,
+      },
+      followers: { followers: [{ canId: 41, oppose: true }] },
+    },
+    "climber": {
+      label: "Climber", sub: "Winch · dual arm",
+      mech: "winch",
+      state: {
+        name: "Climber",
+        motor: 50, secondMotor: 51,
+        inverted: false, secondInverted: false,
+        gearRatio: 25.0, spoolRadius: 0.02,
+        minPos: 0, maxPos: 0.6,
+        currentLimit: 80, statorCurrentLimit: 120,
+        extendSpeed: 0.8, retractSpeed: -1.0,
+      },
+      followers: {},
+    },
+    "claw": {
+      label: "Game-piece claw", sub: "Claw · stall + beam-break",
+      mech: "claw",
+      state: {
+        name: "Claw",
+        motor: 60,
+        inverted: false, brakeMode: true,
+        currentLimit: 30, statorCurrentLimit: 60,
+        closeVoltage: 6.0, openVoltage: -4.0, holdVoltage: 1.5,
+        stallAmps: 25, stallTime: 0.2,
+        beamBreak: 1,
+      },
+      followers: { followers: [{ canId: 61, oppose: true }] },
+    },
+    "diffwrist": {
+      label: "Diffy wrist", sub: "Pitch + roll, native CTRE",
+      mech: "diffwrist",
+      state: {
+        name: "Wrist",
+        leftMotor: 70, rightMotor: 71,
+        leftInverted: false, rightInverted: false,
+        gearRatio: 20.0,
+        minPitch: -90, maxPitch: 90,
+        minRoll: -180, maxRoll: 180,
+        currentLimit: 30, statorCurrentLimit: 60,
+        tolerance: 2.0,
+        kP: 40, kI: 0, kD: 0.5,
+        kS: 0, kV: 0, kA: 0,
+        diffKP: 30, diffKI: 0, diffKD: 0.3,
+        mmCruise: 50, mmAccel: 100, mmJerk: 500,
+      },
+      followers: {},
+    },
+    "piston": {
+      label: "Piston", sub: "Pneumatic · double solenoid",
+      mech: "pneumatic",
+      state: {
+        name: "Piston",
+        moduleType: "REVPH",
+        isDouble: true,
+        forwardChannel: 0, reverseChannel: 1,
+        attachCompressor: true,
+        minPressurePSI: 40,
+      },
+      followers: {},
+    },
+  };
+
+  let currentMech = "linear";
+  const formState = {}; // { mechId: { fieldId: value } }
+  const FOLLOWER_STATE = {}; // { mechId: { fieldId: [{canId, oppose}] } }
+  const POSITION_STATE = {}; // { mechId: { fieldId: [{name, value}] } }
+  let fullClassMode = false;
+
+  // Per-field one-line explanations, shown as a "?" tooltip. Keyed by field id
+  // (ids are shared across mechanisms, so one entry covers all of them).
+  const FIELD_HELP = {
+    name: "Display name — also the NetworkTables key and the log/telemetry root.",
+    motor: "CAN ID of the lead TalonFX / Kraken.",
+    canBus: "CAN bus name. Empty or \"rio\" = the roboRIO bus; otherwise a CANivore name.",
+    motorType: "Motor model. Sets the sim gearbox and stall/free curves. Default Kraken X60.",
+    inverted: "Invert the lead motor's direction (so positive output moves the mechanism the way you expect).",
+    followers: "Extra motors ganged on the same shaft. \"oppose\" inverts a follower relative to the lead (mirrored gearboxes).",
+    primaryFollowers: "Motors ganged on the primary flywheel shaft.",
+    secondaryFollowers: "Motors ganged on the secondary flywheel shaft.",
+    secondMotor: "CAN ID of a second, independently-controlled flywheel motor.",
+    gearRatio: "Motor rotations per one mechanism rotation (reduction). e.g. a 10:1 gearbox = 10.0.",
+    drumRadius: "Winch drum / pulley radius in meters. Converts rotations to linear travel.",
+    length: "Arm length in meters, used for the gravity feedforward and the sim model.",
+    mass: "Moving mass in kg, used only by the simulation model.",
+    minPos: "Lower soft limit of the mechanism's range. The motor won't drive past it.",
+    maxPos: "Upper soft limit of the mechanism's range.",
+    currentLimit: "Supply current limit in amps (battery-side). Protects the breaker.",
+    statorCurrentLimit: "Stator current limit in amps (motor-side). Caps torque and heat.",
+    tolerance: "How close counts as \"at setpoint\", in the mechanism's units.",
+    kP: "Proportional gain: output per unit of position error.",
+    kI: "Integral gain: accumulates steady-state error. Usually 0.",
+    kD: "Derivative gain: damps overshoot by reacting to error rate.",
+    kS: "Static feedforward: volts to overcome friction (breakaway).",
+    kV: "Velocity feedforward: volts per unit of velocity.",
+    kA: "Acceleration feedforward: volts per unit of acceleration.",
+    kG: "Gravity feedforward: volts to hold against gravity.",
+    mmCruise: "Motion Magic cruise velocity — the top speed of the profile.",
+    mmAccel: "Motion Magic acceleration — how fast it ramps to cruise.",
+    mmJerk: "Motion Magic jerk — smooths the accel ramp (0 = off).",
+    positions: "Named presets you can drive to with goTo(\"NAME\"). Value is in the mechanism's units (m or deg).",
+  };
+
+  // localStorage persistence — key includes a version so old saved state
+  // gets cleared if the schema changes incompatibly.
+  const STORAGE_KEY = "catalyst-builder-v1";
+
+  function persist() {
+    try {
+      const blob = {
+        currentMech, formState, FOLLOWER_STATE, POSITION_STATE, fullClassMode,
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(blob));
+    } catch {
+      // private mode / quota — silently skip
+    }
+  }
+
+  function restore() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const blob = JSON.parse(raw);
+      if (blob.currentMech && SCHEMA[blob.currentMech]) currentMech = blob.currentMech;
+      if (blob.formState) Object.assign(formState, blob.formState);
+      if (blob.FOLLOWER_STATE) Object.assign(FOLLOWER_STATE, blob.FOLLOWER_STATE);
+      if (blob.POSITION_STATE) Object.assign(POSITION_STATE, blob.POSITION_STATE);
+      if (typeof blob.fullClassMode === "boolean") fullClassMode = blob.fullClassMode;
+    } catch {
+      // corrupted blob — start fresh
+    }
+  }
+
+  function clearAllSaved() {
+    try { localStorage.removeItem(STORAGE_KEY); } catch {}
+    Object.keys(formState).forEach(k => delete formState[k]);
+    Object.keys(FOLLOWER_STATE).forEach(k => delete FOLLOWER_STATE[k]);
+    Object.keys(POSITION_STATE).forEach(k => delete POSITION_STATE[k]);
+    fullClassMode = false;
+    document.getElementById("fullClassToggle").checked = false;
+    buildForm(); render();
+  }
+
+  function buildSidebar() {
+    const list = document.getElementById("mechList");
+    list.innerHTML = "";
+    Object.entries(SCHEMA).forEach(([id, schema]) => {
+      const btn = document.createElement("button");
+      btn.className = "mech-btn" + (id === currentMech ? " active" : "");
+      btn.innerHTML = `${schema.label}<span class="mech-sub">${schema.sub}</span>`;
+      btn.onclick = () => { currentMech = id; buildSidebar(); buildForm(); render(); };
+      list.appendChild(btn);
+    });
+    buildPresetList();
+  }
+
+  function buildPresetList() {
+    const list = document.getElementById("presetList");
+    if (!list) return;
+    list.innerHTML = "";
+    Object.entries(PRESETS).forEach(([id, preset]) => {
+      const btn = document.createElement("button");
+      btn.className = "preset-btn-card";
+      btn.innerHTML =
+        `<span class="pname">${preset.label}</span>` +
+        `<span class="pmech">${preset.sub}</span>`;
+      btn.onclick = () => applyPreset(id);
+      list.appendChild(btn);
+    });
+  }
+
+  function applyPreset(presetId) {
+    const preset = PRESETS[presetId];
+    if (!preset) return;
+    // Confirm overwrite if the user has typed anything into that mechanism.
+    const target = preset.mech;
+    const existing = formState[target];
+    if (existing && Object.keys(existing).length > 0) {
+      if (!confirm(`Replace the current ${SCHEMA[target].label} fields with the "${preset.label}" preset?`)) {
+        return;
+      }
+    }
+    currentMech = target;
+    formState[target] = { ...preset.state };
+    FOLLOWER_STATE[target] = {};
+    Object.entries(preset.followers || {}).forEach(([key, list]) => {
+      FOLLOWER_STATE[target][key] = list.map(f => ({ ...f }));
+    });
+    buildSidebar();
+    buildForm();
+    render();
+  }
+
+  // A "?" badge carrying the field's one-line explanation as a hover tooltip.
+  function helpBadge(id) {
+    const help = FIELD_HELP[id];
+    if (!help) return "";
+    return ` <span class="help-badge" title="${help.replace(/"/g, "&quot;")}">?</span>`;
+  }
+
+  function buildForm() {
+    const area = document.getElementById("formArea");
+    area.innerHTML = "";
+    const schema = SCHEMA[currentMech];
+    if (!formState[currentMech]) formState[currentMech] = {};
+    if (!FOLLOWER_STATE[currentMech]) FOLLOWER_STATE[currentMech] = {};
+    if (!POSITION_STATE[currentMech]) POSITION_STATE[currentMech] = {};
+    const state = formState[currentMech];
+
+    schema.groups.forEach(group => {
+      const wrap = document.createElement("div");
+      wrap.className = "field-group";
+      wrap.innerHTML = `<h3>${group.title}</h3>`;
+
+      group.fields.forEach(field => {
+        if (field.type === "followers") {
+          if (!FOLLOWER_STATE[currentMech][field.id]) FOLLOWER_STATE[currentMech][field.id] = [];
+          const followers = FOLLOWER_STATE[currentMech][field.id];
+
+          const row = document.createElement("div");
+          row.className = "row";
+          row.style.gridTemplateColumns = "160px 1fr";
+          row.innerHTML = `<label>${field.label}${helpBadge(field.id)}</label>`;
+          const right = document.createElement("div");
+          right.className = "followers";
+
+          followers.forEach((f, i) => {
+            const fr = document.createElement("div");
+            fr.className = "follower-row";
+            fr.innerHTML = `
+              <input type="number" placeholder="CAN ID" value="${f.canId ?? ""}">
+              <label style="font-size:12px;color:var(--muted);"><input type="checkbox" ${f.oppose ? "checked" : ""}> oppose</label>
+              <button class="btn danger">×</button>
+            `;
+            fr.querySelector("input[type=number]").oninput = e => {
+              f.canId = e.target.value === "" ? null : parseInt(e.target.value, 10);
+              render();
+            };
+            fr.querySelector("input[type=checkbox]").onchange = e => { f.oppose = e.target.checked; render(); };
+            fr.querySelector(".btn.danger").onclick = () => {
+              followers.splice(i, 1); buildForm(); render();
+            };
+            right.appendChild(fr);
+          });
+
+          const addBtn = document.createElement("button");
+          addBtn.className = "btn ghost";
+          addBtn.textContent = "+ Add follower";
+          addBtn.style.alignSelf = "flex-start";
+          addBtn.onclick = () => {
+            followers.push({ canId: null, oppose: false });
+            buildForm(); render();
+          };
+          right.appendChild(addBtn);
+
+          row.appendChild(right);
+          wrap.appendChild(row);
+          return;
+        }
+
+        if (field.type === "positions") {
+          if (!POSITION_STATE[currentMech][field.id]) POSITION_STATE[currentMech][field.id] = [];
+          const positions = POSITION_STATE[currentMech][field.id];
+
+          const row = document.createElement("div");
+          row.className = "row";
+          row.style.gridTemplateColumns = "160px 1fr";
+          row.innerHTML = `<label>${field.label}${helpBadge(field.id)}</label>`;
+          const right = document.createElement("div");
+          right.className = "followers";
+
+          positions.forEach((p, i) => {
+            const pr = document.createElement("div");
+            pr.className = "pos-row";
+            pr.innerHTML = `
+              <input type="text" placeholder="NAME (e.g. STOW)" value="${p.name ?? ""}">
+              <input type="number" step="any" placeholder="value" value="${p.value ?? ""}">
+              <button class="btn danger">×</button>
+            `;
+            const [nameInput, valInput] = pr.querySelectorAll("input");
+            nameInput.oninput = e => { p.name = e.target.value; render(); };
+            valInput.oninput = e => { p.value = e.target.value === "" ? null : Number(e.target.value); render(); };
+            pr.querySelector(".btn.danger").onclick = () => { positions.splice(i, 1); buildForm(); render(); };
+            right.appendChild(pr);
+          });
+
+          const addBtn = document.createElement("button");
+          addBtn.className = "btn ghost";
+          addBtn.textContent = "+ Add position";
+          addBtn.style.alignSelf = "flex-start";
+          addBtn.onclick = () => { positions.push({ name: "", value: null }); buildForm(); render(); };
+          right.appendChild(addBtn);
+
+          row.appendChild(right);
+          wrap.appendChild(row);
+          return;
+        }
+
+        const row = document.createElement("div");
+        row.className = "row";
+        const labelEl = document.createElement("label");
+        labelEl.innerHTML = field.label + (field.required ? "" : " <span class='opt'>opt</span>") + helpBadge(field.id);
+        row.appendChild(labelEl);
+
+        let input;
+        if (field.type === "bool") {
+          input = document.createElement("input");
+          input.type = "checkbox";
+          if (state[field.id] === undefined && field.defaultVal !== undefined) state[field.id] = field.defaultVal;
+          input.checked = !!state[field.id];
+          input.onchange = e => { state[field.id] = e.target.checked; render(); };
+        } else if (field.type === "motorType") {
+          input = document.createElement("select");
+          if (state[field.id] === undefined) state[field.id] = "";
+          input.innerHTML = `<option value="">(default — Kraken X60)</option>`
+            + MOTOR_TYPES.map(m => `<option value="${m}" ${state[field.id]===m?"selected":""}>${m}</option>`).join("");
+          input.onchange = e => { state[field.id] = e.target.value; render(); };
+        } else if (field.type === "enum") {
+          input = document.createElement("select");
+          if (state[field.id] === undefined && field.defaultVal !== undefined) state[field.id] = field.defaultVal;
+          input.innerHTML = field.options.map(o => `<option value="${o}" ${state[field.id]===o?"selected":""}>${o}</option>`).join("");
+          input.onchange = e => { state[field.id] = e.target.value; render(); };
+        } else {
+          input = document.createElement("input");
+          input.type = (field.type === "int" || field.type === "double") ? "number" : "text";
+          if (field.type === "double") input.step = "any";
+          if (field.placeholder) input.placeholder = field.placeholder;
+          input.value = state[field.id] ?? "";
+          input.oninput = e => {
+            const v = e.target.value;
+            state[field.id] = v === "" ? undefined : (field.type === "text" ? v : Number(v));
+            render();
+          };
+        }
+        row.appendChild(input);
+        wrap.appendChild(row);
+      });
+
+      area.appendChild(wrap);
+    });
+  }
+
+  // ============================================================
+  // Code generation
+  // ============================================================
+  function fmtVal(v) {
+    if (typeof v === "boolean") return v ? "true" : "false";
+    if (typeof v === "string") return JSON.stringify(v);
+    return String(v);
+  }
+
+  function generate() {
+    const schema = SCHEMA[currentMech];
+    const state = formState[currentMech] || {};
+    const followers = FOLLOWER_STATE[currentMech] || {};
+    const positions = POSITION_STATE[currentMech] || {};
+
+    // Special case: Pneumatic doesn't follow the standard motor-builder shape.
+    if (currentMech === "pneumatic") return generatePneumatic(state);
+
+    const name = state.name || schema.label;
+    const lines = [];
+    lines.push(`${schema.java} ${camel(name)} = new ${schema.java}(`);
+    lines.push(`    ${schema.java}.Config.builder()`);
+    lines.push(`        .name(${fmtVal(name)})`);
+
+    const grouped = {}; // group key → ordered values
+    schema.groups.forEach(g => g.fields.forEach(f => {
+      if (!f.builder || f.id === "name") return;
+      if (f.type === "followers" || f.type === "positions") return; // handled below
+      const v = state[f.id];
+      if (v === undefined || v === null || v === "" || (typeof v === "number" && Number.isNaN(v))) return;
+      if (f.group) {
+        grouped[f.builder + "/" + f.group] = grouped[f.builder + "/" + f.group] || { name: f.builder, vals: [] };
+        grouped[f.builder + "/" + f.group].vals.push(v);
+      } else {
+        lines.push(`        .${f.builder}(${fmtVal(v)})`);
+      }
+    }));
+    Object.values(grouped).forEach(g => {
+      lines.push(`        .${g.name}(${g.vals.map(fmtVal).join(", ")})`);
+    });
+
+    // Followers
+    schema.groups.forEach(g => g.fields.forEach(f => {
+      if (f.type !== "followers") return;
+      const list = followers[f.id] || [];
+      list.forEach(spec => {
+        if (spec.canId == null) return;
+        lines.push(`        .${f.builder}(${spec.canId}, ${spec.oppose ? "true" : "false"})`);
+      });
+    }));
+
+    // Named positions
+    schema.groups.forEach(g => g.fields.forEach(f => {
+      if (f.type !== "positions") return;
+      const list = positions[f.id] || [];
+      list.forEach(p => {
+        if (!p.name || p.value == null || Number.isNaN(p.value)) return;
+        lines.push(`        .${f.builder}(${fmtVal(String(p.name))}, ${fmtVal(p.value)})`);
+      });
+    }));
+
+    lines.push(`        .build());`);
+    return lines.join("\n");
+  }
+
+  function generatePneumatic(state) {
+    const name = state.name || "PneumaticMechanism";
+    const module = `PneumaticsModuleType.${state.moduleType || "REVPH"}`;
+    const lines = [];
+    lines.push(`PneumaticMechanism ${camel(name)} = new PneumaticMechanism(`);
+    lines.push(`    PneumaticMechanism.Config.builder()`);
+    lines.push(`        .name(${fmtVal(name)})`);
+    if (state.isDouble) {
+      lines.push(`        .doubleSolenoid(${module}, ${state.forwardChannel ?? 0}, ${state.reverseChannel ?? 1})`);
+    } else {
+      lines.push(`        .singleSolenoid(${module}, ${state.forwardChannel ?? 0})`);
+    }
+    if (state.attachCompressor) lines.push(`        .compressor(${module})`);
+    if (state.minPressurePSI != null) lines.push(`        .requirePressureAbove(${state.minPressurePSI})`);
+    lines.push(`        .build());`);
+    return lines.join("\n");
+  }
+
+  function camel(s) {
+    return s.replace(/[^a-zA-Z0-9]/g, " ")
+            .split(/\s+/).filter(Boolean)
+            .map((w, i) => i === 0 ? w[0].toLowerCase() + w.slice(1) : w[0].toUpperCase() + w.slice(1))
+            .join("");
+  }
+
+  function highlight(code) {
+    return code
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/(\".*?\")/g, '<span class="str">$1</span>')
+      .replace(/\b(new|true|false|null)\b/g, '<span class="kw">$1</span>')
+      .replace(/\b(-?\d+\.?\d*)\b/g, '<span class="lit">$1</span>')
+      .replace(/(\/\/[^\n]*)/g, '<span class="cmt">$1</span>');
+  }
+
+  // Wraps the config in a plain holder class with a get() accessor.
+  // Catalyst mechanisms already extend SubsystemBase and run their own
+  // periodic(), so this deliberately does NOT extend SubsystemBase — wrapping
+  // one subsystem inside another just gives you an empty, pointless periodic().
+  function generateFullClass() {
+    const schema = SCHEMA[currentMech];
+    const state = formState[currentMech] || {};
+    const rawName = state.name || schema.label;
+    const cls = pascal(rawName) + "Hardware";
+    const field = camel(rawName);
+    const inlined = generate().split("\n");
+
+    const lines = [];
+    lines.push(`package frc.robot.subsystems;`);
+    lines.push(``);
+    if (currentMech === "pneumatic") {
+      lines.push(`import edu.wpi.first.wpilibj.PneumaticsModuleType;`);
+    }
+    lines.push(`import frc.lib.catalyst.mechanisms.${schema.java};`);
+    lines.push(``);
+    lines.push(`/**`);
+    lines.push(` * Auto-generated by the Catalyst Builder. Tweak freely.`);
+    lines.push(` *`);
+    lines.push(` * <p>${schema.java} already extends SubsystemBase and runs its own`);
+    lines.push(` * periodic(), so this is a plain holder, not a second subsystem. Reach the`);
+    lines.push(` * mechanism through {@link #get()} to bind commands and triggers.`);
+    lines.push(` */`);
+    lines.push(`public class ${cls} {`);
+    lines.push(``);
+    lines.push(`    private final ${schema.java} ${field};`);
+    lines.push(``);
+    lines.push(`    public ${cls}() {`);
+    // Re-emit config with the right indentation
+    inlined.forEach(line => {
+      lines.push(`        ${line.replace(new RegExp(`^${schema.java} ${camel(rawName)} = `), `this.${field} = `)}`);
+    });
+    lines.push(`    }`);
+    lines.push(``);
+    lines.push(`    /** The underlying Catalyst mechanism (itself a subsystem) — bind commands and triggers through this. */`);
+    lines.push(`    public ${schema.java} get() {`);
+    lines.push(`        return ${field};`);
+    lines.push(`    }`);
+    lines.push(`}`);
+    return lines.join("\n");
+  }
+
+  function pascal(s) {
+    const c = camel(s);
+    return c ? c[0].toUpperCase() + c.slice(1) : s;
+  }
+
+  function currentCode() {
+    return fullClassMode ? generateFullClass() : generate();
+  }
+
+  function render() {
+    document.getElementById("preview").innerHTML = highlight(currentCode());
+    document.getElementById("modeLabel").textContent = fullClassMode ? "wrapper class" : "config";
+    persist();
+  }
+
+  function downloadFilename() {
+    const schema = SCHEMA[currentMech];
+    const rawName = (formState[currentMech] && formState[currentMech].name) || schema.label;
+    return fullClassMode
+        ? pascal(rawName) + "Hardware.java"
+        : pascal(rawName) + "Config.java";
+  }
+
+  function triggerDownload(text, filename) {
+    const blob = new Blob([text], { type: "text/x-java-source;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 250);
+  }
+
+  // ============================================================
+  // Import: parse a pasted .Config.builder()...build() snippet and try
+  // to populate the form. Best-effort — anything we don't recognize is
+  // silently skipped rather than throwing.
+  // ============================================================
+  function tryImport(text) {
+    // Detect mechanism
+    const m = /(\w+Mechanism)\.Config\.builder\(\)/.exec(text);
+    if (!m) {
+      alert("Couldn't find a Foo.Config.builder() call in the pasted snippet.");
+      return false;
+    }
+    const javaName = m[1];
+    const mechId = Object.keys(SCHEMA).find(k => SCHEMA[k].java === javaName);
+    if (!mechId) {
+      alert("Unknown mechanism: " + javaName);
+      return false;
+    }
+
+    currentMech = mechId;
+    formState[mechId] = {};
+    FOLLOWER_STATE[mechId] = {};
+    const state = formState[mechId];
+    const followers = FOLLOWER_STATE[mechId];
+
+    // Build a lookup of builderName → field schema entry
+    const schema = SCHEMA[mechId];
+    const byBuilder = {};
+    const followerFields = {};
+    schema.groups.forEach(g => g.fields.forEach(f => {
+      if (!f.builder) return;
+      if (f.type === "followers") { followerFields[f.builder] = f; return; }
+      (byBuilder[f.builder] = byBuilder[f.builder] || []).push(f);
+    }));
+
+    // Match every .foo(args) invocation
+    const callRe = /\.(\w+)\s*\(([^)]*)\)/g;
+    let match;
+    while ((match = callRe.exec(text)) !== null) {
+      const fnName = match[1];
+      const argsRaw = match[2].trim();
+      if (fnName === "builder" || fnName === "build") continue;
+
+      const args = splitArgs(argsRaw);
+
+      // Followers
+      if (followerFields[fnName]) {
+        const canId = parseInt(args[0], 10);
+        const oppose = args[1] && args[1].trim() === "true";
+        if (!isNaN(canId)) {
+          followers[fnName] = followers[fnName] || [];
+          followers[fnName].push({ canId, oppose });
+        }
+        continue;
+      }
+
+      // Pneumatic special cases
+      if (mechId === "pneumatic") {
+        if (fnName === "doubleSolenoid") {
+          state.moduleType = (args[0] || "PneumaticsModuleType.REVPH").split(".").pop();
+          state.isDouble = true;
+          state.forwardChannel = parseInt(args[1], 10);
+          state.reverseChannel = parseInt(args[2], 10);
+          continue;
+        }
+        if (fnName === "singleSolenoid") {
+          state.moduleType = (args[0] || "PneumaticsModuleType.REVPH").split(".").pop();
+          state.isDouble = false;
+          state.forwardChannel = parseInt(args[1], 10);
+          continue;
+        }
+        if (fnName === "compressor") { state.attachCompressor = true; continue; }
+        if (fnName === "requirePressureAbove") { state.minPressurePSI = parseFloat(args[0]); continue; }
+      }
+
+      // Regular builders
+      const targets = byBuilder[fnName];
+      if (!targets) continue;
+      if (targets.length === 1 && !targets[0].group) {
+        state[targets[0].id] = coerce(args[0], targets[0]);
+      } else {
+        // Grouped multi-arg builder (pid, feedforward, range, motionMagic, …)
+        targets.forEach((f, i) => {
+          if (args[i] !== undefined) state[f.id] = coerce(args[i], f);
+        });
+      }
+
+      if (fnName === "name") state.name = stripQuotes(args[0]);
+    }
+
+    return true;
+  }
+
+  function splitArgs(s) {
+    // Naïve but good-enough comma splitter that respects strings.
+    const out = [];
+    let depth = 0, inStr = false, start = 0;
+    for (let i = 0; i < s.length; i++) {
+      const c = s[i];
+      if (inStr) {
+        if (c === "\\") { i++; continue; }
+        if (c === '"') inStr = false;
+        continue;
+      }
+      if (c === '"') inStr = true;
+      else if (c === "(") depth++;
+      else if (c === ")") depth--;
+      else if (c === "," && depth === 0) {
+        out.push(s.slice(start, i).trim());
+        start = i + 1;
+      }
+    }
+    if (start < s.length) out.push(s.slice(start).trim());
+    return out;
+  }
+
+  function stripQuotes(s) {
+    if (!s) return s;
+    s = s.trim();
+    if (s.startsWith('"') && s.endsWith('"')) return s.slice(1, -1);
+    return s;
+  }
+
+  function coerce(raw, field) {
+    if (raw === undefined) return undefined;
+    const v = raw.trim();
+    if (field.type === "text") return stripQuotes(v);
+    if (field.type === "bool") return v === "true";
+    if (field.type === "motorType" || field.type === "enum") {
+      // Accept either "MotorType.KRAKEN_X60" or "KRAKEN_X60"
+      return v.split(".").pop().replace(/[^A-Z0-9_]/gi, "");
+    }
+    const n = Number(v);
+    return isNaN(n) ? undefined : n;
+  }
+
+  // ============================================================
+  // UI wiring
+  // ============================================================
+  document.getElementById("copyBtn").onclick = async () => {
+    try {
+      await navigator.clipboard.writeText(currentCode());
+      const t = document.getElementById("toast");
+      t.classList.add("show");
+      setTimeout(() => t.classList.remove("show"), 900);
+    } catch {
+      alert("Copy failed — your browser may block clipboard from file://. Try serving over HTTP.");
+    }
+  };
+
+  document.getElementById("downloadBtn").onclick = () => {
+    triggerDownload(currentCode(), downloadFilename());
+  };
+
+  document.getElementById("resetBtn").onclick = () => {
+    if (!confirm("Reset all fields for this mechanism?")) return;
+    formState[currentMech] = {};
+    FOLLOWER_STATE[currentMech] = {};
+    buildForm(); render();
+  };
+
+  document.getElementById("fullClassToggle").onchange = e => {
+    fullClassMode = e.target.checked;
+    render();
+  };
+
+  document.getElementById("clearAllBtn").onclick = e => {
+    e.preventDefault();
+    if (!confirm("Clear all saved Builder data for every mechanism?")) return;
+    clearAllSaved();
+  };
+
+  const importDialog = document.getElementById("importDialog");
+  document.getElementById("importBtn").onclick = () => {
+    document.getElementById("importInput").value = "";
+    importDialog.showModal();
+  };
+  document.getElementById("importCancelBtn").onclick = () => importDialog.close();
+  document.getElementById("importApplyBtn").onclick = () => {
+    const text = document.getElementById("importInput").value;
+    if (tryImport(text)) {
+      importDialog.close();
+      buildSidebar(); buildForm(); render();
+    }
+  };
+
+  // Bootstrap
+  restore();
+  document.getElementById("fullClassToggle").checked = fullClassMode;
+  buildSidebar();
+  buildForm();
+  render();
+</script>
+</body>
+</html>

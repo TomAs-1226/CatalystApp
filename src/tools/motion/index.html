@@ -1,0 +1,637 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Catalyst Motion Profile Visualizer</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root {
+      --bg: #0f1424;
+      --bg-2: #161c33;
+      --panel: #1b2240;
+      --panel2: #131831;
+      --accent: #e94560;
+      --accent2: #f0648a;
+      --text: #f4f4f8;
+      --muted: #8a8aa8;
+      --pos: #4ade80;
+      --vel: #60a5fa;
+      --acc: #fbbf24;
+      --border: rgba(255,255,255,0.07);
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0;
+      background:
+        radial-gradient(ellipse at 80% 0%, rgba(233,69,96,0.10), transparent 60%),
+        radial-gradient(ellipse at 0% 100%, rgba(96,165,250,0.08), transparent 60%),
+        var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, "SF Pro Text", Segoe UI, sans-serif;
+      min-height: 100vh;
+    }
+    header {
+      padding: 16px 28px;
+      background: linear-gradient(180deg, rgba(27,34,64,0.85) 0%, transparent 100%);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+      backdrop-filter: blur(6px);
+      position: sticky; top: 0; z-index: 5;
+    }
+    header h1 { margin: 0; font-size: 18px; font-weight: 700; }
+    header .badge {
+      display: inline-block; padding: 2px 10px; border-radius: 999px;
+      background: var(--accent); color: #fff; font-size: 11px; font-weight: 600;
+    }
+    header .hint { color: var(--muted); font-size: 13px; }
+    header .back {
+      color: var(--accent2); text-decoration: none; font-size: 13px;
+      margin-left: auto;
+    }
+    main {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 20px;
+      padding: 22px 24px;
+      min-height: calc(100vh - 60px);
+    }
+    aside {
+      background: linear-gradient(180deg, var(--panel) 0%, var(--panel2) 100%);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px 20px;
+      overflow-y: auto;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    }
+    aside h2 {
+      margin: 0 0 12px;
+      font-size: 11px; text-transform: uppercase; letter-spacing: 1.4px;
+      color: var(--muted); font-weight: 700;
+    }
+    aside h2:not(:first-child) { margin-top: 22px; }
+    .row { display: grid; grid-template-columns: 1fr; gap: 6px; margin-bottom: 14px; }
+    .row label {
+      color: var(--muted); font-size: 12px;
+      display: flex; justify-content: space-between; align-items: baseline;
+    }
+    .row label span.value {
+      color: var(--accent2); font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      font-weight: 600;
+    }
+    .row input[type=range] {
+      width: 100%; accent-color: var(--accent);
+      height: 4px; appearance: none; background: rgba(255,255,255,0.07);
+      border-radius: 999px;
+    }
+    .row input[type=range]::-webkit-slider-thumb {
+      appearance: none; width: 16px; height: 16px;
+      background: var(--accent); border-radius: 50%;
+      box-shadow: 0 2px 6px rgba(233,69,96,0.5);
+      cursor: pointer;
+    }
+    .stats {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px;
+    }
+    .stat-row {
+      display: flex; justify-content: space-between;
+      padding: 4px 0; font-size: 13px;
+    }
+    .stat-row .v {
+      font-family: ui-monospace, monospace; color: var(--accent2);
+      font-weight: 600;
+    }
+    .stat-row.warn .v { color: var(--acc); }
+    .preset-row { display: flex; gap: 6px; flex-wrap: wrap; }
+    .preset-btn {
+      background: transparent; color: var(--text);
+      border: 1px solid var(--border); border-radius: 999px;
+      padding: 5px 12px; font-size: 11px; cursor: pointer;
+      transition: all 0.12s ease;
+    }
+    .preset-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent2);
+      transform: translateY(-1px);
+    }
+    .export {
+      background: linear-gradient(135deg, var(--accent), #ff6b8a);
+      color: #fff; border: 0; border-radius: 8px;
+      padding: 10px 14px; font-size: 13px; font-weight: 600;
+      cursor: pointer; width: 100%;
+      box-shadow: 0 4px 12px rgba(233,69,96,0.35);
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+    .export:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(233,69,96,0.5); }
+    .export code { background: rgba(255,255,255,0.18); padding: 1px 6px; border-radius: 4px; font-size: 11px; }
+    .chart-area {
+      display: flex; flex-direction: column; gap: 14px;
+    }
+    .chart {
+      background: linear-gradient(180deg, var(--panel) 0%, var(--panel2) 100%);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 18px 8px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    }
+    .chart-head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .chart-head h3 {
+      margin: 0;
+      font-size: 12px; text-transform: uppercase;
+      letter-spacing: 1.2px; color: var(--muted); font-weight: 700;
+    }
+    .chart-head .peak {
+      font-size: 11px; color: var(--muted); font-family: ui-monospace, monospace;
+    }
+    .chart-head .peak strong { color: var(--accent2); }
+    .legend-dot {
+      display: inline-block; width: 10px; height: 10px;
+      border-radius: 50%; margin-right: 6px;
+      box-shadow: 0 0 8px currentColor;
+    }
+    canvas { width: 100%; display: block; }
+    .credit {
+      padding: 14px 28px; color: var(--muted); font-size: 12px;
+      border-top: 1px solid var(--border); margin-top: 0;
+    }
+    .credit a { color: var(--accent2); text-decoration: none; }
+    .credit a:hover { text-decoration: underline; }
+
+    @media (max-width: 900px) {
+      main { grid-template-columns: 1fr; padding: 14px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Motion Profile Visualizer</h1>
+  <span class="badge">v1.3.3</span>
+  <span class="hint">Sketch a Motion Magic profile before committing constants.</span>
+  <a href="../" class="back">← Catalyst tools</a>
+</header>
+
+<main>
+  <aside>
+    <h2>Profile</h2>
+    <div class="row">
+      <label>Distance (rotations) <span class="value" id="distVal">5.00</span></label>
+      <input type="range" id="dist" min="0.1" max="50" step="0.1" value="5">
+    </div>
+    <div class="row">
+      <label>Cruise velocity (rps) <span class="value" id="cruiseVal">10.0</span></label>
+      <input type="range" id="cruise" min="0.5" max="80" step="0.5" value="10">
+    </div>
+    <div class="row">
+      <label>Acceleration (rps²) <span class="value" id="accelVal">40.0</span></label>
+      <input type="range" id="accel" min="1" max="400" step="1" value="40">
+    </div>
+    <div class="row">
+      <label>Jerk (rps³, 0 = trapezoid) <span class="value" id="jerkVal">0</span></label>
+      <input type="range" id="jerk" min="0" max="4000" step="10" value="0">
+    </div>
+
+    <h2>Presets</h2>
+    <div class="preset-row">
+      <button class="preset-btn" data-preset="elevator">Elevator</button>
+      <button class="preset-btn" data-preset="arm">Arm</button>
+      <button class="preset-btn" data-preset="flywheel">Flywheel</button>
+      <button class="preset-btn" data-preset="quick">S-curve snap</button>
+    </div>
+
+    <h2>Estimated</h2>
+    <div class="stats">
+      <div class="stat-row"><span>Total time</span><span class="v" id="totalTime">—</span></div>
+      <div class="stat-row"><span>Time at cruise</span><span class="v" id="cruiseTime">—</span></div>
+      <div class="stat-row" id="reachedRow"><span>Reaches cruise?</span><span class="v" id="reachedCruise">—</span></div>
+      <div class="stat-row"><span>Peak velocity</span><span class="v" id="peakVel">—</span></div>
+      <div class="stat-row"><span>Peak accel</span><span class="v" id="peakAccel">—</span></div>
+    </div>
+
+    <h2>Catalyst snippet</h2>
+    <button class="export" id="copyBtn">Copy <code>.motionMagic(…)</code></button>
+  </aside>
+
+  <div class="chart-area">
+    <div class="chart">
+      <div class="chart-head">
+        <h3><span class="legend-dot" style="background:var(--pos);color:var(--pos)"></span>Position (rotations)</h3>
+        <span class="peak">peak <strong id="peakPos">—</strong></span>
+      </div>
+      <canvas id="chartPos" height="140"></canvas>
+    </div>
+    <div class="chart">
+      <div class="chart-head">
+        <h3><span class="legend-dot" style="background:var(--vel);color:var(--vel)"></span>Velocity (rps)</h3>
+        <span class="peak">peak <strong id="peakVelLabel">—</strong></span>
+      </div>
+      <canvas id="chartVel" height="140"></canvas>
+    </div>
+    <div class="chart">
+      <div class="chart-head">
+        <h3><span class="legend-dot" style="background:var(--acc);color:var(--acc)"></span>Acceleration (rps²)</h3>
+        <span class="peak">peak <strong id="peakAccLabel">—</strong></span>
+      </div>
+      <canvas id="chartAcc" height="140"></canvas>
+    </div>
+  </div>
+</main>
+
+<div class="credit">
+  Trapezoid case solved analytically (no integration error). S-curve uses
+  a proper 7-segment jerk-limited profile. Reasonable starting point for
+  picking <code>.motionMagic(cruise, accel, jerk)</code> on a
+  <a href="../../mechanisms/">Catalyst mechanism</a> — verify against the
+  real hardware before competition.
+</div>
+
+<script>
+  // ============================================================
+  // Profile solvers
+  // ============================================================
+  // Trapezoid: analytic 3-phase profile (or 2-phase triangle when distance is
+  // too short to reach cruise). Returns dense samples for plotting plus the
+  // segment boundaries.
+  function trapezoid({ dist, cruise, accel }) {
+    if (dist <= 0 || cruise <= 0 || accel <= 0) {
+      return { samples: [{ t: 0, p: 0, v: 0, a: 0 }], reaches: false, totalTime: 0 };
+    }
+    const tAccelFull = cruise / accel;
+    const distAccelFull = 0.5 * accel * tAccelFull * tAccelFull;
+    let phases;
+    let reaches;
+    if (2 * distAccelFull <= dist) {
+      // Full trapezoid
+      reaches = true;
+      const distCruise = dist - 2 * distAccelFull;
+      const tCruise = distCruise / cruise;
+      phases = [
+        { t0: 0,                              dur: tAccelFull, a: +accel, vStart: 0,      pStart: 0 },
+        { t0: tAccelFull,                     dur: tCruise,    a: 0,      vStart: cruise, pStart: distAccelFull },
+        { t0: tAccelFull + tCruise,           dur: tAccelFull, a: -accel, vStart: cruise, pStart: distAccelFull + distCruise },
+      ];
+    } else {
+      // Triangle (never reaches cruise)
+      reaches = false;
+      const vPeak = Math.sqrt(accel * dist);
+      const tAccel = vPeak / accel;
+      phases = [
+        { t0: 0,        dur: tAccel, a: +accel, vStart: 0,     pStart: 0 },
+        { t0: tAccel,   dur: tAccel, a: -accel, vStart: vPeak, pStart: 0.5 * accel * tAccel * tAccel },
+      ];
+    }
+    return densify(phases);
+  }
+
+  // S-curve: 7-segment jerk-limited profile when full, fewer segments when
+  // we can't reach cruise (or even peak accel). For simplicity we
+  // numerically build the profile by walking the segments at their
+  // analytic durations — no time-step error, no oscillation.
+  function scurve({ dist, cruise, accel, jerk }) {
+    if (jerk <= 0) return trapezoid({ dist, cruise, accel });
+
+    // Time to ramp accel from 0 to accel (and back).
+    let tJ = accel / jerk;
+    // If the jerk is so low that we'd never reach cruise even with infinite distance,
+    // cap cruise to what's physically realizable in this profile.
+    let aMax = accel;
+    let vMax = cruise;
+
+    // Try assuming full S (all 7 segments reach their targets). If not, fall
+    // back to truncated variants.
+    // Velocity gained in each jerk-ramp segment:
+    const dvJerk = 0.5 * aMax * tJ;     // either side of the constant-accel hold
+    // Distance covered in each jerk-ramp segment (integrating piecewise):
+    const dpJerkUp = (1.0 / 6.0) * jerk * tJ * tJ * tJ; // 0 → a, v: 0 → dvJerk
+    // (we'll use this only as a sanity figure; not strictly needed)
+
+    let tA; // duration of constant-accel hold (between the two jerk ramps)
+    if (vMax - 2 * dvJerk > 0) {
+      tA = (vMax - 2 * dvJerk) / aMax;
+    } else {
+      // Even at this jerk we can't reach vMax through both ramps + hold.
+      // Cap aMax so we get a triangular accel ramp (jerk-up directly into jerk-down).
+      aMax = Math.sqrt(vMax * jerk);
+      tJ = aMax / jerk;
+      tA = 0;
+    }
+
+    // Compute cruise duration that satisfies the total-distance constraint.
+    const dpAccelPhase =
+        // accel-up:  jerk ramps a from 0 to aMax over tJ.   Δv = aMax*tJ/2, Δp = ?
+        // We'll compute distance covered during the accel phase symbolically:
+        // - segment 1: a(t) = jerk*t,    v = 0 → aMax*tJ/2,  p covered = jerk*tJ^3 / 6
+        // - segment 2: a = aMax,         v0 = aMax*tJ/2,   p covered = v0*tA + 0.5*aMax*tA^2
+        // - segment 3: a(t) = aMax-jerk*t, v: (aMax*tJ/2 + aMax*tA) → vMax, p covered =
+        //                                   v0*tJ + 0.5*aMax*tJ^2 - jerk*tJ^3 / 6
+        (jerk * tJ * tJ * tJ / 6.0)
+        + ((aMax * tJ / 2.0) * tA + 0.5 * aMax * tA * tA)
+        + ((aMax * tJ / 2.0 + aMax * tA) * tJ + 0.5 * aMax * tJ * tJ - jerk * tJ * tJ * tJ / 6.0);
+
+    const dpDecelPhase = dpAccelPhase; // mirror
+    const dpCruise = dist - (dpAccelPhase + dpDecelPhase);
+    let tCruise;
+    let reaches;
+    if (dpCruise >= 0) {
+      tCruise = dpCruise / vMax;
+      reaches = true;
+    } else {
+      // We don't have room for cruise. Cap vMax further so accel + decel
+      // phases exactly fill the available distance. Use a binary search —
+      // analytical solution exists but binary search is dead simple here
+      // and runs in microseconds.
+      reaches = false;
+      let lo = 0, hi = cruise, vCap = 0;
+      for (let i = 0; i < 60; i++) {
+        const mid = 0.5 * (lo + hi);
+        let aLocal = Math.min(accel, Math.sqrt(mid * jerk));
+        const tJL = aLocal / jerk;
+        const dvJL = 0.5 * aLocal * tJL;
+        const tAL = Math.max(0, (mid - 2 * dvJL) / aLocal);
+        const dpAccel =
+            (jerk * tJL * tJL * tJL / 6.0)
+            + ((aLocal * tJL / 2.0) * tAL + 0.5 * aLocal * tAL * tAL)
+            + ((aLocal * tJL / 2.0 + aLocal * tAL) * tJL + 0.5 * aLocal * tJL * tJL - jerk * tJL * tJL * tJL / 6.0);
+        if (2 * dpAccel < dist) lo = mid; else hi = mid;
+        vCap = mid;
+      }
+      vMax = vCap;
+      aMax = Math.min(accel, Math.sqrt(vMax * jerk));
+      tJ = aMax / jerk;
+      const dvj = 0.5 * aMax * tJ;
+      tA = Math.max(0, (vMax - 2 * dvj) / aMax);
+      tCruise = 0;
+    }
+
+    // Build the segment list.
+    // Each segment: { dur, jerk, aStart, vStart, pStart }
+    const segs = [];
+    let aS = 0, vS = 0, pS = 0, tS = 0;
+    function push(dur, j) {
+      segs.push({ t0: tS, dur, j, aStart: aS, vStart: vS, pStart: pS });
+      tS += dur;
+      const newP = pS + vS * dur + 0.5 * aS * dur * dur + (j * dur * dur * dur) / 6.0;
+      const newV = vS + aS * dur + 0.5 * j * dur * dur;
+      const newA = aS + j * dur;
+      pS = newP; vS = newV; aS = newA;
+    }
+    push(tJ, +jerk);   // 1. jerk up
+    if (tA > 0) push(tA, 0);    // 2. const accel
+    push(tJ, -jerk);   // 3. jerk down to flat
+    if (tCruise > 0) push(tCruise, 0); // 4. cruise
+    push(tJ, -jerk);   // 5. jerk into decel
+    if (tA > 0) push(tA, 0);    // 6. const decel
+    push(tJ, +jerk);   // 7. jerk back to zero
+
+    return densifyJerk(segs, reaches);
+  }
+
+  function densify(phases) {
+    // Constant-acceleration segments (jerk = 0 inside each phase).
+    const samples = [];
+    const steps = 200;
+    const totalDur = phases.reduce((s, p) => s + p.dur, 0);
+    for (const ph of phases) {
+      const n = Math.max(2, Math.round(steps * (ph.dur / totalDur)));
+      for (let i = 0; i <= n; i++) {
+        const tau = (i / n) * ph.dur;
+        const t = ph.t0 + tau;
+        const a = ph.a;
+        const v = ph.vStart + a * tau;
+        const p = ph.pStart + ph.vStart * tau + 0.5 * a * tau * tau;
+        samples.push({ t, p, v, a });
+      }
+    }
+    return { samples, totalTime: totalDur, reaches: phases.length === 3 };
+  }
+
+  function densifyJerk(segs, reaches) {
+    // Variable-jerk segments. Use the local jerk to compute a,v,p at each tick.
+    const samples = [];
+    const steps = 300;
+    const totalDur = segs.reduce((s, sg) => s + sg.dur, 0);
+    for (const sg of segs) {
+      const n = Math.max(3, Math.round(steps * (sg.dur / totalDur)));
+      for (let i = 0; i <= n; i++) {
+        const tau = (i / n) * sg.dur;
+        const t = sg.t0 + tau;
+        const a = sg.aStart + sg.j * tau;
+        const v = sg.vStart + sg.aStart * tau + 0.5 * sg.j * tau * tau;
+        const p = sg.pStart + sg.vStart * tau + 0.5 * sg.aStart * tau * tau + (sg.j * tau * tau * tau) / 6.0;
+        samples.push({ t, p, v, a });
+      }
+    }
+    // Clamp accel sign drift from float error
+    return { samples, totalTime: totalDur, reaches };
+  }
+
+  // ============================================================
+  // Charting
+  // ============================================================
+  function drawChart(canvasId, samples, accessor, color, opts = {}) {
+    const c = document.getElementById(canvasId);
+    const dpr = window.devicePixelRatio || 1;
+    const w = c.clientWidth, h = c.clientHeight || 140;
+    c.width = Math.max(1, Math.round(w * dpr));
+    c.height = Math.max(1, Math.round(h * dpr));
+    const ctx = c.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+
+    if (samples.length === 0) return;
+
+    const tMax = samples[samples.length - 1].t || 1;
+    // Y range: include 0 line for accel, otherwise data range w/ padding.
+    let yLo = Infinity, yHi = -Infinity;
+    for (const s of samples) {
+      const y = accessor(s);
+      if (y < yLo) yLo = y;
+      if (y > yHi) yHi = y;
+    }
+    if (opts.includeZero) {
+      if (yLo > 0) yLo = 0;
+      if (yHi < 0) yHi = 0;
+    }
+    if (yHi - yLo < 1e-9) { yHi += 0.5; yLo -= 0.5; }
+    const pad = (yHi - yLo) * 0.10;
+    yLo -= pad; yHi += pad;
+
+    const padL = 50, padR = 16, padT = 6, padB = 22;
+    const plotW = w - padL - padR, plotH = h - padT - padB;
+    const xS = t => padL + (t / tMax) * plotW;
+    const yS = v => padT + (1 - (v - yLo) / (yHi - yLo)) * plotH;
+
+    // Grid
+    ctx.strokeStyle = "rgba(255,255,255,0.05)";
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 4; i++) {
+      const yy = padT + (i / 4) * plotH;
+      ctx.beginPath(); ctx.moveTo(padL, yy + 0.5); ctx.lineTo(padL + plotW, yy + 0.5); ctx.stroke();
+    }
+    // Zero line (if visible)
+    if (yLo < 0 && yHi > 0) {
+      const zy = yS(0);
+      ctx.strokeStyle = "rgba(255,255,255,0.18)";
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath(); ctx.moveTo(padL, zy); ctx.lineTo(padL + plotW, zy); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // Axis labels
+    ctx.fillStyle = "#8a8aa8";
+    ctx.font = "11px ui-monospace, monospace";
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+    for (let i = 0; i <= 4; i++) {
+      const yy = padT + (i / 4) * plotH;
+      const yv = yHi - (i / 4) * (yHi - yLo);
+      const fmt = (Math.abs(yv) >= 100) ? yv.toFixed(0)
+                : (Math.abs(yv) >= 10) ? yv.toFixed(1)
+                : yv.toFixed(2);
+      ctx.fillText(fmt, padL - 6, yy);
+    }
+    ctx.textAlign = "center";
+    ctx.textBaseline = "alphabetic";
+    for (let i = 0; i <= 4; i++) {
+      const xx = padL + (i / 4) * plotW;
+      const tv = (i / 4) * tMax;
+      ctx.fillText(tv.toFixed(2) + "s", xx, h - 6);
+    }
+
+    // Fill (subtle gradient under the curve, only if signal stays >= 0)
+    if (yLo >= 0) {
+      const grad = ctx.createLinearGradient(0, padT, 0, padT + plotH);
+      grad.addColorStop(0, color + "33");
+      grad.addColorStop(1, color + "00");
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(xS(samples[0].t), padT + plotH);
+      for (const s of samples) ctx.lineTo(xS(s.t), yS(accessor(s)));
+      ctx.lineTo(xS(samples[samples.length - 1].t), padT + plotH);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // Line
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 6;
+    ctx.beginPath();
+    for (let i = 0; i < samples.length; i++) {
+      const s = samples[i];
+      const px = xS(s.t), py = yS(accessor(s));
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+
+  // ============================================================
+  // Live state + render
+  // ============================================================
+  const $ = id => document.getElementById(id);
+  const inputs = ["dist", "cruise", "accel", "jerk"];
+  const valEls = { dist: "distVal", cruise: "cruiseVal", accel: "accelVal", jerk: "jerkVal" };
+
+  function readState() {
+    return {
+      dist:   parseFloat($("dist").value),
+      cruise: parseFloat($("cruise").value),
+      accel:  parseFloat($("accel").value),
+      jerk:   parseFloat($("jerk").value),
+    };
+  }
+
+  function update() {
+    const state = readState();
+    $(valEls.dist).textContent   = state.dist.toFixed(2);
+    $(valEls.cruise).textContent = state.cruise.toFixed(1);
+    $(valEls.accel).textContent  = state.accel.toFixed(1);
+    $(valEls.jerk).textContent   = state.jerk.toFixed(0);
+
+    const result = state.jerk > 0 ? scurve(state) : trapezoid(state);
+    const { samples, totalTime, reaches } = result;
+
+    let peakV = 0, peakA = 0, cruiseT = 0;
+    const cruiseBand = state.cruise * 0.02;
+    for (let i = 1; i < samples.length; i++) {
+      const dt = samples[i].t - samples[i - 1].t;
+      if (samples[i].v > peakV) peakV = samples[i].v;
+      if (Math.abs(samples[i].a) > peakA) peakA = Math.abs(samples[i].a);
+      if (Math.abs(samples[i].v - state.cruise) <= cruiseBand) cruiseT += dt;
+    }
+
+    $("totalTime").textContent  = totalTime.toFixed(3) + " s";
+    $("cruiseTime").textContent = cruiseT.toFixed(3) + " s";
+    if (reaches) {
+      $("reachedCruise").textContent = "yes";
+      $("reachedRow").classList.remove("warn");
+    } else {
+      $("reachedCruise").textContent = "no — distance is too short";
+      $("reachedRow").classList.add("warn");
+    }
+    $("peakVel").textContent = peakV.toFixed(2) + " rps";
+    $("peakAccel").textContent = peakA.toFixed(1) + " rps²";
+
+    $("peakPos").textContent      = samples[samples.length - 1].p.toFixed(2) + " rot";
+    $("peakVelLabel").textContent = peakV.toFixed(2) + " rps";
+    $("peakAccLabel").textContent = peakA.toFixed(1) + " rps²";
+
+    drawChart("chartPos", samples, s => s.p, "#4ade80");
+    drawChart("chartVel", samples, s => s.v, "#60a5fa");
+    drawChart("chartAcc", samples, s => s.a, "#fbbf24", { includeZero: true });
+  }
+
+  // ============================================================
+  // Presets
+  // ============================================================
+  const PRESETS = {
+    elevator: { dist: 5,  cruise: 12, accel: 60,  jerk: 0 },
+    arm:      { dist: 1,  cruise: 4,  accel: 20,  jerk: 0 },
+    flywheel: { dist: 30, cruise: 70, accel: 400, jerk: 0 },
+    quick:    { dist: 3,  cruise: 20, accel: 200, jerk: 1500 },
+  };
+  document.querySelectorAll(".preset-btn").forEach(btn => {
+    btn.onclick = () => {
+      const p = PRESETS[btn.dataset.preset];
+      $("dist").value = p.dist;
+      $("cruise").value = p.cruise;
+      $("accel").value = p.accel;
+      $("jerk").value = p.jerk;
+      update();
+    };
+  });
+
+  // ============================================================
+  // Snippet copy
+  // ============================================================
+  $("copyBtn").onclick = async () => {
+    const s = readState();
+    const snippet = `.motionMagic(${s.cruise.toFixed(2)}, ${s.accel.toFixed(1)}, ${s.jerk.toFixed(0)})`;
+    try {
+      await navigator.clipboard.writeText(snippet);
+      $("copyBtn").innerHTML = "Copied ✓";
+      setTimeout(() => $("copyBtn").innerHTML = 'Copy <code>.motionMagic(…)</code>', 1000);
+    } catch {
+      alert("Clipboard blocked. Snippet: " + snippet);
+    }
+  };
+
+  inputs.forEach(id => $(id).addEventListener("input", update));
+
+  // Debounce resize to prevent flicker when window is dragged.
+  let resizeTimer = null;
+  window.addEventListener("resize", () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(update, 30);
+  });
+
+  update();
+</script>
+</body>
+</html>

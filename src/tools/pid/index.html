@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Catalyst PID Step Response</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root {
+      --bg: #0f1424;
+      --panel: #1b2240;
+      --panel2: #131831;
+      --accent: #e94560;
+      --accent2: #f0648a;
+      --text: #f4f4f8;
+      --muted: #8a8aa8;
+      --border: rgba(255,255,255,0.07);
+      --pos: #4ade80;
+      --setp: #fbbf24;
+      --err: #f87171;
+      --u: #60a5fa;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0;
+      background:
+        radial-gradient(ellipse at 100% 0%, rgba(96,165,250,0.10), transparent 60%),
+        radial-gradient(ellipse at 0% 100%, rgba(233,69,96,0.08), transparent 60%),
+        var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, "SF Pro Text", Segoe UI, sans-serif;
+      min-height: 100vh;
+    }
+    header {
+      padding: 16px 28px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+      backdrop-filter: blur(6px);
+      position: sticky; top: 0; z-index: 5;
+      background: linear-gradient(180deg, rgba(27,34,64,0.85), transparent);
+    }
+    header h1 { margin: 0; font-size: 18px; font-weight: 700; }
+    header .badge { padding: 2px 10px; border-radius: 999px; background: var(--accent); color: #fff; font-size: 11px; font-weight: 600; }
+    header .hint { color: var(--muted); font-size: 13px; }
+    header .back { color: var(--accent2); text-decoration: none; font-size: 13px; margin-left: auto; }
+
+    main {
+      display: grid; grid-template-columns: 360px 1fr;
+      gap: 20px; padding: 22px 24px;
+    }
+    aside {
+      background: linear-gradient(180deg, var(--panel) 0%, var(--panel2) 100%);
+      border: 1px solid var(--border); border-radius: 14px;
+      padding: 22px 20px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    }
+    aside h2 {
+      margin: 0 0 12px; font-size: 11px;
+      text-transform: uppercase; letter-spacing: 1.4px;
+      color: var(--muted); font-weight: 700;
+    }
+    aside h2:not(:first-child) { margin-top: 22px; }
+
+    .seg {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+    }
+    .seg button {
+      background: rgba(255,255,255,0.03); color: var(--text);
+      border: 1px solid var(--border); border-radius: 8px;
+      padding: 8px; font-size: 12px; cursor: pointer;
+      transition: all 0.12s ease;
+    }
+    .seg button.active {
+      background: linear-gradient(135deg, var(--accent), #ff6b8a);
+      border-color: transparent;
+      box-shadow: 0 4px 10px rgba(233,69,96,0.35);
+    }
+
+    .row { display: grid; grid-template-columns: 1fr; gap: 4px; margin-bottom: 12px; }
+    .row label {
+      color: var(--muted); font-size: 12px;
+      display: flex; justify-content: space-between; align-items: baseline;
+    }
+    .row label .v {
+      color: var(--accent2); font-weight: 600;
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    }
+    .row input[type=range] {
+      width: 100%; accent-color: var(--accent);
+      height: 4px; appearance: none;
+      background: rgba(255,255,255,0.07); border-radius: 999px;
+    }
+    .row input[type=range]::-webkit-slider-thumb {
+      appearance: none; width: 16px; height: 16px;
+      background: var(--accent); border-radius: 50%;
+      box-shadow: 0 2px 6px rgba(233,69,96,0.5);
+      cursor: pointer;
+    }
+
+    .stats {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px;
+    }
+    .stat-row {
+      display: flex; justify-content: space-between;
+      padding: 4px 0; font-size: 13px;
+    }
+    .stat-row .v {
+      color: var(--accent2); font-family: ui-monospace, monospace; font-weight: 600;
+    }
+
+    .copy-btn {
+      background: linear-gradient(135deg, var(--accent), #ff6b8a);
+      color: #fff; border: 0; border-radius: 8px;
+      padding: 10px 14px; font-size: 13px; font-weight: 600;
+      cursor: pointer; width: 100%;
+      box-shadow: 0 4px 12px rgba(233,69,96,0.35);
+      transition: transform 0.12s ease;
+    }
+    .copy-btn:hover { transform: translateY(-1px); }
+
+    .chart-area { display: flex; flex-direction: column; gap: 14px; }
+    .chart {
+      background: linear-gradient(180deg, var(--panel) 0%, var(--panel2) 100%);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 18px 8px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    }
+    .chart-head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .chart-head h3 {
+      margin: 0; font-size: 12px;
+      text-transform: uppercase; letter-spacing: 1.2px;
+      color: var(--muted); font-weight: 700;
+    }
+    .legend { display: inline-flex; align-items: center; gap: 10px; font-size: 11px; color: var(--muted); }
+    .legend .dot {
+      display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+      margin-right: 4px;
+      box-shadow: 0 0 8px currentColor;
+    }
+    canvas { width: 100%; display: block; }
+    .credit {
+      padding: 14px 28px; color: var(--muted); font-size: 12px;
+      border-top: 1px solid var(--border);
+    }
+    .credit a { color: var(--accent2); text-decoration: none; }
+
+    @media (max-width: 900px) { main { grid-template-columns: 1fr; padding: 14px; } }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>PID Step Response</h1>
+  <span class="badge">v1.3.3</span>
+  <span class="hint">Pick a plant, dial gains, watch the closed-loop response.</span>
+  <a href="../" class="back">← Catalyst tools</a>
+</header>
+
+<main>
+  <aside>
+    <h2>Plant</h2>
+    <div class="seg" id="plantSeg">
+      <button data-plant="elevator" class="active">Elevator</button>
+      <button data-plant="arm">Arm</button>
+      <button data-plant="flywheel">Flywheel</button>
+    </div>
+
+    <h2>Step setpoint</h2>
+    <div class="row">
+      <label>Target <span class="v" id="targetVal">1.00</span></label>
+      <input type="range" id="target" min="0.1" max="5" step="0.05" value="1.0">
+    </div>
+    <div class="row">
+      <label>Simulation duration <span class="v" id="durVal">2.0 s</span></label>
+      <input type="range" id="dur" min="0.5" max="6" step="0.1" value="2.0">
+    </div>
+
+    <h2>Gains</h2>
+    <div class="row"><label>kP <span class="v" id="kpVal">5.0</span></label><input type="range" id="kp" min="0" max="200" step="0.1" value="5.0"></div>
+    <div class="row"><label>kI <span class="v" id="kiVal">0.0</span></label><input type="range" id="ki" min="0" max="50"  step="0.1" value="0"></div>
+    <div class="row"><label>kD <span class="v" id="kdVal">0.0</span></label><input type="range" id="kd" min="0" max="10"  step="0.05" value="0"></div>
+
+    <h2>Feedforward</h2>
+    <div class="row"><label>kS (static) <span class="v" id="ksVal">0.00</span></label><input type="range" id="ks" min="0" max="2"   step="0.01" value="0"></div>
+    <div class="row"><label>kV (velocity) <span class="v" id="kvVal">0.00</span></label><input type="range" id="kv" min="0" max="5"   step="0.01" value="0"></div>
+    <div class="row"><label>kG (gravity) <span class="v" id="kgVal">0.00</span></label><input type="range" id="kg" min="-2" max="2"  step="0.01" value="0"></div>
+
+    <h2>Results</h2>
+    <div class="stats">
+      <div class="stat-row"><span>Rise time (10→90%)</span><span class="v" id="riseTime">—</span></div>
+      <div class="stat-row"><span>Settling time (±5%)</span><span class="v" id="settleTime">—</span></div>
+      <div class="stat-row"><span>Overshoot</span><span class="v" id="overshoot">—</span></div>
+      <div class="stat-row"><span>Steady-state error</span><span class="v" id="ssError">—</span></div>
+      <div class="stat-row"><span>Peak voltage</span><span class="v" id="peakV">—</span></div>
+    </div>
+
+    <h2>Catalyst snippet</h2>
+    <button class="copy-btn" id="copyBtn">Copy <code style="background:rgba(255,255,255,0.18);padding:1px 6px;border-radius:4px">.pid(…) + .feedforward(…)</code></button>
+  </aside>
+
+  <div class="chart-area">
+    <div class="chart">
+      <div class="chart-head">
+        <h3>Position vs setpoint</h3>
+        <span class="legend">
+          <span><span class="dot" style="background:var(--setp);color:var(--setp)"></span>setpoint</span>
+          <span><span class="dot" style="background:var(--pos);color:var(--pos)"></span>position</span>
+        </span>
+      </div>
+      <canvas id="chartPos" height="180"></canvas>
+    </div>
+    <div class="chart">
+      <div class="chart-head">
+        <h3>Control effort (voltage)</h3>
+        <span class="legend"><span class="dot" style="background:var(--u);color:var(--u)"></span>u(t)</span>
+      </div>
+      <canvas id="chartU" height="140"></canvas>
+    </div>
+  </div>
+</main>
+
+<div class="credit">
+  Simulates a simple second-order DCMotor plant (elevator / arm / flywheel) with a PID + feedforward controller at the same 50 Hz loop rate WPILib uses. Useful for building tuning intuition; verify against real hardware before competition.
+</div>
+
+<script>
+  const $ = id => document.getElementById(id);
+
+  // ============================================================
+  // Plant models (continuous second-order, integrated with RK4)
+  //
+  //   Elevator: M*ddx + b*dx = K_t * V / R - M*g   (gravity is constant)
+  //   Arm:      I*ddθ + b*dθ = K_t * V / R - M*g*L*cos(θ)
+  //   Flywheel: J*dω        = K_t * V / R - b*ω    (1st order, no position state)
+  //
+  // We tune a few terms so the response time-scales feel like a real FRC
+  // mechanism without making the user pick motor specs.
+  // ============================================================
+  const PLANTS = {
+    elevator: {
+      label: "Elevator",
+      isFlywheel: false,
+      unit: "m",
+      params: { M: 5.0, b: 12.0, Kt_over_R: 1.6, g: 9.81 },
+      stepFn(state, u, dt, p) {
+        // state = [x, v]
+        const { M, b, Kt_over_R, g } = p;
+        const force = Kt_over_R * u - b * state[1] - M * g;
+        return [state[1], force / M];
+      },
+      // For FF helpers
+      ffHint: { kS: 0.10, kV: 1.2, kG: 0.35 },
+      gainHint: { kP: 30, kI: 0, kD: 1.0 },
+    },
+    arm: {
+      label: "Arm",
+      isFlywheel: false,
+      unit: "rad",
+      params: { I: 0.6, b: 0.8, Kt_over_R: 0.5, mgL: 4.0 },
+      stepFn(state, u, dt, p) {
+        const { I, b, Kt_over_R, mgL } = p;
+        const tau = Kt_over_R * u - b * state[1] - mgL * Math.cos(state[0]);
+        return [state[1], tau / I];
+      },
+      ffHint: { kS: 0.20, kV: 0.7, kG: 0.45 },
+      gainHint: { kP: 12, kI: 0, kD: 0.4 },
+    },
+    flywheel: {
+      label: "Flywheel",
+      isFlywheel: true,
+      unit: "rps",
+      params: { J: 0.012, b: 0.0008, Kt_over_R: 0.045 },
+      stepFn(state, u, dt, p) {
+        // state = [ω]
+        const { J, b, Kt_over_R } = p;
+        const tau = Kt_over_R * u - b * state[0];
+        return [tau / J]; // dω/dt
+      },
+      ffHint: { kS: 0.08, kV: 0.12, kG: 0 },
+      gainHint: { kP: 0.4, kI: 0, kD: 0 },
+    },
+  };
+
+  let plantId = "elevator";
+
+  function rk4(state, u, dt, plant) {
+    const k1 = plant.stepFn(state, u, dt, plant.params);
+    const s2 = state.map((x, i) => x + k1[i] * dt / 2);
+    const k2 = plant.stepFn(s2, u, dt, plant.params);
+    const s3 = state.map((x, i) => x + k2[i] * dt / 2);
+    const k3 = plant.stepFn(s3, u, dt, plant.params);
+    const s4 = state.map((x, i) => x + k3[i] * dt);
+    const k4 = plant.stepFn(s4, u, dt, plant.params);
+    return state.map((x, i) => x + (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]) * dt / 6);
+  }
+
+  function readGains() {
+    return {
+      kP: parseFloat($("kp").value),
+      kI: parseFloat($("ki").value),
+      kD: parseFloat($("kd").value),
+      kS: parseFloat($("ks").value),
+      kV: parseFloat($("kv").value),
+      kG: parseFloat($("kg").value),
+    };
+  }
+
+  function simulate() {
+    const plant = PLANTS[plantId];
+    const target = parseFloat($("target").value);
+    const dur = parseFloat($("dur").value);
+    const gains = readGains();
+
+    const ctrlDt = 0.02;           // 50 Hz controller (WPILib default)
+    const subSteps = 4;            // 200 Hz plant integration
+    const physDt = ctrlDt / subSteps;
+    const steps = Math.ceil(dur / ctrlDt);
+
+    let state = plant.isFlywheel ? [0] : [0, 0];
+    let integ = 0, lastErr = 0;
+    const samples = [];
+
+    for (let i = 0; i <= steps; i++) {
+      const t = i * ctrlDt;
+      const measured = state[0];
+      const measuredVel = plant.isFlywheel ? state[0] : state[1];
+      const refVel = 0; // we're tracking a step, no feedforward velocity component beyond setpoint
+      const err = target - measured;
+      integ += err * ctrlDt;
+      const deriv = (err - lastErr) / ctrlDt;
+      lastErr = err;
+
+      // Control law: PID + feedforward (matches Catalyst's Slot 0 layout).
+      let u = gains.kP * err + gains.kI * integ + gains.kD * deriv;
+      // Feedforward
+      if (gains.kS > 0) u += Math.sign(measuredVel) * gains.kS;
+      u += gains.kV * refVel;
+      // Gravity FF — for arm: cosine; for elevator: constant; for flywheel: ignore.
+      if (plantId === "arm") u += gains.kG * Math.cos(measured);
+      else if (plantId === "elevator") u += gains.kG;
+      // (flywheel: no gravity)
+
+      // Voltage saturation
+      u = Math.max(-12, Math.min(12, u));
+
+      samples.push({ t, x: measured, v: measuredVel, u });
+
+      // Integrate plant subSteps × dt
+      for (let k = 0; k < subSteps; k++) {
+        state = rk4(state, u, physDt, plant);
+      }
+    }
+    return { samples, target, plant };
+  }
+
+  // ============================================================
+  // Charts
+  // ============================================================
+  function drawDual(canvasId, samples, accessors) {
+    // accessors: [{ get: s => v, color: '#xxx' }, ...]
+    const c = $(canvasId);
+    const dpr = window.devicePixelRatio || 1;
+    const w = c.clientWidth, h = c.clientHeight || 140;
+    c.width = Math.max(1, Math.round(w * dpr));
+    c.height = Math.max(1, Math.round(h * dpr));
+    const ctx = c.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+
+    if (!samples.length) return;
+    const tMax = samples[samples.length - 1].t || 1;
+
+    let yLo = Infinity, yHi = -Infinity;
+    for (const s of samples) {
+      for (const a of accessors) {
+        const y = a.get(s);
+        if (y < yLo) yLo = y;
+        if (y > yHi) yHi = y;
+      }
+    }
+    if (yHi - yLo < 1e-9) { yHi += 0.5; yLo -= 0.5; }
+    const pad = (yHi - yLo) * 0.10;
+    yLo -= pad; yHi += pad;
+
+    const padL = 50, padR = 16, padT = 6, padB = 22;
+    const plotW = w - padL - padR, plotH = h - padT - padB;
+    const xS = t => padL + (t / tMax) * plotW;
+    const yS = v => padT + (1 - (v - yLo) / (yHi - yLo)) * plotH;
+
+    ctx.strokeStyle = "rgba(255,255,255,0.05)";
+    for (let i = 0; i <= 4; i++) {
+      const yy = padT + (i / 4) * plotH;
+      ctx.beginPath(); ctx.moveTo(padL, yy + 0.5); ctx.lineTo(padL + plotW, yy + 0.5); ctx.stroke();
+    }
+    if (yLo < 0 && yHi > 0) {
+      const zy = yS(0);
+      ctx.strokeStyle = "rgba(255,255,255,0.18)";
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath(); ctx.moveTo(padL, zy); ctx.lineTo(padL + plotW, zy); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    ctx.fillStyle = "#8a8aa8";
+    ctx.font = "11px ui-monospace, monospace";
+    ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    for (let i = 0; i <= 4; i++) {
+      const yy = padT + (i / 4) * plotH;
+      const yv = yHi - (i / 4) * (yHi - yLo);
+      ctx.fillText((Math.abs(yv) >= 100) ? yv.toFixed(0) : (Math.abs(yv) >= 10 ? yv.toFixed(1) : yv.toFixed(2)), padL - 6, yy);
+    }
+    ctx.textAlign = "center"; ctx.textBaseline = "alphabetic";
+    for (let i = 0; i <= 4; i++) {
+      const xx = padL + (i / 4) * plotW;
+      const tv = (i / 4) * tMax;
+      ctx.fillText(tv.toFixed(2) + "s", xx, h - 6);
+    }
+
+    for (const a of accessors) {
+      ctx.strokeStyle = a.color;
+      ctx.lineWidth = a.bold ? 2.2 : 1.6;
+      if (a.dashed) ctx.setLineDash([6, 4]);
+      ctx.shadowColor = a.color;
+      ctx.shadowBlur = a.bold ? 6 : 0;
+      ctx.beginPath();
+      for (let i = 0; i < samples.length; i++) {
+        const s = samples[i];
+        const px = xS(s.t), py = yS(a.get(s));
+        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.shadowBlur = 0;
+    }
+  }
+
+  // ============================================================
+  // Update + stats
+  // ============================================================
+  function update() {
+    ["target","dur","kp","ki","kd","ks","kv","kg"].forEach(id => {
+      const el = $(id);
+      const v = parseFloat(el.value);
+      const fmt = (id === "target") ? v.toFixed(2)
+                 : (id === "dur") ? v.toFixed(1) + " s"
+                 : (id === "kp" || id === "ki") ? v.toFixed(2)
+                 : v.toFixed(2);
+      $(id + "Val").textContent = fmt;
+    });
+
+    const { samples, target } = simulate();
+
+    // Stats
+    let rise10 = null, rise90 = null, settle = null, peak = -Infinity, peakAbsU = 0;
+    const settleBand = Math.max(Math.abs(target) * 0.05, 0.02);
+    for (const s of samples) {
+      if (rise10 === null && s.x >= target * 0.1) rise10 = s.t;
+      if (rise90 === null && s.x >= target * 0.9) rise90 = s.t;
+      if (s.x > peak) peak = s.x;
+      if (Math.abs(s.u) > peakAbsU) peakAbsU = Math.abs(s.u);
+    }
+    // Settling time: last time the trajectory exits the band, count time to re-enter and stay.
+    for (let i = samples.length - 1; i >= 0; i--) {
+      if (Math.abs(samples[i].x - target) > settleBand) {
+        settle = samples[i + 1] ? samples[i + 1].t : null;
+        break;
+      }
+      if (i === 0) settle = 0;
+    }
+
+    const last = samples[samples.length - 1];
+    const ss = last.x - target;
+    const overshoot = Math.max(0, (peak - target) / target * 100);
+
+    $("riseTime").textContent   = (rise10 !== null && rise90 !== null) ? (rise90 - rise10).toFixed(3) + " s" : "didn't reach 90%";
+    $("settleTime").textContent = settle !== null ? settle.toFixed(3) + " s" : "didn't settle";
+    $("overshoot").textContent  = overshoot.toFixed(1) + " %";
+    $("ssError").textContent    = ss.toFixed(3);
+    $("peakV").textContent      = peakAbsU.toFixed(2) + " V";
+
+    drawDual("chartPos", samples, [
+      { get: () => target, color: "#fbbf24", dashed: true },
+      { get: s => s.x,     color: "#4ade80", bold: true },
+    ]);
+    drawDual("chartU", samples, [
+      { get: s => s.u, color: "#60a5fa", bold: true },
+    ]);
+  }
+
+  // ============================================================
+  // Plant switcher + gain hints
+  // ============================================================
+  document.querySelectorAll("#plantSeg button").forEach(b => {
+    b.onclick = () => {
+      document.querySelectorAll("#plantSeg button").forEach(x => x.classList.remove("active"));
+      b.classList.add("active");
+      plantId = b.dataset.plant;
+      const p = PLANTS[plantId];
+      // Seed sliders to reasonable starts for the new plant.
+      $("kp").value = p.gainHint.kP;
+      $("ki").value = p.gainHint.kI;
+      $("kd").value = p.gainHint.kD;
+      $("ks").value = p.ffHint.kS;
+      $("kv").value = p.ffHint.kV;
+      $("kg").value = p.ffHint.kG;
+      $("target").value = plantId === "flywheel" ? 50 : (plantId === "arm" ? 1.5 : 1.0);
+      $("target").max = plantId === "flywheel" ? "100" : "5";
+      $("target").step = plantId === "flywheel" ? "1" : "0.05";
+      update();
+    };
+  });
+
+  ["target","dur","kp","ki","kd","ks","kv","kg"].forEach(id => $(id).addEventListener("input", update));
+
+  $("copyBtn").onclick = async () => {
+    const g = readGains();
+    const snippet = `.pid(${g.kP.toFixed(2)}, ${g.kI.toFixed(2)}, ${g.kD.toFixed(2)})\n.feedforward(${g.kS.toFixed(2)}, ${g.kV.toFixed(2)})\n.gravityGain(${g.kG.toFixed(2)})`;
+    try {
+      await navigator.clipboard.writeText(snippet);
+      $("copyBtn").innerHTML = "Copied ✓";
+      setTimeout(() => $("copyBtn").innerHTML = 'Copy <code style="background:rgba(255,255,255,0.18);padding:1px 6px;border-radius:4px">.pid(…) + .feedforward(…)</code>', 1000);
+    } catch { alert(snippet); }
+  };
+
+  let resizeTimer = null;
+  window.addEventListener("resize", () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(update, 30);
+  });
+
+  update();
+</script>
+</body>
+</html>
