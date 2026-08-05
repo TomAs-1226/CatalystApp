@@ -3,7 +3,7 @@
 A small cross-platform (Windows / Mac) companion app for **FrcCatalyst**, built with [Tauri](https://tauri.app).
 It puts every Catalyst tool in one window and installs the library straight into your robot project.
 
-> **App v1.4.1**, bundling **FrcCatalyst v1.5.0** (Physics Core) — feature-complete: tools,
+> **App v1.4.2**, bundling **FrcCatalyst v1.6.0** (Physics Core, completed) — feature-complete: tools,
 > installer, offline auto-update, the AI-agent connector, and a
 > full settings page. Windows builds locally; the macOS build runs in CI (see
 > [`.github/workflows/build-app.yml`](.github/workflows/build-app.yml)).

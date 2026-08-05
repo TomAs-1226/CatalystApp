@@ -15,7 +15,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const SERVER_VERSION = "1.4.1";
+const SERVER_VERSION = "1.4.2";
 const DATA = path.join(__dirname, "data");
 const motors = JSON.parse(fs.readFileSync(path.join(DATA, "motors.json"), "utf8")).motors;
 const graph = JSON.parse(fs.readFileSync(path.join(DATA, "graph.json"), "utf8"));

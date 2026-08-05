@@ -1,6 +1,6 @@
 [package]
 name = "catalyst-app"
-version = "1.4.1"
+version = "1.4.2"
 description = "FrcCatalyst desktop companion"
 authors = ["TomAs-1226"]
 edition = "2021"
