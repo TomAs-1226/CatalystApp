@@ -5,8 +5,8 @@
 const TAURI = window.__TAURI__ || null;
 const IN_APP = !!TAURI;
 
-const APP_VERSION = "1.4.0";   // this app's version
-const LIB_VERSION = "1.4.0";   // the FrcCatalyst version bundled inside this app
+const APP_VERSION = "1.4.1";   // this app's version
+const LIB_VERSION = "1.5.0";   // the FrcCatalyst version bundled inside this app
 const LIB_VENDORDEP_URL = "https://tomas-1226.github.io/FrcCatalyst/vendordep/FrcCatalyst.json";
 
 // ---------- icons (Lucide-style line icons) ----------
@@ -65,6 +65,7 @@ const LINKS = [
   ["Report an issue", "https://github.com/TomAs-1226/FrcCatalyst/issues"],
 ];
 const CHANGELOG = [
+  { v: "1.5.0", t: "Physics Core (optional physical-intelligence layer)", date: "2026-08-05", items: ["Fuses wheel odometry and the IMU into one velocity with an honest confidence, scores which wheel is slipping, detects collisions, and predicts the robot's state at shot release.", "Entirely optional and strictly advisory — it writes no pose and changes no setpoint, so existing robot code is untouched."] },
   { v: "1.4.0", t: "Catalyst Desktop (optional companion app)", date: "2026-07-30", items: ["Every Catalyst tool in one native window, one-click install into your robot project, offline auto-update, and an AI-agent connector.", "The desktop app is optional — the library works exactly the same without it."] },
   { v: "1.3.3", t: "LoopMonitor", date: "2026-07-28", items: ["A one-line loop-time monitor that warns when your robot loop runs over the 20 ms budget."] },
   { v: "1.3.2", t: "Field-centric red flip & loop-cost guidance", date: "2026-07-25", items: ["The red-alliance drive flip is now explicit and guaranteed.", "A guide on keeping the loop under 20 ms."] },
