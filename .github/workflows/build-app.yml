@@ -48,6 +48,25 @@ jobs:
       - name: Install frontend dependencies
         run: npm install
 
+      # The console is a separate repo with its own release cadence, so it is fetched rather than
+      # vendored into git. tauri.conf.json declares resources/console/*, and a resource glob that
+      # matches nothing fails the build - which is exactly how the first tagged build broke.
+      - name: Fetch Catalyst Console
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          New-Item -ItemType Directory -Force -Path src-tauri/resources/console | Out-Null
+          try {
+            gh release download --repo TomAs-1226/CatalystConsole --pattern 'catalyst-console.exe' --dir src-tauri/resources/console --clobber
+            Write-Host "bundled Catalyst Console from its latest release"
+          } catch {
+            # Ship without it rather than block the app's release. The app asks console_available()
+            # and hides the entry, so a build with no console is coherent - just less useful.
+            Write-Warning "no Catalyst Console release available; building without it"
+            Set-Content -Path src-tauri/resources/console/.gitkeep -Value '' -Encoding utf8
+          }
+
       - name: Build and release
         uses: tauri-apps/tauri-action@v0
         env:
