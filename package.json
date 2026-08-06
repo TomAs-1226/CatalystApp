@@ -5,6 +5,8 @@
   "private": true,
   "scripts": {
     "tauri": "tauri",
+    "bundle-console": "node scripts/bundle-console.mjs",
+    "build:all": "node scripts/bundle-console.mjs && tauri build",
     "dev": "tauri dev",
     "build": "tauri build"
   },

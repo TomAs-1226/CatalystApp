@@ -84,6 +84,43 @@ fn mcp_server_path(app: tauri::AppHandle) -> Result<String, String> {
     Ok(path.to_string_lossy().to_string())
 }
 
+/// Whether Catalyst Console was bundled into this build.
+///
+/// It is a separate binary with its own release cadence, so a Catalyst build made before a console
+/// release will not have one. The UI asks rather than assuming, and hides the button if the answer is
+/// no — an button that reports "not found" when pressed is worse than no button.
+#[tauri::command]
+fn console_available(app: tauri::AppHandle) -> bool {
+    console_path(&app).map(|p| p.exists()).unwrap_or(false)
+}
+
+fn console_path(app: &tauri::AppHandle) -> Result<std::path::PathBuf, String> {
+    app.path()
+        .resolve(
+            "resources/console/catalyst-console.exe",
+            tauri::path::BaseDirectory::Resource,
+        )
+        .map_err(|e| e.to_string())
+}
+
+/// Launch the bundled Catalyst Console.
+///
+/// Spawned detached rather than run and awaited: the console is a long-lived dashboard that outlives
+/// whatever the user is doing in here, and holding it as a child would tie its lifetime to this
+/// window. The console enforces its own single instance, so pressing the button twice raises the one
+/// already running instead of starting a second.
+#[tauri::command]
+fn launch_console(app: tauri::AppHandle) -> Result<String, String> {
+    let path = console_path(&app)?;
+    if !path.exists() {
+        return Err("Catalyst Console is not bundled in this build".into());
+    }
+    std::process::Command::new(&path)
+        .spawn()
+        .map_err(|e| format!("could not start Catalyst Console: {e}"))?;
+    Ok(path.to_string_lossy().to_string())
+}
+
 /// Write a vendordep JSON into `<dir>/vendordeps/<filename>`, creating the folder if needed.
 /// The filename is validated to prevent writing outside the vendordeps folder.
 #[tauri::command]
@@ -113,7 +150,9 @@ fn main() {
             detect_project,
             read_bundled_vendordep,
             write_vendordep,
-            mcp_server_path
+            mcp_server_path,
+            console_available,
+            launch_console
         ])
         .run(tauri::generate_context!())
         .expect("error while running the Catalyst app");

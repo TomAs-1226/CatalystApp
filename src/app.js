@@ -23,6 +23,7 @@ const ICONS = {
   statemachine: '<rect width="8" height="8" x="3" y="3" rx="2"/><path d="M7 11v4a2 2 0 0 0 2 2h4"/><rect width="8" height="8" x="13" y="13" rx="2"/>',
   install: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>',
   updates: '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
+  console: '<path d="M12 14a2 2 0 0 0 2-2" /><path d="M3.34 19a10 10 0 1 1 17.32 0"/><path d="m14.83 10.17 3.18-3.18"/>',
   chev: '<path d="m9 18 6-6-6-6"/>',
   agent: '<path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/>',
   settings: '<path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/>',
@@ -125,6 +126,7 @@ function buildNav() {
   }
   const nb = $("#navBottom");
   nb.appendChild(navBtn("install", "Install into project", "install"));
+  addConsoleEntry(nb, hl);
   nb.appendChild(navBtn("agents", "AI Agents", "agent"));
   nb.appendChild(navBtn("whatsnew", "What's New", "star"));
   nb.appendChild(navBtn("updates", "Updates", "updates"));
@@ -135,6 +137,50 @@ function buildNav() {
   $("#installVer").textContent = "v" + LIB_VERSION;
   $("#appVerMeta").textContent = "Catalyst v" + APP_VERSION;
   $("#libVerMeta").textContent = "Bundled v" + LIB_VERSION;
+}
+
+/*
+ * Catalyst Console is a separate binary bundled in as a resource, not a tool page, so it gets a nav
+ * entry that launches it rather than one that routes to a view.
+ *
+ * The entry only appears if a console was actually bundled. Catalyst and the console have separate
+ * release cadences, so a build made before a console release will not have one, and a button that
+ * says "not found" when you press it is worse than no button at all.
+ */
+async function addConsoleEntry(navBottom, homeList) {
+  if (!TAURI) return;
+  let available = false;
+  try { available = await invoke("console_available"); } catch { return; }
+  if (!available) return;
+
+  const launch = async (el) => {
+    const previous = el.innerHTML;
+    el.style.pointerEvents = "none";
+    try {
+      await invoke("launch_console");
+      // The console takes a moment to put a window up, and a button that looks inert in the meantime
+      // reads as broken. It enforces its own single instance, so pressing again is harmless.
+      el.innerHTML = previous.replace("Driver Console", "Opening\u2026");
+    } catch (e) {
+      el.innerHTML = previous.replace("Driver Console", "Could not open");
+      console.warn(e);
+    }
+    setTimeout(() => { el.innerHTML = previous; el.style.pointerEvents = ""; }, 2200);
+  };
+
+  const btn = document.createElement("button");
+  btn.className = "nav-item";
+  btn.innerHTML = `${svg("console")}<span>Driver Console</span>`;
+  btn.onclick = () => launch(btn);
+  navBottom.appendChild(btn);
+
+  const row = document.createElement("div");
+  row.className = "tool-row";
+  row.innerHTML = `<div class="tr-ico">${svg("console")}</div><div><div class="tr-name">Driver Console</div>`
+    + `<div class="tr-desc">Open the driver station dashboard: live telemetry, tuning, the field in 3D.</div></div>`
+    + `<div class="tr-chev">${svg("chev")}</div>`;
+  row.onclick = () => launch(row);
+  homeList.appendChild(row);
 }
 
 function setView(view) {

@@ -2,3 +2,6 @@ node_modules/
 src-tauri/target/
 .keys/
 *.key
+
+# Copied in from the CatalystConsole repo by npm run bundle-console; not ours to vendor.
+src-tauri/resources/console/

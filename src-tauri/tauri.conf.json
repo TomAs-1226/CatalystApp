@@ -42,7 +42,7 @@
       "icons/128x128@2x.png",
       "icons/icon.ico"
     ],
-    "resources": ["resources/*", "resources/mcp/*", "resources/mcp/data/*"],
+    "resources": ["resources/*", "resources/mcp/*", "resources/mcp/data/*", "resources/console/*"],
     "category": "DeveloperTool",
     "shortDescription": "FrcCatalyst desktop companion",
     "longDescription": "The Catalyst tools in one window, plus one-click install of the FrcCatalyst vendordep into your robot project."
