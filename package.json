@@ -5,12 +5,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test \"src/**/*.test.js\"",
+    "test": "node scripts/sync-tools.mjs --check && node --test \"src/**/*.test.js\"",
     "tauri": "tauri",
     "bundle-console": "node scripts/bundle-console.mjs",
-    "build:all": "node scripts/bundle-console.mjs && tauri build",
+    "build:all": "node scripts/sync-tools.mjs && node scripts/bundle-console.mjs && tauri build",
     "dev": "tauri dev",
-    "build": "tauri build"
+    "build": "tauri build",
+    "sync-tools": "node scripts/sync-tools.mjs"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2"

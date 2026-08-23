@@ -3,6 +3,7 @@
 // Update checks and the optional dependency download are best-effort and skip quietly when offline.
 
 import { seasonOf } from "./season.js";
+import { cmpVer } from "./version.js";
 
 const TAURI = window.__TAURI__ || null;
 const IN_APP = !!TAURI;
@@ -11,7 +12,10 @@ const APP_VERSION = "1.4.3";   // this app's version
 const LIB_VERSION = "2.0.0-alpha.1";   // the FrcCatalyst version bundled inside this app
 const LIB_FRC_YEAR = "2027";           // the season that version targets
 
-const LIB_VENDORDEP_URL = "https://tomas-1226.github.io/FrcCatalyst/vendordep/FrcCatalyst.json";
+// The feed for the line this build is on. Pointing at the stable vendordep would have meant a
+// 2.x app watching the 1.x release line: it would never learn that a new 2.0.0 alpha had shipped,
+// and would sit reporting "up to date" for the whole beta.
+const LIB_VENDORDEP_URL = "https://tomas-1226.github.io/FrcCatalyst/beta/vendordep/FrcCatalyst.json";
 
 // ---------- icons (Lucide-style line icons) ----------
 const ICONS = {
@@ -110,16 +114,6 @@ const $ = (s) => document.querySelector(s);
 const invoke = (cmd, args) => TAURI.core.invoke(cmd, args);
 const httpGet = async (url) =>
   IN_APP ? TAURI.http.fetch(url, { method: "GET" }) : fetch(url);
-
-function cmpVer(a, b) {
-  const pa = String(a).replace(/^v/, "").split(/[.\-]/).map((x) => parseInt(x, 10) || 0);
-  const pb = String(b).replace(/^v/, "").split(/[.\-]/).map((x) => parseInt(x, 10) || 0);
-  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
-    const d = (pa[i] || 0) - (pb[i] || 0);
-    if (d) return d > 0 ? 1 : -1;
-  }
-  return 0;
-}
 
 // ---------- nav ----------
 function navBtn(id, name, ic) {
