@@ -6,7 +6,8 @@ const TAURI = window.__TAURI__ || null;
 const IN_APP = !!TAURI;
 
 const APP_VERSION = "1.4.3";   // this app's version
-const LIB_VERSION = "1.7.0";   // the FrcCatalyst version bundled inside this app
+const LIB_VERSION = "2.0.0-alpha.1";   // the FrcCatalyst version bundled inside this app
+const LIB_FRC_YEAR = "2027";           // the season that version targets
 const LIB_VENDORDEP_URL = "https://tomas-1226.github.io/FrcCatalyst/vendordep/FrcCatalyst.json";
 
 // ---------- icons (Lucide-style line icons) ----------
@@ -50,10 +51,23 @@ const TOOLS = [
   { id: "statemachine", name: "State Machine", desc: "Paste your graph and see the states." },
 ];
 
+// Vendor libraries Catalyst builds against.
+//
+// `url` means the 2027 vendordep is published at a stable address and can be fetched. `manual`
+// means it is not, and the app says so instead of guessing.
+//
+// That distinction matters more than it looks. Phoenix 6 and PathPlanner both have 2027 releases,
+// but neither publishes a 2027 vendordep JSON at a discoverable URL yet - PathPlanner's canonical
+// PathplannerLib.json still reports frcYear 2026. Fetching that into a 2027 project would write a
+// file that looks installed and fails at build time, which is a worse outcome than telling someone
+// to add it from VS Code's vendor library list, so that is what this does.
+//
+// PhotonVision is gone entirely: there is no 2027 build, and Catalyst is Limelight-first on
+// Systemcore because the pipeline is built into the hardware.
 const DEPS = [
-  { file: "Phoenix6-frc2026-latest.json", name: "Phoenix 6",   url: "https://maven.ctr-electronics.com/release/com/ctre/phoenix6/latest/Phoenix6-frc2026-latest.json" },
-  { file: "PathplannerLib.json",          name: "PathPlanner", url: "https://3015rangerrobotics.github.io/pathplannerlib/PathplannerLib.json" },
-  { file: "photonlib-json-1.0.json",      name: "PhotonVision", url: "https://maven.photonvision.org/repository/internal/org/photonvision/photonlib-json/1.0/photonlib-json-1.0.json" },
+  { file: "LimelightLib.json", name: "LimelightLib", url: "https://limelightvision.github.io/limelightlib-public/LimelightLib.json" },
+  { name: "Phoenix 6",   manual: "Add from VS Code: Manage Vendor Libraries → Install new libraries (online)" },
+  { name: "PathPlanner", manual: "Add from VS Code: Manage Vendor Libraries → Install new libraries (online)" },
 ];
 
 const ACCENTS = {
@@ -346,6 +360,15 @@ async function runDetect(dir) {
   html += info.has_catalyst
     ? line(true, `FrcCatalyst installed (${info.catalyst_version || "?"} → updating to v${LIB_VERSION})`)
     : line(false, "FrcCatalyst not installed yet");
+
+  // Season mismatch is the failure worth catching here. A 2027 vendordep in a 2026 project writes
+  // cleanly, looks installed, and then fails at build with an error that mentions none of this.
+  if (info.project_year && info.project_year !== LIB_FRC_YEAR) {
+    html += line(false,
+      `This is a ${info.project_year} project and Catalyst ${LIB_VERSION} targets ${LIB_FRC_YEAR}. ` +
+      `Import it as a ${LIB_FRC_YEAR} project in WPILib VS Code first — installing into a ` +
+      `${info.project_year} project will build against the wrong WPILib.`);
+  }
   const el = $("#detectResult");
   el.innerHTML = html; el.classList.remove("hidden");
   $("#installOptions").classList.toggle("hidden", !info.is_wpilib);
@@ -360,12 +383,19 @@ async function doInstall() {
   } catch (e) { w(false, "FrcCatalyst: " + e); }
   if ($("#includeDeps").checked) {
     for (const dep of DEPS) {
+      if (dep.manual) { w(false, `${dep.name}: no 2027 vendordep is published yet. ${dep.manual}`); continue; }
       try {
         const r = await httpGet(dep.url);
         if (!r.ok) throw new Error("HTTP " + r.status);
         const content = await r.text();
+        // Refuse a vendordep meant for another season. Writing one produces a project that looks
+        // correctly configured and fails at build with an error that names none of this.
+        const year = JSON.parse(content).frcYear;
+        if (year && String(year) !== "2027" && !String(year).startsWith("2027")) {
+          throw new Error(`its vendordep reports frcYear ${year}, not 2027`);
+        }
         w(true, await invoke("write_vendordep", { dir: chosenDir, filename: dep.file, content }));
-      } catch (e) { w(false, `${dep.name}: ${e} — offline? install it later from Manage Vendor Libraries`); }
+      } catch (e) { w(false, `${dep.name}: ${e} — add it from Manage Vendor Libraries instead`); }
     }
   }
   addRecent(chosenDir, null, LIB_VERSION);

@@ -13,6 +13,12 @@ struct ProjectInfo {
     catalyst_version: Option<String>,
     project_name: String,
     reasons: Vec<String>,
+    /// Season the project was created for, from `.wpilib/wpilib_preferences.json`.
+    ///
+    /// Catalyst 2.x targets 2027. Installing it into a 2026 project produces something that looks
+    /// correctly configured and fails at build with an error naming none of this, so the year is
+    /// surfaced rather than assumed.
+    project_year: Option<String>,
 }
 
 /// Inspect a folder and report whether it looks like a WPILib / GradleRIO robot project,
@@ -36,6 +42,17 @@ fn detect_project(dir: String) -> ProjectInfo {
         (false, None)
     };
 
+    let project_year = fs::read_to_string(p.join(".wpilib").join("wpilib_preferences.json"))
+        .ok()
+        .and_then(|s| serde_json::from_str::<serde_json::Value>(&s).ok())
+        .and_then(|j| {
+            // WPILib writes this as a number in some seasons and a string in others.
+            j.get("projectYear").map(|x| match x.as_str() {
+                Some(text) => text.to_string(),
+                None => x.to_string().trim_matches('"').to_string(),
+            })
+        });
+
     let project_name = p
         .file_name()
         .map(|n| n.to_string_lossy().to_string())
@@ -55,6 +72,7 @@ fn detect_project(dir: String) -> ProjectInfo {
         catalyst_version,
         project_name,
         reasons,
+        project_year,
     }
 }
 
