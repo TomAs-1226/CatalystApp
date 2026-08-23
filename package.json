@@ -3,7 +3,9 @@
   "version": "1.4.3",
   "description": "FrcCatalyst desktop companion (Tauri)",
   "private": true,
+  "type": "module",
   "scripts": {
+    "test": "node --test \"src/**/*.test.js\"",
     "tauri": "tauri",
     "bundle-console": "node scripts/bundle-console.mjs",
     "build:all": "node scripts/bundle-console.mjs && tauri build",

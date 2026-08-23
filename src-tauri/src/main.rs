@@ -175,3 +175,150 @@ fn main() {
         .run(tauri::generate_context!())
         .expect("error while running the Catalyst app");
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use std::path::PathBuf;
+
+    /// A scratch project directory, removed when the test ends.
+    struct Project(PathBuf);
+
+    impl Project {
+        fn new(name: &str) -> Self {
+            let dir = std::env::temp_dir().join(format!("catalyst-app-test-{name}"));
+            let _ = fs::remove_dir_all(&dir);
+            fs::create_dir_all(&dir).unwrap();
+            Project(dir)
+        }
+
+        fn file(self, rel: &str, contents: &str) -> Self {
+            let path = self.0.join(rel);
+            fs::create_dir_all(path.parent().unwrap()).unwrap();
+            fs::write(path, contents).unwrap();
+            self
+        }
+
+        fn dir(self, rel: &str) -> Self {
+            fs::create_dir_all(self.0.join(rel)).unwrap();
+            self
+        }
+
+        fn detect(&self) -> ProjectInfo {
+            detect_project(self.0.to_string_lossy().to_string())
+        }
+    }
+
+    impl Drop for Project {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.0);
+        }
+    }
+
+    #[test]
+    fn a_real_wpilib_project_is_recognised() {
+        let p = Project::new("real")
+            .file("build.gradle", "plugins { id 'java' }")
+            .file(".wpilib/wpilib_preferences.json", r#"{"projectYear": "2027_alpha1"}"#);
+
+        let info = p.detect();
+        assert!(info.is_wpilib);
+        assert!(info.reasons.is_empty(), "reasons: {:?}", info.reasons);
+        assert_eq!(info.project_year.as_deref(), Some("2027_alpha1"));
+    }
+
+    #[test]
+    fn project_year_reads_the_same_whether_written_as_text_or_a_number() {
+        // WPILib has written it both ways across seasons. Returning `"2027"` for one and `2027` for
+        // the other pushes the difference into the UI, which then compares strings and disagrees
+        // with itself.
+        let text = Project::new("year-text")
+            .file("build.gradle", "")
+            .file(".wpilib/wpilib_preferences.json", r#"{"projectYear": "2026"}"#);
+        let number = Project::new("year-number")
+            .file("build.gradle", "")
+            .file(".wpilib/wpilib_preferences.json", r#"{"projectYear": 2026}"#);
+
+        assert_eq!(text.detect().project_year.as_deref(), Some("2026"));
+        assert_eq!(number.detect().project_year.as_deref(), Some("2026"));
+    }
+
+    #[test]
+    fn vendordeps_alone_are_enough_to_call_it_a_wpilib_project() {
+        // An imported project that has not been opened in VS Code yet has no .wpilib folder.
+        let p = Project::new("vendordeps-only")
+            .file("build.gradle", "")
+            .dir("vendordeps");
+
+        let info = p.detect();
+        assert!(info.is_wpilib);
+        assert!(info.project_year.is_none(), "no preferences file to read");
+    }
+
+    #[test]
+    fn a_folder_that_is_not_a_project_says_why() {
+        let p = Project::new("empty");
+        let info = p.detect();
+
+        assert!(!info.is_wpilib);
+        assert_eq!(info.reasons.len(), 2, "both reasons should be given: {:?}", info.reasons);
+        assert!(info.reasons.iter().any(|r| r.contains("build.gradle")));
+        assert!(info.reasons.iter().any(|r| r.contains(".wpilib")));
+    }
+
+    #[test]
+    fn build_gradle_alone_is_not_a_wpilib_project() {
+        // Any Gradle project has one. Installing a vendordep into a plain Java project writes a file
+        // nothing reads, and the team is left looking for a build error that never appears.
+        let p = Project::new("plain-gradle").file("build.gradle", "");
+        let info = p.detect();
+
+        assert!(!info.is_wpilib);
+        assert!(info.reasons.iter().any(|r| r.contains(".wpilib")));
+    }
+
+    #[test]
+    fn an_installed_catalyst_is_reported_with_its_version() {
+        let p = Project::new("installed")
+            .file("build.gradle", "")
+            .file("vendordeps/FrcCatalyst.json", r#"{"version": "1.12.0", "frcYear": "2026"}"#);
+
+        let info = p.detect();
+        assert!(info.has_catalyst);
+        assert_eq!(info.catalyst_version.as_deref(), Some("1.12.0"));
+    }
+
+    #[test]
+    fn a_corrupt_vendordep_is_seen_but_has_no_version() {
+        // Half-written by an interrupted install. It must still register as present, or the app
+        // offers a clean install and silently leaves the broken file in place.
+        let p = Project::new("corrupt")
+            .file("build.gradle", "")
+            .file("vendordeps/FrcCatalyst.json", "{ this is not json");
+
+        let info = p.detect();
+        assert!(info.has_catalyst, "the file is there");
+        assert!(info.catalyst_version.is_none(), "but nothing can be read from it");
+    }
+
+    #[test]
+    fn unreadable_preferences_do_not_stop_detection() {
+        let p = Project::new("bad-prefs")
+            .file("build.gradle", "")
+            .file(".wpilib/wpilib_preferences.json", "not json at all");
+
+        let info = p.detect();
+        assert!(info.is_wpilib, "the marker file exists, which is what that test is");
+        assert!(info.project_year.is_none());
+    }
+
+    #[test]
+    fn preferences_without_a_project_year_report_none() {
+        let p = Project::new("no-year")
+            .file("build.gradle", "")
+            .file(".wpilib/wpilib_preferences.json", r#"{"teamNumber": 5805}"#);
+
+        assert!(p.detect().project_year.is_none());
+    }
+}

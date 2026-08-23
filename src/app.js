@@ -2,12 +2,15 @@
 // Core features (tools + install from the bundled vendordep) work fully offline.
 // Update checks and the optional dependency download are best-effort and skip quietly when offline.
 
+import { seasonOf } from "./season.js";
+
 const TAURI = window.__TAURI__ || null;
 const IN_APP = !!TAURI;
 
 const APP_VERSION = "1.4.3";   // this app's version
 const LIB_VERSION = "2.0.0-alpha.1";   // the FrcCatalyst version bundled inside this app
 const LIB_FRC_YEAR = "2027";           // the season that version targets
+
 const LIB_VENDORDEP_URL = "https://tomas-1226.github.io/FrcCatalyst/vendordep/FrcCatalyst.json";
 
 // ---------- icons (Lucide-style line icons) ----------
@@ -363,7 +366,7 @@ async function runDetect(dir) {
 
   // Season mismatch is the failure worth catching here. A 2027 vendordep in a 2026 project writes
   // cleanly, looks installed, and then fails at build with an error that mentions none of this.
-  if (info.project_year && info.project_year !== LIB_FRC_YEAR) {
+  if (info.project_year && seasonOf(info.project_year) !== LIB_FRC_YEAR) {
     html += line(false,
       `This is a ${info.project_year} project and Catalyst ${LIB_VERSION} targets ${LIB_FRC_YEAR}. ` +
       `Import it as a ${LIB_FRC_YEAR} project in WPILib VS Code first — installing into a ` +
@@ -391,8 +394,8 @@ async function doInstall() {
         // Refuse a vendordep meant for another season. Writing one produces a project that looks
         // correctly configured and fails at build with an error that names none of this.
         const year = JSON.parse(content).frcYear;
-        if (year && String(year) !== "2027" && !String(year).startsWith("2027")) {
-          throw new Error(`its vendordep reports frcYear ${year}, not 2027`);
+        if (year && seasonOf(year) !== LIB_FRC_YEAR) {
+          throw new Error(`its vendordep reports frcYear ${year}, not ${LIB_FRC_YEAR}`);
         }
         w(true, await invoke("write_vendordep", { dir: chosenDir, filename: dep.file, content }));
       } catch (e) { w(false, `${dep.name}: ${e} — add it from Manage Vendor Libraries instead`); }
