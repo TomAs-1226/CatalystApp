@@ -8,7 +8,7 @@ import { cmpVer } from "./version.js";
 const TAURI = window.__TAURI__ || null;
 const IN_APP = !!TAURI;
 
-const APP_VERSION = "1.4.3";   // this app's version
+const APP_VERSION = "2.0.0";   // this app's version, tracking the library major it installs
 const LIB_VERSION = "2.0.0-alpha.1";   // the FrcCatalyst version bundled inside this app
 const LIB_FRC_YEAR = "2027";           // the season that version targets
 
@@ -87,6 +87,7 @@ const LINKS = [
   ["Report an issue", "https://github.com/TomAs-1226/FrcCatalyst/issues"],
 ];
 const CHANGELOG = [
+  { v: "2.0.0", t: "WPILib 2027 and Limelight Systemcore", date: "2026-08-23", items: ["Catalyst 2.x targets WPILib 2027 on Systemcore: five CAN buses, Commands v3, the onboard IMU, and a machine that reports its own processor, temperature, storage and flash wear.", "This app installs the 2027 vendordep and bundles the Systemcore-aware tools. It will not install into a 2026 project - keep Catalyst 1.x and the previous app for a roboRIO."] },
   { v: "1.7.0", t: "Physics Core validated in simulation", date: "2026-08-05", items: ["A ground-truth simulator marks Physics Core against the RFC acceptance criteria - fused velocity is now 48% closer to the truth through a slip than raw encoders.", "Building it found three real defects that 300 unit tests had missed. Also adds a guide to measuring your robot, and which measurements actually matter."] },
   { v: "1.6.0", t: "Physics Core, completed", date: "2026-08-05", items: ["A live centre of mass that tracks your elevator, closed-form ballistics, online identification of feedforward gains and battery resistance, fault isolation that names a cause, and capability evaluation before an action is scheduled.", "Learned values are reported, never applied — no method writes a gain. The one limit layer computes caps and applies none of them."] },
   { v: "1.5.0", t: "Physics Core (optional physical-intelligence layer)", date: "2026-08-05", items: ["Fuses wheel odometry and the IMU into one velocity with an honest confidence, scores which wheel is slipping, detects collisions, and predicts the robot's state at shot release.", "Entirely optional and strictly advisory — it writes no pose and changes no setpoint, so existing robot code is untouched."] },
