@@ -86,8 +86,12 @@ button { font-family: inherit; }
 
 /* ---------- Main ---------- */
 #main { flex: 1; overflow: auto; position: relative; }
-.view { padding: 28px 34px 40px; max-width: 960px; }
+.view { padding: 28px 34px; max-width: 960px; }
 .view.hidden { display: none; }
+/* The last block in a view carries its own bottom margin - .panel is 16px - and it stacked on top of
+   the view's bottom padding, so a page that fit ended up scrolling to reveal nothing but the gap. One
+   gap, the padding, is the intent. */
+.view > :last-child { margin-bottom: 0; }
 #view-tool { padding: 0; max-width: none; height: 100%; }
 
 .page-head { margin-bottom: 22px; }
@@ -250,7 +254,9 @@ h1 { color: var(--white); font-size: 23px; font-weight: 600; margin-bottom: 6px;
 .notice.info strong { color: var(--white); }
 
 /* ---------- Tool iframe ---------- */
-#toolFrame { width: 100%; height: 100%; border: none; background: var(--bg); }
+/* display:block, or the iframe sits on a text baseline and the line's descender adds ~4px under it -
+   enough to give every tool page a scrollbar for content that already fits exactly. */
+#toolFrame { display: block; width: 100%; height: 100%; border: none; background: var(--bg); }
 
 * { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.16) transparent; }
 ::-webkit-scrollbar { width: 12px; height: 12px; }
