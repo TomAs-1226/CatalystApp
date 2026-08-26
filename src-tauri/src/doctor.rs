@@ -49,15 +49,17 @@ pub struct Diagnosis {
     pub summary: String,
 }
 
-fn ok(what: &str) -> Finding {
+// Shared with the vendordeps list, which grades the same project against the same vocabulary. Two
+// views that call the same fact a blocker and a warning are worse than either of them being wrong.
+pub(crate) fn ok(what: &str) -> Finding {
     Finding { level: Level::Ok, what: what.into(), detail: String::new(), fix: String::new() }
 }
 
-fn warn(what: &str, detail: &str, fix: &str) -> Finding {
+pub(crate) fn warn(what: &str, detail: &str, fix: &str) -> Finding {
     Finding { level: Level::Warn, what: what.into(), detail: detail.into(), fix: fix.into() }
 }
 
-fn blocker(what: &str, detail: &str, fix: &str) -> Finding {
+pub(crate) fn blocker(what: &str, detail: &str, fix: &str) -> Finding {
     Finding { level: Level::Blocker, what: what.into(), detail: detail.into(), fix: fix.into() }
 }
 
@@ -257,22 +259,20 @@ fn check_gradle_version(root: &Path, out: &mut Vec<Finding>) {
     }
 }
 
+/// Whether the libraries a 2027 robot needs are present, and whether anything is there that cannot
+/// be.
+///
+/// This is a yes/no on the set. What is in each file - the version, the season it declares, whether
+/// two files are the same library - is the vendordeps list's job, and it reads the same folder
+/// through `vendordeps::read_all` so the two views cannot disagree about what is installed.
 fn check_vendordeps(root: &Path, out: &mut Vec<Finding>) {
-    let dir = root.join("vendordeps");
-    let mut names = Vec::new();
-    if let Ok(entries) = fs::read_dir(&dir) {
-        for e in entries.flatten() {
-            names.push(e.file_name().to_string_lossy().to_string());
-        }
-    }
-
-    let has = |needle: &str| names.iter().any(|n| n.to_lowercase().contains(needle));
+    let installed = crate::vendordeps::read_all(root);
+    let has = |needle: &str| installed.iter().any(|dep| dep.mentions(needle));
 
     if has("photon") {
         out.push(warn(
             "PhotonVision",
-            "PhotonVision has no 2027 build, and Catalyst is Limelight-first on Systemcore - the \
-             pipeline is in the hardware. Leaving this here will fail the build.",
+            crate::vendordeps::PHOTONVISION_DETAIL,
             "Delete vendordeps/photonlib.json",
         ));
     }

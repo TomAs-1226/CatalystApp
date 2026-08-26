@@ -170,6 +170,40 @@
         </div>
       </section>
 
+      <!--
+        Vendordeps.
+
+        The Doctor answers "will this project run" and gives one verdict. This answers "what is
+        installed", one row per file, because fixing a vendordep means opening a particular file and
+        a verdict does not say which one.
+
+        The row is built so the two problems that hide in plain sight are visible without reading:
+        the season each file declares is a chip that goes red when it disagrees with the project's,
+        and a library installed twice is marked on both of its rows.
+      -->
+      <section id="view-vendordeps" class="view hidden">
+        <div class="page-head">
+          <h1>Vendordeps</h1>
+          <p class="sub">Every vendor library in your project, with the version and season it declares &mdash; and what is wrong with the set: a file left over from last season, the same library installed twice, one that will not parse. Nothing here writes to your project.</p>
+        </div>
+
+        <div class="panel">
+          <div class="row">
+            <button class="btn" id="vdPickBtn">Choose your robot project</button>
+            <span class="path" id="vdPath">No folder chosen yet</span>
+          </div>
+
+          <div id="vdVerdict" class="doc-verdict hidden"></div>
+          <div id="vdSeason" class="vd-season hidden"></div>
+          <div id="vdNotes" class="doc-findings"></div>
+          <div id="vdList" class="vd-list"></div>
+        </div>
+
+        <div id="vdBrowserNotice" class="notice hidden">
+          You are viewing this in a browser preview. Reading your project needs the desktop app's file access.
+        </div>
+      </section>
+
       <!-- Updates / Settings -->
       <section id="view-updates" class="view hidden">
         <div class="page-head">

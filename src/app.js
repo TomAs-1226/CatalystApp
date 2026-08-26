@@ -32,6 +32,7 @@ const ICONS = {
   install: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>',
   updates: '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
   doctor: '<path d="M11 2v3"/><path d="M17 2v3"/><path d="M8 5h12a1 1 0 0 1 1 1v5a7 7 0 0 1-14 0V6a1 1 0 0 1 1-1z"/><path d="M14 18a3 3 0 1 0 6 0v-3"/><circle cx="20" cy="10" r="1.4"/>',
+  vendordeps: '<path d="M4 4v16"/><path d="M8 4v16"/><path d="M13 4h3a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-3z"/><path d="m19.5 5.5 1.6 13.4"/>',
   console: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.2"/><path d="M12 8.8V3"/><path d="m9.2 13.6-4.9 2.9"/><path d="m14.8 13.6 4.9 2.9"/>',
   chev: '<path d="m9 18 6-6-6-6"/>',
   agent: '<path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/>',
@@ -141,6 +142,7 @@ function buildNav() {
   nb.appendChild(navBtn("install", "Install into project", "install"));
   addConsoleEntry(nb, hl);
   nb.appendChild(navBtn("doctor", "Doctor", "doctor"));
+  nb.appendChild(navBtn("vendordeps", "Vendordeps", "vendordeps"));
   nb.appendChild(navBtn("agents", "AI Agents", "agent"));
   nb.appendChild(navBtn("whatsnew", "What's New", "star"));
   nb.appendChild(navBtn("updates", "Updates", "updates"));
@@ -218,6 +220,10 @@ function setView(view) {
   } else if (view === "whatsnew") {
     $("#view-whatsnew").classList.remove("hidden");
     renderWhatsNew();
+  } else if (view === "doctor") {
+    $("#view-doctor").classList.remove("hidden");
+  } else if (view === "vendordeps") {
+    $("#view-vendordeps").classList.remove("hidden");
   } else {
     $("#view-home").classList.remove("hidden");
     renderRecent();
@@ -227,7 +233,7 @@ function setView(view) {
   try { history.replaceState(null, "", "#" + view); } catch (_) {}
   if (["home", "install", "updates", "agents", "settings", "whatsnew"].includes(view)) settings.set("lastView", view);
 }
-const VIEWS = ["home", "install", "doctor", "updates", "agents", "settings", "whatsnew"];
+const VIEWS = ["home", "install", "doctor", "vendordeps", "updates", "agents", "settings", "whatsnew"];
 function initialView() {
   const h = (location.hash || "").slice(1);
   if (TOOLS.some((t) => t.id === h) || VIEWS.includes(h)) return h;
@@ -364,6 +370,33 @@ function escapeHtml(value) {
       .replace(/"/g, "&quot;");
 }
 
+/* One finding, in the shape both views report them in: a mark, what was checked, why it matters,
+ * and what to do. The vendordeps list reuses this for the problems that belong to the whole folder
+ * rather than to any one file. */
+function findingRow(f) {
+  return `<div class="doc-row ${f.level}">
+      <span class="doc-mark">${levelMark(f.level)}</span>
+      <div class="doc-body">
+        <div class="doc-what">${escapeHtml(f.what)}</div>
+        ${f.detail ? `<div class="doc-detail">${escapeHtml(f.detail)}</div>` : ""}
+        ${fixBlock(f.fix)}
+      </div>
+    </div>`;
+}
+
+/* The severity glyph, shared with the vendordeps list. There is no colour-only signalling anywhere
+ * in either view: every level has its own mark as well. */
+const levelMark = (level) => (level === "ok" ? "✓" : level === "warn" ? "▲" : "✕");
+
+/* The fix is shown as a block only when it is something to paste. A one-line instruction reads
+ * better as a sentence than as a code block pretending to be a command. */
+function fixBlock(fix) {
+  if (!fix) return "";
+  return fix.includes("\n") || fix.includes("{")
+    ? `<pre class="doc-fix">${escapeHtml(fix)}</pre>`
+    : `<div class="doc-fix-line">${escapeHtml(fix)}</div>`;
+}
+
 let doctorDir = null;
 
 async function pickDoctorFolder() {
@@ -392,24 +425,7 @@ async function runDoctor(dir) {
   verdict.className = `doc-verdict ${result.ready ? "ready" : "blocked"}`;
   verdict.textContent = result.summary;
 
-  list.innerHTML = (result.findings || []).map((f) => {
-    const mark = f.level === "ok" ? "✓" : f.level === "warn" ? "▲" : "✕";
-    /* The fix is shown as a block only when it is something to paste. A one-line instruction reads
-     * better as a sentence than as a code block pretending to be a command. */
-    const fix = f.fix
-      ? (f.fix.includes("\n") || f.fix.includes("{")
-          ? `<pre class="doc-fix">${escapeHtml(f.fix)}</pre>`
-          : `<div class="doc-fix-line">${escapeHtml(f.fix)}</div>`)
-      : "";
-    return `<div class="doc-row ${f.level}">
-        <span class="doc-mark">${mark}</span>
-        <div class="doc-body">
-          <div class="doc-what">${escapeHtml(f.what)}</div>
-          ${f.detail ? `<div class="doc-detail">${escapeHtml(f.detail)}</div>` : ""}
-          ${fix}
-        </div>
-      </div>`;
-  }).join("");
+  list.innerHTML = (result.findings || []).map(findingRow).join("");
 
   await runMigrationScan(dir);
 }

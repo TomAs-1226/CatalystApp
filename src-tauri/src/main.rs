@@ -2,6 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod doctor;
+mod vendordeps;
 
 use serde::Serialize;
 use std::fs;
@@ -44,16 +45,9 @@ fn detect_project(dir: String) -> ProjectInfo {
         (false, None)
     };
 
-    let project_year = fs::read_to_string(p.join(".wpilib").join("wpilib_preferences.json"))
-        .ok()
-        .and_then(|s| serde_json::from_str::<serde_json::Value>(&s).ok())
-        .and_then(|j| {
-            // WPILib writes this as a number in some seasons and a string in others.
-            j.get("projectYear").map(|x| match x.as_str() {
-                Some(text) => text.to_string(),
-                None => x.to_string().trim_matches('"').to_string(),
-            })
-        });
+    // Read through the vendordeps module, which is where the season is compared to something. The
+    // installer and that list disagreeing about which year a project is would be its own bug.
+    let project_year = vendordeps::project_year(p);
 
     let project_name = p
         .file_name()
@@ -174,7 +168,8 @@ fn main() {
             console_available,
             launch_console,
             doctor::diagnose_project,
-            doctor::scan_migration
+            doctor::scan_migration,
+            vendordeps::inspect_vendordeps
         ])
         .run(tauri::generate_context!())
         .expect("error while running the Catalyst app");
