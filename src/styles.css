@@ -263,3 +263,83 @@ h1 { color: var(--white); font-size: 23px; font-weight: 600; margin-bottom: 6px;
 }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.26); background-clip: padding-box; }
 ::-webkit-scrollbar-thumb:active { background: var(--coral); background-clip: padding-box; }
+
+/* ---------------------------------------------------------------------- doctor
+
+   A findings list, and it lives or dies on being scannable: the mark tells you the severity before
+   you read a word, and the worst row is always first because the backend sorts it that way. There is
+   no colour-only signalling - every level has its own glyph as well. */
+
+.doc-verdict {
+  margin-top: 18px; padding: 13px 16px; border-radius: 10px;
+  font-size: 14.5px; font-weight: 600; border: 1px solid var(--hair-2);
+}
+.doc-verdict.checking { color: var(--muted); }
+.doc-verdict.ready    { color: var(--green); border-color: rgba(74, 201, 126, 0.35); }
+.doc-verdict.blocked  { color: var(--coral-lt); border-color: rgba(233, 69, 96, 0.4); }
+
+.doc-findings { margin-top: 14px; display: flex; flex-direction: column; gap: 2px; }
+.doc-row {
+  display: grid; grid-template-columns: 22px 1fr; gap: 10px;
+  padding: 12px 2px; border-bottom: 1px solid var(--hair);
+}
+.doc-row:last-child { border-bottom: 0; }
+.doc-mark { font-size: 13px; line-height: 1.5; text-align: center; }
+.doc-row.ok      .doc-mark { color: var(--green); }
+.doc-row.warn    .doc-mark { color: #ffb454; }
+.doc-row.blocker .doc-mark { color: var(--coral); }
+
+.doc-what { font-size: 13.5px; font-weight: 600; color: var(--white); }
+/* Wrapped at a readable measure. These explanations are two or three sentences and the whole point
+   is that somebody reads them rather than skimming past. */
+.doc-detail {
+  margin-top: 5px; font-size: 12.5px; line-height: 1.6; color: var(--text); max-width: 68ch;
+}
+.doc-fix, .doc-fix-line { margin-top: 9px; font-size: 12px; }
+.doc-fix {
+  padding: 10px 12px; background: var(--bg); border: 1px solid var(--hair);
+  border-radius: 8px; overflow-x: auto; white-space: pre;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--text); line-height: 1.6;
+}
+.doc-fix-line { color: var(--muted); }
+
+/* --- the migration list --------------------------------------------------- */
+
+.doc-migration { display: flex; flex-direction: column; gap: 18px; margin-top: 6px; }
+.doc-file-name {
+  display: flex; align-items: center; gap: 9px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12.5px; color: var(--white); padding-bottom: 8px;
+  border-bottom: 1px solid var(--hair);
+}
+.doc-count {
+  font-family: inherit; font-size: 11px; color: var(--muted);
+  background: var(--panel-2); border-radius: 999px; padding: 1px 8px;
+}
+.doc-usage {
+  display: grid; grid-template-columns: 44px 1fr; gap: 10px; padding: 10px 0;
+  border-bottom: 1px solid var(--hair);
+}
+.doc-usage:last-child { border-bottom: 0; }
+.doc-line {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums;
+}
+.doc-rename { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12.5px; }
+.doc-rename code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;
+  padding: 2px 7px; border-radius: 5px;
+}
+.doc-rename .old { background: rgba(233, 69, 96, 0.14); color: var(--coral-lt); }
+.doc-rename .new { background: rgba(74, 201, 126, 0.14); color: var(--green); }
+.doc-rename .arrow { color: var(--muted); }
+.doc-rename .removed { color: var(--muted); font-size: 12px; }
+.doc-why { margin-top: 5px; font-size: 12px; color: var(--muted); max-width: 66ch; line-height: 1.55; }
+.doc-code {
+  margin-top: 7px; padding: 7px 10px; background: var(--bg); border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px;
+  color: var(--text); overflow-x: auto; white-space: pre;
+}
+
+.panel-title { margin: 0 0 6px; font-size: 15px; font-weight: 650; color: var(--white); }

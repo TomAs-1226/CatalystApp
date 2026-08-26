@@ -130,6 +130,46 @@
         </div>
       </section>
 
+      <!--
+        Doctor.
+
+        Every check behind this view is for something that does not fail at build time. The project
+        compiles, the deploy succeeds, and the problem turns up on the field as something that does
+        not resemble its cause - which is exactly the class of thing worth finding before anyone
+        drives.
+      -->
+      <section id="view-doctor" class="view hidden">
+        <div class="page-head">
+          <h1>Doctor</h1>
+          <p class="sub">Checks your project for the things that will not fail until it matters &mdash; a missing JVM flag, a Gradle that cannot read Java 25, a vendordep from last season. Nothing here writes to your project.</p>
+        </div>
+
+        <div class="panel">
+          <div class="row">
+            <button class="btn" id="docPickBtn">Choose your robot project</button>
+            <span class="path" id="docPath">No folder chosen yet</span>
+          </div>
+
+          <div id="docVerdict" class="doc-verdict hidden"></div>
+          <div id="docFindings" class="doc-findings"></div>
+        </div>
+
+        <!--
+          The migration scan is its own panel because it answers a different question. The checks
+          above ask "will this run"; this asks "what do I have to change", and a team porting from
+          1.x wants the list, not a verdict.
+        -->
+        <div class="panel" id="docMigrationPanel" hidden>
+          <h2 class="panel-title">Renamed since 1.x</h2>
+          <p class="sub">Commands v3 took five decorator names and gave them incompatible return types, so Java will not allow an override. These are the call sites in your code.</p>
+          <div id="docMigration" class="doc-migration"></div>
+        </div>
+
+        <div id="docBrowserNotice" class="notice hidden">
+          You are viewing this in a browser preview. Reading your project needs the desktop app's file access.
+        </div>
+      </section>
+
       <!-- Updates / Settings -->
       <section id="view-updates" class="view hidden">
         <div class="page-head">

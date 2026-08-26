@@ -1,6 +1,8 @@
 // Prevents an extra console window on Windows in release builds.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod doctor;
+
 use serde::Serialize;
 use std::fs;
 use std::path::Path;
@@ -170,7 +172,9 @@ fn main() {
             write_vendordep,
             mcp_server_path,
             console_available,
-            launch_console
+            launch_console,
+            doctor::diagnose_project,
+            doctor::scan_migration
         ])
         .run(tauri::generate_context!())
         .expect("error while running the Catalyst app");

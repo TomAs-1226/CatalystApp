@@ -31,6 +31,7 @@ const ICONS = {
   statemachine: '<rect width="8" height="8" x="3" y="3" rx="2"/><path d="M7 11v4a2 2 0 0 0 2 2h4"/><rect width="8" height="8" x="13" y="13" rx="2"/>',
   install: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>',
   updates: '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
+  doctor: '<path d="M11 2v3"/><path d="M17 2v3"/><path d="M8 5h12a1 1 0 0 1 1 1v5a7 7 0 0 1-14 0V6a1 1 0 0 1 1-1z"/><path d="M14 18a3 3 0 1 0 6 0v-3"/><circle cx="20" cy="10" r="1.4"/>',
   console: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.2"/><path d="M12 8.8V3"/><path d="m9.2 13.6-4.9 2.9"/><path d="m14.8 13.6 4.9 2.9"/>',
   chev: '<path d="m9 18 6-6-6-6"/>',
   agent: '<path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/>',
@@ -139,6 +140,7 @@ function buildNav() {
   const nb = $("#navBottom");
   nb.appendChild(navBtn("install", "Install into project", "install"));
   addConsoleEntry(nb, hl);
+  nb.appendChild(navBtn("doctor", "Doctor", "doctor"));
   nb.appendChild(navBtn("agents", "AI Agents", "agent"));
   nb.appendChild(navBtn("whatsnew", "What's New", "star"));
   nb.appendChild(navBtn("updates", "Updates", "updates"));
@@ -225,7 +227,7 @@ function setView(view) {
   try { history.replaceState(null, "", "#" + view); } catch (_) {}
   if (["home", "install", "updates", "agents", "settings", "whatsnew"].includes(view)) settings.set("lastView", view);
 }
-const VIEWS = ["home", "install", "updates", "agents", "settings", "whatsnew"];
+const VIEWS = ["home", "install", "doctor", "updates", "agents", "settings", "whatsnew"];
 function initialView() {
   const h = (location.hash || "").slice(1);
   if (TOOLS.some((t) => t.id === h) || VIEWS.includes(h)) return h;
@@ -340,6 +342,113 @@ function wireTitlebar() {
 }
 
 // ---------- installer ----------
+/* ------------------------------------------------------------------------ doctor
+ *
+ * The install view answers "can I install here". This answers "will it run", which is a different
+ * question and a much less obvious one: every check behind it is for something that does not fail
+ * at build time.
+ *
+ * Read-only, deliberately. It would be easy to offer "fix this for me" on the JVM flags, and a tool
+ * that edits a team's build.gradle for them is a tool they cannot fully trust afterwards. It shows
+ * the lines and lets them paste. */
+
+/* Everything the Doctor renders comes out of a team's own project - file paths, source lines, the
+ * contents of build.gradle. That is not hostile input, but it is arbitrary text going into innerHTML,
+ * and a stray angle bracket in a source line should render as an angle bracket rather than silently
+ * eating the rest of the row. */
+function escapeHtml(value) {
+  return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+}
+
+let doctorDir = null;
+
+async function pickDoctorFolder() {
+  if (!IN_APP) { $("#docBrowserNotice").classList.remove("hidden"); return; }
+  const dir = await TAURI.dialog.open({
+    directory: true, multiple: false, title: "Choose your robot project folder",
+  });
+  if (!dir) return;
+  doctorDir = dir;
+  $("#docPath").textContent = dir;
+  await runDoctor(dir);
+}
+
+async function runDoctor(dir) {
+  const verdict = $("#docVerdict");
+  const list = $("#docFindings");
+  verdict.classList.remove("hidden");
+  verdict.className = "doc-verdict checking";
+  verdict.textContent = "Checking…";
+  list.innerHTML = "";
+
+  const result = await invoke("diagnose_project", { dir })
+      .catch((e) => ({ ready: false, summary: "Could not read the project", findings: [],
+                       error: String(e) }));
+
+  verdict.className = `doc-verdict ${result.ready ? "ready" : "blocked"}`;
+  verdict.textContent = result.summary;
+
+  list.innerHTML = (result.findings || []).map((f) => {
+    const mark = f.level === "ok" ? "✓" : f.level === "warn" ? "▲" : "✕";
+    /* The fix is shown as a block only when it is something to paste. A one-line instruction reads
+     * better as a sentence than as a code block pretending to be a command. */
+    const fix = f.fix
+      ? (f.fix.includes("\n") || f.fix.includes("{")
+          ? `<pre class="doc-fix">${escapeHtml(f.fix)}</pre>`
+          : `<div class="doc-fix-line">${escapeHtml(f.fix)}</div>`)
+      : "";
+    return `<div class="doc-row ${f.level}">
+        <span class="doc-mark">${mark}</span>
+        <div class="doc-body">
+          <div class="doc-what">${escapeHtml(f.what)}</div>
+          ${f.detail ? `<div class="doc-detail">${escapeHtml(f.detail)}</div>` : ""}
+          ${fix}
+        </div>
+      </div>`;
+  }).join("");
+
+  await runMigrationScan(dir);
+}
+
+async function runMigrationScan(dir) {
+  const panel = $("#docMigrationPanel");
+  const list = $("#docMigration");
+
+  const usages = await invoke("scan_migration", { dir }).catch(() => []);
+  panel.hidden = usages.length === 0;
+  if (!usages.length) return;
+
+  /* Grouped by file, because that is the unit somebody opens. A flat list of forty lines across six
+   * files is the same information arranged so nobody can act on it. */
+  const byFile = new Map();
+  for (const u of usages) {
+    if (!byFile.has(u.file)) byFile.set(u.file, []);
+    byFile.get(u.file).push(u);
+  }
+
+  list.innerHTML = [...byFile.entries()].map(([file, rows]) => `
+      <div class="doc-file">
+        <div class="doc-file-name">${escapeHtml(file)}<span class="doc-count">${rows.length}</span></div>
+        ${rows.map((u) => `
+          <div class="doc-usage">
+            <span class="doc-line">${u.line}</span>
+            <div>
+              <div class="doc-rename">
+                <code class="old">${escapeHtml(u.oldName)}</code>
+                ${u.newName ? `<span class="arrow">→</span><code class="new">${escapeHtml(u.newName)}</code>`
+                            : `<span class="arrow">—</span><span class="removed">removed</span>`}
+              </div>
+              <div class="doc-why">${escapeHtml(u.why)}</div>
+              <pre class="doc-code">${escapeHtml(u.text)}</pre>
+            </div>
+          </div>`).join("")}
+      </div>`).join("");
+}
+
 async function pickFolder() {
   if (!IN_APP) { $("#browserNotice").classList.remove("hidden"); return; }
   const dir = await TAURI.dialog.open({ directory: true, multiple: false, title: "Choose your robot project folder" });
@@ -476,6 +585,7 @@ document.addEventListener("DOMContentLoaded", () => {
   $("#includeDeps").checked = settings.getBool("includeDeps", true);
   $("#toolFrame").addEventListener("load", injectIframeScrollbar);
   $("#pickBtn").addEventListener("click", pickFolder);
+  $("#docPickBtn").addEventListener("click", pickDoctorFolder);
   $("#installBtn").addEventListener("click", doInstall);
   $("#checkAppBtn").addEventListener("click", () => checkApp(true));
   $("#checkLibBtn").addEventListener("click", () => checkLib(true));
