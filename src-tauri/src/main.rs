@@ -153,6 +153,23 @@ fn write_vendordep(dir: String, filename: String, content: String) -> Result<Str
     Ok(format!("Wrote vendordeps/{filename}"))
 }
 
+/// Write a file the user chose in a save dialog. The path comes from the dialog, not from a page,
+/// and only text goes through here: the motor history the History tool fetched off the robot.
+#[tauri::command]
+fn save_text_file(path: String, content: String) -> Result<String, String> {
+    let p = Path::new(&path);
+    if path.trim().is_empty() || p.is_dir() {
+        return Err("no file chosen".to_string());
+    }
+    if let Some(dir) = p.parent() {
+        if !dir.as_os_str().is_empty() {
+            fs::create_dir_all(dir).map_err(|e| e.to_string())?;
+        }
+    }
+    fs::write(p, content).map_err(|e| e.to_string())?;
+    Ok(format!("Saved {}", p.display()))
+}
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
@@ -164,6 +181,7 @@ fn main() {
             detect_project,
             read_bundled_vendordep,
             write_vendordep,
+            save_text_file,
             mcp_server_path,
             console_available,
             launch_console,

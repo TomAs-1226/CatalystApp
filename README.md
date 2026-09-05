@@ -154,3 +154,13 @@ every tool): **14/14 checks pass**.
 - ~~Phase 2 — Auto-update (app + library), offline-graceful~~ ✅
 - ~~Phase 3 — AI-agent connector (bundled MCP server + agent-only knowledge graph)~~ ✅
 - **Next** — compile a signed Windows build (needs the MSVC Build Tools), then a Mac build via CI.
+
+## Motor History tool (2.1.0)
+
+Fetches the robot program's motor history off the Systemcore (`catalyst-agent` 2.0.3 on port
+9010) and shows every motor by serial number: lifetime powered, turning and loaded hours,
+revolutions, peak current and temperature, hot time, boots, and every id, name and firmware the
+motor has ever carried. **Save JSON** keeps the file as the robot wrote it; **Save CSV** is one row
+per device for a spreadsheet. Also opens a saved file, so the history of a robot that is not on
+the bench can still be read. The page itself lives in the FrcCatalyst docs (`docs/tools/history`)
+like the other tools and is synced in at build time.

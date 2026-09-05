@@ -58,6 +58,7 @@ const TOOLS = [
   { id: "aiming",       name: "Aiming",        desc: "Shoot-on-the-move aiming solver." },
   { id: "auto",         name: "Auto",          desc: "Sketch an autonomous routine." },
   { id: "statemachine", name: "State Machine", desc: "Paste your graph and see the states." },
+  { id: "history",      name: "Motor History", desc: "Every motor's hours, peaks and past names, pulled off the robot." },
 ];
 
 // Vendor libraries Catalyst builds against.
