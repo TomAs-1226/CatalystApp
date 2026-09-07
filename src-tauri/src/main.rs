@@ -96,6 +96,16 @@ fn read_bundled_vendordep(app: tauri::AppHandle) -> Result<String, String> {
     fs::read_to_string(&path).map_err(|e| format!("bundled vendordep not found: {e}"))
 }
 
+/// This app's version, read from the binary rather than repeated in the UI.
+///
+/// It used to be a constant in app.js kept in step with tauri.conf.json by hand, and it was not: the
+/// About page said 2.0.0 for four releases. Two sources of truth for a version is a bug that files
+/// itself, so there is now one - the package metadata Tauri already carries.
+#[tauri::command]
+fn app_version(app: tauri::AppHandle) -> String {
+    app.package_info().version.to_string()
+}
+
 /// Absolute path to the bundled MCP server (`resources/mcp/server.js`), for the agent config snippet.
 #[tauri::command]
 fn mcp_server_path(app: tauri::AppHandle) -> Result<String, String> {
@@ -193,6 +203,7 @@ fn main() {
             read_bundled_vendordep,
             write_vendordep,
             save_text_file,
+            app_version,
             mcp_server_path,
             console_available,
             launch_console,

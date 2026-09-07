@@ -110,6 +110,16 @@
           <h1>Install into your robot project</h1>
           <p class="sub">Point Catalyst at your GradleRIO project and it drops the vendordep straight in. The library installs from the copy bundled in this app, so it works with no internet.</p>
         </div>
+        <div class="notice" id="alphaNotice">
+          <b>Which library version this installs.</b> The bundled vendordep points at
+          <code>v2.0.0-alpha.1</code>, the newest 2.x tag that can actually be fetched. Later tags are
+          pinned to the <em>released</em> WPILib 2027 alpha-6 — the build a Systemcore runs — and that
+          WPILib is on no public maven, so JitPack cannot build them. Features listed under app
+          versions 2.1 and above (Motor History, Autonomy 2.0, the new decision cores) are in the
+          library source but <b>not</b> in the version this installs. To use them today, build
+          FrcCatalyst from source on a machine with the WPILib 2027 installer and publish it to your
+          local maven. This resolves itself when WPILib publishes alpha-7.
+        </div>
         <div class="panel">
           <div class="row">
             <button class="btn" id="pickBtn"></button>
@@ -121,7 +131,7 @@
               <input type="checkbox" id="includeDeps" checked />
               <span>Also fetch vendor libraries <em>(needs internet)</em></span>
             </label>
-            <button class="btn primary" id="installBtn">Install FrcCatalyst <span id="installVer">v1.7.0</span></button>
+            <button class="btn primary" id="installBtn">Install FrcCatalyst <span id="installVer">&hellip;</span></button>
           </div>
           <div id="installLog" class="install-log hidden"></div>
         </div>
@@ -215,7 +225,7 @@
           <div class="up-row">
             <div>
               <div class="up-name">This app</div>
-              <div class="up-meta" id="appVerMeta">Catalyst v1.4.3</div>
+              <div class="up-meta" id="appVerMeta">Catalyst</div>
             </div>
             <div class="up-status" id="appUpStatus">—</div>
             <button class="btn" id="checkAppBtn">Check</button>
@@ -224,7 +234,7 @@
           <div class="up-row">
             <div>
               <div class="up-name">FrcCatalyst library</div>
-              <div class="up-meta" id="libVerMeta">Bundled v1.7.0</div>
+              <div class="up-meta" id="libVerMeta">Bundled</div>
             </div>
             <div class="up-status" id="libUpStatus">—</div>
             <button class="btn" id="checkLibBtn">Check</button>

@@ -8,7 +8,13 @@ import { cmpVer } from "./version.js";
 const TAURI = window.__TAURI__ || null;
 const IN_APP = !!TAURI;
 
-const APP_VERSION = "2.0.0";   // this app's version, tracking the library major it installs
+/*
+ * The app's own version is read from the binary at startup, not written here. Keeping a copy in
+ * sync with tauri.conf.json by hand failed exactly the way that always fails - the About page
+ * claimed 2.0.0 through four releases. This value is only the fallback for running the UI in a
+ * plain browser, where there is no binary to ask.
+ */
+let APP_VERSION = "dev";
 const LIB_VERSION = "2.0.0-alpha.1";   // the FrcCatalyst version bundled inside this app
 const LIB_FRC_YEAR = "2027";           // the season that version targets
 
@@ -91,6 +97,21 @@ const LINKS = [
   ["Report an issue", "https://github.com/TomAs-1226/FrcCatalyst/issues"],
 ];
 const CHANGELOG = [
+  { v: "2.5.0", t: "Version drift, fixed at the root", date: "2026-09-07", items: [
+    "The About page said 2.0.0 for four releases, because the version was typed in two places. It is now read from the binary, so it cannot drift again.",
+    "The install page states plainly which library version it installs and why that is not the newest one in the source."] },
+  { v: "2.4.0", t: "Your projects, and agent access on your terms", date: "2026-09-07", items: [
+    "A Projects page. Import a robot project once and Catalyst remembers where it is, which Catalyst version and WPILib season it uses, and any note you leave on it.",
+    "The same registry lets an AI agent find your code. Reading is immediate; writing is off until you switch it on per project, and is refused inside .git and build output even then."] },
+  { v: "2.3.0", t: "MCP server 2.0", date: "2026-09-07", items: [
+    "An agent can now build a knowledge graph of your project and ask it where something lives, what it connects to, and how two things are related - before reading a line of source.",
+    "The bundled Catalyst graph was refreshed; it had been describing v1.7.0 and knew nothing of Commands v3 or the autonomy package."] },
+  { v: "2.2.0", t: "Autonomy 2.0 Planner", date: "2026-09-06", items: [
+    "Assemble your autonomy logic and see what it will actually do: which tasks win, which are held, and which mechanism each loser lost.",
+    "The conflict matrix answers the question worth asking before a competition - can these two behaviours ever run together, or does everything need the drivetrain?"] },
+  { v: "2.1.0", t: "Motor History", date: "2026-09-05", items: [
+    "Every motor by serial number: its lifetime hours, revolutions, peak current and temperature, and every id and name it has ever carried.",
+    "A motor's id and name change; its serial does not. Pull the history off the robot as JSON or CSV."] },
   { v: "2.0.0", t: "WPILib 2027 and Limelight Systemcore", date: "2026-08-23", items: ["Catalyst 2.x targets WPILib 2027 on Systemcore: five CAN buses, Commands v3, the onboard IMU, and a machine that reports its own processor, temperature, storage and flash wear.", "This app installs the 2027 vendordep and bundles the Systemcore-aware tools. It will not install into a 2026 project - keep Catalyst 1.x and the previous app for a roboRIO."] },
   { v: "1.7.0", t: "Physics Core validated in simulation", date: "2026-08-05", items: ["A ground-truth simulator marks Physics Core against the RFC acceptance criteria - fused velocity is now 48% closer to the truth through a slip than raw encoders.", "Building it found three real defects that 300 unit tests had missed. Also adds a guide to measuring your robot, and which measurements actually matter."] },
   { v: "1.6.0", t: "Physics Core, completed", date: "2026-08-05", items: ["A live centre of mass that tracks your elevator, closed-form ballistics, online identification of feedforward gains and battery resistance, fault isolation that names a cause, and capability evaluation before an action is scheduled.", "Learned values are reported, never applied — no method writes a gain. The one limit layer computes caps and applies none of them."] },
@@ -154,8 +175,8 @@ function buildNav() {
   $("#homeInstallBtn").innerHTML = `${svg("install")} Install Catalyst into my robot project`;
   $("#pickBtn").innerHTML = `${svg("install")} Choose robot project folder…`;
   $("#installVer").textContent = "v" + LIB_VERSION;
-  $("#appVerMeta").textContent = "Catalyst v" + APP_VERSION;
   $("#libVerMeta").textContent = "Bundled v" + LIB_VERSION;
+  paintAppVersion();
 }
 
 /*
@@ -358,7 +379,7 @@ function renderSettings() {
   $("#startupSel").onchange = (e) => settings.set("startup", e.target.value);
   $("#depsDefault").checked = settings.getBool("includeDeps", true);
   $("#depsDefault").onchange = (e) => { settings.set("includeDeps", e.target.checked); const c = $("#includeDeps"); if (c) c.checked = e.target.checked; };
-  $("#aboutApp").textContent = APP_VERSION;
+  paintAppVersion();
   $("#aboutLib").textContent = LIB_VERSION;
   $("#aboutLinks").innerHTML = LINKS.map(([label, url]) => `<button class="link-btn" data-link="${url}">${svg("external")} ${label}</button>`).join("");
   $("#aboutLinks").querySelectorAll("[data-link]").forEach((el) => el.addEventListener("click", () => openExternal(el.dataset.link)));
@@ -414,6 +435,17 @@ async function renderAgents() {
   $("#mcpConfig").textContent = JSON.stringify(cfg, null, 2);
   $("#mcpPathNote").textContent = note;
 }
+/** Ask the binary what version it is, and put it everywhere the UI shows it. */
+async function paintAppVersion() {
+  if (IN_APP) {
+    try { APP_VERSION = await invoke("app_version"); } catch (_) { /* fall back to "dev" */ }
+  }
+  const meta = $("#appVerMeta");
+  if (meta) meta.textContent = "Catalyst v" + APP_VERSION;
+  const about = $("#aboutApp");
+  if (about) about.textContent = APP_VERSION;
+}
+
 function wireProjects() {
   const b = $("#projAddBtn");
   if (b) b.addEventListener("click", pickProjectFolder);
