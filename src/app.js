@@ -59,6 +59,7 @@ const TOOLS = [
   { id: "auto",         name: "Auto",          desc: "Sketch an autonomous routine." },
   { id: "statemachine", name: "State Machine", desc: "Paste your graph and see the states." },
   { id: "history",      name: "Motor History", desc: "Every motor's hours, peaks and past names, pulled off the robot." },
+  { id: "autonomy",     name: "Autonomy 2.0",  desc: "Plan the logic, see what will actually run, take the code." },
 ];
 
 // Vendor libraries Catalyst builds against.

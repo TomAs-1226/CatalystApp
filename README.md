@@ -164,3 +164,19 @@ motor has ever carried. **Save JSON** keeps the file as the robot wrote it; **Sa
 per device for a spreadsheet. Also opens a saved file, so the history of a robot that is not on
 the bench can still be read. The page itself lives in the FrcCatalyst docs (`docs/tools/history`)
 like the other tools and is synced in at build time.
+
+## Autonomy 2.0 Planner (2.2.0)
+
+Assemble the robot's autonomy logic and see what it will actually do before deploying it. Add tasks
+with a score and the mechanisms they need, and the planner runs the same greedy rule `TaskArbiter`
+runs on the robot: which tasks win, which are held, and which resource each loser lost. The conflict
+matrix answers the question worth asking before a competition - can these two behaviours *ever* run
+together, or does everything need the drivetrain so nothing shares the robot.
+
+The Power tab does the same for `ShedCore`: give each mechanism a limit, a floor and a priority, ask
+for some amps back, and see what gets shed and what the floors refuse to give. The floor is the
+current a mechanism needs just to hold its load, and the planner shows a shortfall rather than
+pretending an elevator can be shed to nothing.
+
+The Code tab emits ready-to-paste Catalyst. Watching it run live is the Console's job - it holds the
+NetworkTables connection and its **Autonomy** tile shows the real decisions on the same schema.
