@@ -2,6 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod doctor;
+mod projects;
 mod vendordeps;
 
 use serde::Serialize;
@@ -10,7 +11,7 @@ use std::path::Path;
 use tauri::Manager;
 
 #[derive(Serialize)]
-struct ProjectInfo {
+pub(crate) struct ProjectInfo {
     is_wpilib: bool,
     has_catalyst: bool,
     catalyst_version: Option<String>,
@@ -28,6 +29,16 @@ struct ProjectInfo {
 /// and whether FrcCatalyst is already installed (and at what version).
 #[tauri::command]
 fn detect_project(dir: String) -> ProjectInfo {
+    detect_project_info(dir)
+}
+
+/// The detection itself, callable from anywhere in the crate.
+///
+/// Split from the command because `#[tauri::command]` generates helpers named after the function,
+/// and widening the function's visibility collides with them. The project registry needs this logic
+/// too - the version and season it records must be the same ones the Doctor reports, or the app
+/// contradicts itself about the project in front of you.
+pub(crate) fn detect_project_info(dir: String) -> ProjectInfo {
     let p = Path::new(&dir);
     let build_gradle = p.join("build.gradle").exists();
     let wpilib_marker = p.join(".wpilib").join("wpilib_preferences.json").exists();
@@ -187,7 +198,13 @@ fn main() {
             launch_console,
             doctor::diagnose_project,
             doctor::scan_migration,
-            vendordeps::inspect_vendordeps
+            vendordeps::inspect_vendordeps,
+            projects::list_projects,
+            projects::projects_registry_path,
+            projects::register_project,
+            projects::forget_project,
+            projects::set_agent_write,
+            projects::set_project_note
         ])
         .run(tauri::generate_context!())
         .expect("error while running the Catalyst app");

@@ -55,6 +55,15 @@ Catalyst graph.
 | `catalyst_graph_file` | What a file defines, and what it reaches outside itself |
 | `catalyst_graph_build` | Build or refresh a project's graph |
 
+**Your projects** — the app's Projects page registers them; this server reads that registry.
+
+| | |
+|---|---|
+| `catalyst_projects` | Where the user's projects are, and whether you may write |
+| `catalyst_project_files` | A project's source files |
+| `catalyst_write_file` | Write a file, inside a granted project only |
+| `catalyst_edit_file` | Replace exact text, refusing anything ambiguous |
+
 **Source**
 
 | | |
@@ -64,6 +73,22 @@ Catalyst graph.
 
 The intended order is graph first, source second: ask the graph where something lives, then read
 only that. It is much cheaper than grepping a repository blind.
+
+## Writing to the user's code
+
+Reading is always allowed. Writing has exactly three rules, and they are small on purpose:
+
+1. The path must resolve **inside** a registered project root. Containment is checked against the
+   resolved real path, so `..` and symlinks are caught by the same test rather than by special cases.
+2. That project's **let agents write** switch must be on. It defaults to off, and the only thing that
+   turns it on is a person clicking it in the app.
+3. Even inside a granted project, `.git`, `build`, `target`, `node_modules`, `.gradle` and
+   `graphify-out` are refused. Nothing an agent legitimately edits lives there.
+
+The app is where consent is given, `projects.json` is where it is recorded, and this server refuses
+anything the registry does not cover. `catalyst_edit_file` additionally refuses an edit whose target
+text is missing or appears more than once — an ambiguous edit is the one that silently lands in the
+wrong place.
 
 ## Building a graph
 

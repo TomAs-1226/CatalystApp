@@ -240,10 +240,41 @@
       </section>
 
       <!-- AI agents -->
+      <section id="view-projects" class="view hidden">
+        <div class="page-head">
+          <h1>Your projects</h1>
+          <p class="sub">The robot projects Catalyst knows about on this machine. What you see here is
+          exactly what an AI agent sees through the bundled MCP server &mdash; and writing is off until
+          you say otherwise, per project.</p>
+        </div>
+
+        <div class="panel">
+          <div class="settings-title">Import a project</div>
+          <p class="hint-line">Pick the folder with <code>build.gradle</code> in it. Catalyst reads its
+          season and its installed version; it does not modify anything.</p>
+          <button class="btn" id="projAddBtn">Choose robot project folder&hellip;</button>
+          <p class="hint-line" id="projAddNote"></p>
+        </div>
+
+        <div class="panel" id="projListPanel">
+          <div class="settings-title">Registered</div>
+          <div id="projList"></div>
+        </div>
+
+        <div class="panel">
+          <div class="settings-title">What an agent can do</div>
+          <p class="hint-line" id="projRegPath"></p>
+          <p class="hint-line">An agent can always <b>read</b> a registered project and search its
+          knowledge graph. It can <b>write</b> only where you have switched it on, and never inside
+          <code>.git</code>, <code>build</code>, <code>target</code> or <code>node_modules</code> even
+          then. Nothing outside a registered folder is reachable at all.</p>
+        </div>
+      </section>
+
       <section id="view-agents" class="view hidden">
         <div class="page-head">
           <h1>Connect an AI agent</h1>
-          <p class="sub">Catalyst ships a small server that lets AI agents (Claude Desktop, Claude Code, Cursor…) use these tools, read the bundled Catalyst knowledge graph, and build and query a graph of <em>your own</em> project. It runs on your machine over stdio with no npm dependencies and no internet, so it starts wherever Node does.</p>
+          <p class="sub">Catalyst ships a small server that lets AI agents (Claude Desktop, Claude Code, Cursor…) use these tools, read the bundled Catalyst knowledge graph, and build and query a graph of <em>your own</em> project. It runs on your machine over stdio with no npm dependencies and no internet, so it starts wherever Node does. Give it access to your own code on the <b>Projects</b> page &mdash; reading is immediate, writing is off until you switch it on per project.</p>
         </div>
 
         <div class="panel">

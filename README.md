@@ -200,3 +200,27 @@ Two fixes worth naming. The server directory now declares `"type": "commonjs"`, 
 graphify's own MCP server, which this complements rather than replaces, fails to start on a stock
 install with `ModuleNotFoundError: No module named 'mcp'`; this one has no dependency that can be
 missing.
+
+## Projects, and agent access to your code (app 2.4.0)
+
+A **Projects** page. Import a robot project once and Catalyst remembers it: where it is, which
+Catalyst version and WPILib season it uses, and any note you leave on it. Come back a week later and
+it is still there.
+
+The point is the second half. That registry is a JSON file in the app's data directory, and the
+bundled MCP server reads the same file, so an AI agent can find your code without being told where
+it is. It can read a registered project immediately. It can **write** only where you have switched
+*let agents write* on, per project, and that switch defaults to off.
+
+The rules are deliberately few and live in one place. A path must resolve inside a registered
+project root; containment is checked against the resolved real path, so `..` and symlinks are caught
+by the same test rather than by special cases. The project's write switch must be on. And `.git`,
+`build`, `target`, `node_modules`, `.gradle` and `graphify-out` are refused even inside a granted
+project. Everything else the server does — the graph, the Catalyst tools, reading source — needs
+none of this.
+
+Editing goes through an exact-text replace that refuses when the text is missing or appears more
+than once, because an ambiguous edit is the one that silently lands somewhere you did not mean.
+
+The registry lives in localStorage's place for a reason: localStorage belongs to the webview, and
+the MCP server is a separate Node process that cannot see it.

@@ -21,7 +21,7 @@ const fs = require("fs");
 const path = require("path");
 const { spawnSync } = require("child_process");
 
-const SERVER_VERSION = "2.0.0";
+const SERVER_VERSION = "2.1.0";
 const DATA = path.join(__dirname, "data");
 const motors = JSON.parse(fs.readFileSync(path.join(DATA, "motors.json"), "utf8")).motors;
 
@@ -159,6 +159,103 @@ function shortestPath(g, fromId, toId, maxDepth = 8) {
     frontier = next;
   }
   return null;
+}
+
+// ============================================================================
+//  The project registry, and the only door through which this server writes
+//
+//  The app records the projects you have imported in a JSON file in its data directory. That file
+//  is the permission boundary, and the rules are deliberately few:
+//
+//    1. A path must resolve inside a registered project root. Not near it, not a sibling - inside.
+//    2. That project's agentWrite flag must be true. It defaults to false and the only thing that
+//       sets it is a person clicking it in the app.
+//    3. Some paths are refused inside a granted project anyway: .git, build output, and the
+//       registry itself. Nothing an agent legitimately edits lives there, and the damage from
+//       getting it wrong is out of proportion to the convenience.
+//
+//  Everything else - reading, the graph, the source tools - needs none of this. Only writes.
+// ============================================================================
+
+/** Where the app keeps its data. Must match projects.rs::data_dir exactly. */
+function appDataDir() {
+  if (process.platform === "win32") {
+    return process.env.APPDATA ? path.join(process.env.APPDATA, "com.frccatalyst.app") : null;
+  }
+  const home = process.env.HOME;
+  if (!home) return null;
+  if (process.platform === "darwin") {
+    return path.join(home, "Library", "Application Support", "com.frccatalyst.app");
+  }
+  const base = process.env.XDG_DATA_HOME || path.join(home, ".local", "share");
+  return path.join(base, "com.frccatalyst.app");
+}
+
+function registryPath() {
+  const d = appDataDir();
+  return d ? path.join(d, "projects.json") : null;
+}
+
+/** The registered projects, re-read every time: the app may have changed them a second ago. */
+function projects() {
+  const p = registryPath();
+  if (!p || !fs.existsSync(p)) return [];
+  try {
+    const reg = JSON.parse(fs.readFileSync(p, "utf8"));
+    return Array.isArray(reg.projects) ? reg.projects : [];
+  } catch {
+    return [];
+  }
+}
+
+function findProject(ref) {
+  const list = projects();
+  if (!ref) return list.length === 1 ? list[0] : null;
+  const want = path.resolve(ref).toLowerCase();
+  return list.find((p) => path.resolve(p.path).toLowerCase() === want)
+      || list.find((p) => norm(p.name) === norm(ref))
+      || null;
+}
+
+/** Paths that stay off limits even inside a project the agent may write to. */
+const PROTECTED = [".git", "build", "target", "node_modules", ".gradle", "graphify-out"];
+
+/**
+ * Resolve `file` for writing, or explain why not.
+ *
+ * Containment is checked on the resolved real path of the project root, so a path that climbs out
+ * with .. or arrives through a symlink is caught by the same test rather than by a special case.
+ */
+function resolveForWrite(file, projectRef) {
+  const list = projects();
+  if (!list.length) {
+    return { error: "No projects are registered. Open the Catalyst app, import your robot project, "
+      + "and turn on 'let agents write' for it." };
+  }
+  const target = path.resolve(file);
+  const owner = (projectRef ? [findProject(projectRef)].filter(Boolean) : list).find((p) => {
+    let root;
+    try { root = fs.realpathSync(p.path); } catch { root = path.resolve(p.path); }
+    const rel = path.relative(root, target);
+    return rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
+  });
+  if (!owner) {
+    return { error: `${target} is not inside any registered project. Registered: `
+      + list.map((p) => p.path).join(", ") };
+  }
+  if (!owner.agentWrite && !owner.agent_write) {
+    return { error: `"${owner.name}" does not allow agent writes. Turn on 'let agents write' for it `
+      + `in the Catalyst app's Projects page. Reading is unaffected.` };
+  }
+  let root;
+  try { root = fs.realpathSync(owner.path); } catch { root = path.resolve(owner.path); }
+  const rel = path.relative(root, target).split(path.sep);
+  const hit = rel.find((seg) => PROTECTED.includes(seg));
+  if (hit) {
+    return { error: `Refusing to write inside "${hit}" - that is build output or version control, `
+      + `not source. Nothing an agent should be editing lives there.` };
+  }
+  return { path: target, project: owner };
 }
 
 /** The interpreter that can import graphify, or null. */
@@ -487,6 +584,156 @@ const TOOLS = {
         + `from ${summary.files} code files in ${summary.seconds}s.\n`
         + `Graph: ${summary.graph}\n`
         + `${summary.note}. Query it by passing graph: "${dir}" to the other graph tools.`);
+    },
+  },
+
+  // ------------------------------------------------------------------ projects
+
+  catalyst_projects: {
+    description: "The robot projects the user has imported into the Catalyst app: where they are, which Catalyst and WPILib season they use, any note the user left, and whether you may write to them. Call this first when you need to work on the user's code - it tells you where it is.",
+    inputSchema: { type: "object", properties: {} },
+    run: () => {
+      const list = projects();
+      const where = registryPath();
+      if (!list.length) {
+        return text("No projects are registered.\n\nThe user imports them in the Catalyst app "
+          + "(Projects page). Until then you have the bundled Catalyst knowledge graph and the "
+          + "read-only tools, but no path to their code."
+          + (where ? `\n\nRegistry: ${where}` : ""));
+      }
+      const rows = list.map((p) => {
+        const bits = [
+          p.catalyst_version ? `Catalyst ${p.catalyst_version}` : "no Catalyst vendordep",
+          p.year ? `WPILib ${p.year}` : null,
+          (p.agentWrite || p.agent_write) ? "you may write here" : "read-only to you",
+        ].filter(Boolean);
+        return `  ${p.name}\n    ${p.path}\n    ${bits.join("  ·  ")}`
+          + (p.note ? `\n    note: ${p.note}` : "");
+      });
+      return text(`${list.length} registered project(s), most recently opened first:\n\n${rows.join("\n\n")}`
+        + `\n\nRegistry: ${where}`);
+    },
+  },
+
+  catalyst_project_files: {
+    description: "List the source files in a registered project, so you can see its shape without walking the disk yourself.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        project: { type: "string", description: "Project path or name from catalyst_projects. Omit when only one is registered." },
+        extensions: { type: "string", description: "Comma-separated filter, e.g. 'java'. Default java,kt,json,gradle,md." },
+        limit: { type: "number", description: "default 200" },
+      },
+    },
+    run: ({ project, extensions, limit = 200 }) => {
+      const proj = findProject(project);
+      if (!proj) {
+        const list = projects();
+        return errText(list.length
+          ? `Name the project. Registered: ${list.map((p) => p.name).join(", ")}`
+          : "No projects are registered. The user imports them in the Catalyst app.");
+      }
+      const exts = (extensions || "java,kt,json,gradle,md").split(",")
+        .map((e) => "." + e.trim().replace(/^\./, "").toLowerCase());
+      const SKIP = new Set(PROTECTED.concat([".idea", ".vscode", "__pycache__", "logs"]));
+      const found = [];
+      const walk = (d) => {
+        if (found.length >= limit) return;
+        let entries;
+        try { entries = fs.readdirSync(d, { withFileTypes: true }); } catch { return; }
+        for (const e of entries) {
+          if (found.length >= limit) return;
+          if (e.isDirectory()) { if (!SKIP.has(e.name) && !e.name.startsWith(".")) walk(path.join(d, e.name)); continue; }
+          if (exts.includes(path.extname(e.name).toLowerCase()) || e.name === "build.gradle") {
+            found.push(path.relative(proj.path, path.join(d, e.name)));
+          }
+        }
+      };
+      walk(proj.path);
+      if (!found.length) return text(`No matching files in ${proj.name}.`);
+      return text(`${proj.name} (${proj.path})\n${found.length} file(s)${found.length >= limit ? ", truncated" : ""}:\n`
+        + found.map((f) => "  " + f).join("\n"));
+    },
+  },
+
+  catalyst_write_file: {
+    description: "Write a file inside a registered project the user has allowed you to write to. Creates parent directories. Refuses anything outside a granted project, and refuses .git and build output inside one.",
+    inputSchema: {
+      type: "object",
+      required: ["file", "content"],
+      properties: {
+        file: { type: "string", description: "Absolute path, or relative to the project when 'project' is given." },
+        content: { type: "string", description: "The complete new contents of the file." },
+        project: { type: "string", description: "Project path or name, when 'file' is relative or ambiguous." },
+      },
+    },
+    run: ({ file, content, project }) => {
+      if (typeof content !== "string") return errText("content must be a string.");
+      let target = file;
+      if (project && !path.isAbsolute(file)) {
+        const proj = findProject(project);
+        if (!proj) return errText(`No registered project matching "${project}".`);
+        target = path.join(proj.path, file);
+      }
+      const g = resolveForWrite(target, project);
+      if (g.error) return errText(g.error);
+      try {
+        const dir = path.dirname(g.path);
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        const existed = fs.existsSync(g.path);
+        const before = existed ? fs.readFileSync(g.path, "utf8").split(/\r?\n/).length : 0;
+        fs.writeFileSync(g.path, content, "utf8");
+        const after = content.split(/\r?\n/).length;
+        return text(`${existed ? "Updated" : "Created"} ${g.path}\n`
+          + `${existed ? `${before} lines -> ${after} lines` : `${after} lines`}  (project "${g.project.name}")`);
+      } catch (e) {
+        return errText(`Could not write ${g.path}: ${e.message}`);
+      }
+    },
+  },
+
+  catalyst_edit_file: {
+    description: "Replace an exact string in a file inside a granted project. Prefer this over rewriting a whole file: it fails loudly when the text is not found or appears more than once, which is what catches an edit aimed at the wrong place.",
+    inputSchema: {
+      type: "object",
+      required: ["file", "find", "replace"],
+      properties: {
+        file: { type: "string" },
+        find: { type: "string", description: "Exact text to replace. Must appear exactly once." },
+        replace: { type: "string" },
+        project: { type: "string", description: "Project path or name, when 'file' is relative." },
+      },
+    },
+    run: ({ file, find, replace, project }) => {
+      if (typeof find !== "string" || !find.length) return errText("find must be a non-empty string.");
+      if (typeof replace !== "string") return errText("replace must be a string.");
+      let target = file;
+      if (project && !path.isAbsolute(file)) {
+        const proj = findProject(project);
+        if (!proj) return errText(`No registered project matching "${project}".`);
+        target = path.join(proj.path, file);
+      }
+      const g = resolveForWrite(target, project);
+      if (g.error) return errText(g.error);
+      if (!fs.existsSync(g.path)) return errText(`No such file: ${g.path}`);
+      let body;
+      try { body = fs.readFileSync(g.path, "utf8"); } catch (e) { return errText(`Could not read: ${e.message}`); }
+      const count = body.split(find).length - 1;
+      if (count === 0) {
+        return errText(`That text does not appear in ${path.basename(g.path)}. Read it first - the `
+          + `file may have changed since you last saw it.`);
+      }
+      if (count > 1) {
+        return errText(`That text appears ${count} times in ${path.basename(g.path)}. Include enough `
+          + `surrounding lines to make it unique, so the edit lands where you meant it to.`);
+      }
+      try {
+        fs.writeFileSync(g.path, body.replace(find, replace), "utf8");
+        const at = body.slice(0, body.indexOf(find)).split(/\r?\n/).length;
+        return text(`Edited ${g.path} at line ${at}  (project "${g.project.name}")`);
+      } catch (e) {
+        return errText(`Could not write: ${e.message}`);
+      }
     },
   },
 

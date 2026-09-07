@@ -143,6 +143,7 @@ function buildNav() {
   const nb = $("#navBottom");
   nb.appendChild(navBtn("install", "Install into project", "install"));
   addConsoleEntry(nb, hl);
+  nb.appendChild(navBtn("projects", "Projects", "folder"));
   nb.appendChild(navBtn("doctor", "Doctor", "doctor"));
   nb.appendChild(navBtn("vendordeps", "Vendordeps", "vendordeps"));
   nb.appendChild(navBtn("agents", "AI Agents", "agent"));
@@ -233,14 +234,91 @@ function setView(view) {
   const btn = document.querySelector(`.nav-item[data-view="${view}"]`);
   if (btn) btn.classList.add("active");
   try { history.replaceState(null, "", "#" + view); } catch (_) {}
-  if (["home", "install", "updates", "agents", "settings", "whatsnew"].includes(view)) settings.set("lastView", view);
+  if (view === "projects") renderProjects();
+  if (["home", "install", "projects", "updates", "agents", "settings", "whatsnew"].includes(view)) settings.set("lastView", view);
 }
-const VIEWS = ["home", "install", "doctor", "vendordeps", "updates", "agents", "settings", "whatsnew"];
+const VIEWS = ["home", "install", "projects", "doctor", "vendordeps", "updates", "agents", "settings", "whatsnew"];
 function initialView() {
   const h = (location.hash || "").slice(1);
   if (TOOLS.some((t) => t.id === h) || VIEWS.includes(h)) return h;
   if (settings.get("startup", "home") === "last") return settings.get("lastView", "home");
   return "home";
+}
+
+// ---------- registered projects ----------
+/*
+ * These live in a JSON file in the app's data directory rather than in localStorage, because the
+ * MCP server is a separate Node process and cannot see localStorage. That file is also the
+ * permission boundary for agent writes - see src-tauri/src/projects.rs.
+ */
+async function renderProjects() {
+  const list = $("#projList");
+  if (!IN_APP) {
+    list.innerHTML = `<p class="hint-line">Project registration needs the desktop app.</p>`;
+    return;
+  }
+  let projects = [];
+  try { projects = await invoke("list_projects"); }
+  catch (e) { list.innerHTML = `<p class="hint-line">Could not read the registry: ${escapeHtml(String(e))}</p>`; return; }
+
+  try { $("#projRegPath").textContent = "Registry: " + (await invoke("projects_registry_path")); }
+  catch (_) { /* the path is a nicety, not a requirement */ }
+
+  if (!projects.length) {
+    list.innerHTML = `<p class="hint-line">Nothing imported yet. Choose a folder above and it will
+      appear here, and become visible to your AI agent.</p>`;
+    return;
+  }
+  list.innerHTML = projects.map((p) => {
+    const meta = [
+      p.catalyst_version ? "Catalyst v" + escapeHtml(p.catalyst_version) : "no Catalyst vendordep",
+      p.year ? "WPILib " + escapeHtml(p.year) : null,
+    ].filter(Boolean).join(" · ");
+    return `<div class="proj" data-path="${escapeHtml(p.path)}">
+      <div class="proj-main">
+        <div class="proj-name">${escapeHtml(p.name)}</div>
+        <div class="proj-path">${escapeHtml(p.path)}</div>
+        <div class="proj-meta">${meta}</div>
+        <input class="proj-note" data-note="${escapeHtml(p.path)}" value="${escapeHtml(p.note || "")}"
+               placeholder="Note for yourself and for the agent (optional)" />
+      </div>
+      <div class="proj-side">
+        <label class="proj-write">
+          <input type="checkbox" data-write="${escapeHtml(p.path)}" ${p.agent_write ? "checked" : ""} />
+          <span>Let agents write</span>
+        </label>
+        <button class="btn tiny" data-forget="${escapeHtml(p.path)}">Remove</button>
+      </div>
+    </div>`;
+  }).join("");
+
+  list.querySelectorAll("[data-write]").forEach((el) => el.addEventListener("change", async () => {
+    try { await invoke("set_agent_write", { dir: el.dataset.write, allowed: el.checked }); }
+    catch (e) { el.checked = !el.checked; $("#projAddNote").textContent = "Could not change that: " + e; }
+  }));
+  list.querySelectorAll("[data-note]").forEach((el) => el.addEventListener("change", async () => {
+    try { await invoke("set_project_note", { dir: el.dataset.note, note: el.value }); }
+    catch (e) { $("#projAddNote").textContent = "Could not save the note: " + e; }
+  }));
+  list.querySelectorAll("[data-forget]").forEach((el) => el.addEventListener("click", async () => {
+    try { await invoke("forget_project", { dir: el.dataset.forget }); renderProjects(); }
+    catch (e) { $("#projAddNote").textContent = "Could not remove that: " + e; }
+  }));
+}
+
+async function pickProjectFolder() {
+  if (!IN_APP) return;
+  let dir;
+  try { dir = await TAURI.dialog.open({ directory: true, multiple: false, title: "Choose your robot project" }); }
+  catch (e) { $("#projAddNote").textContent = "Could not open the picker: " + e; return; }
+  if (!dir) return;
+  try {
+    const p = await invoke("register_project", { dir, name: null });
+    $("#projAddNote").textContent = `Imported ${p.name}. Writing is off until you switch it on.`;
+    renderProjects();
+  } catch (e) {
+    $("#projAddNote").textContent = "Could not import that folder: " + e;
+  }
 }
 
 // ---------- recent projects ----------
@@ -313,6 +391,10 @@ const AGENT_CAPS = [
   ["catalyst_graph_build", "Build a graphify graph for any project. Structural, no LLM, no token cost."],
   ["catalyst_source_search", "Regex across the source with context, once the graph says where to look."],
   ["catalyst_source_read", "Read a file, or just the part around one symbol."],
+  ["catalyst_projects", "Your imported projects: where they are, and whether writing is allowed."],
+  ["catalyst_project_files", "List a project's source files without walking the disk."],
+  ["catalyst_write_file", "Write a file — only inside a project you have switched writing on for."],
+  ["catalyst_edit_file", "Replace exact text in a file, refusing anything ambiguous."],
 ];
 let agentsRendered = false;
 async function renderAgents() {
@@ -331,6 +413,10 @@ async function renderAgents() {
   const cfg = { mcpServers: { catalyst: { command: "node", args: [serverPath] } } };
   $("#mcpConfig").textContent = JSON.stringify(cfg, null, 2);
   $("#mcpPathNote").textContent = note;
+}
+function wireProjects() {
+  const b = $("#projAddBtn");
+  if (b) b.addEventListener("click", pickProjectFolder);
 }
 function wireCopy() {
   $("#copyMcp").addEventListener("click", async () => {
@@ -613,6 +699,7 @@ document.addEventListener("DOMContentLoaded", () => {
   $("#checkAppBtn").addEventListener("click", () => checkApp(true));
   $("#checkLibBtn").addEventListener("click", () => checkLib(true));
   wireCopy();
+  wireProjects();
   // settings radios
   const mode = getMode();
   document.querySelectorAll('input[name="upmode"]').forEach((r) => {
