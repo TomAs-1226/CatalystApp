@@ -305,9 +305,14 @@ const AGENT_CAPS = [
   ["catalyst_gear_calc", "Output speed and torque through a gear reduction."],
   ["catalyst_build_mechanism", "Generate ready-to-paste Java for a mechanism config."],
   ["catalyst_can_conflicts", "Check a CAN device list for duplicate IDs."],
-  ["catalyst_graph_search", "Search the Catalyst knowledge graph by name."],
-  ["catalyst_graph_neighbors", "See what a class or concept connects to."],
-  ["catalyst_graph_overview", "A map of the library: core abstractions and areas."],
+  ["catalyst_graph_overview", "A map of a codebase: its size, its areas, and what everything hangs off."],
+  ["catalyst_graph_search", "Find where something lives, by name, with its file and line."],
+  ["catalyst_graph_neighbors", "What a class or method connects to, grouped by relation."],
+  ["catalyst_graph_path", "How two things are related: the shortest chain between them."],
+  ["catalyst_graph_file", "What a file defines and what it reaches outside itself."],
+  ["catalyst_graph_build", "Build a graphify graph for any project. Structural, no LLM, no token cost."],
+  ["catalyst_source_search", "Regex across the source with context, once the graph says where to look."],
+  ["catalyst_source_read", "Read a file, or just the part around one symbol."],
 ];
 let agentsRendered = false;
 async function renderAgents() {

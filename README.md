@@ -180,3 +180,23 @@ pretending an elevator can be shed to nothing.
 
 The Code tab emits ready-to-paste Catalyst. Watching it run live is the Console's job - it holds the
 NetworkTables connection and its **Autonomy** tile shows the real decisions on the same schema.
+
+## MCP server 2.0 (app 2.3.0)
+
+The bundled MCP server grew from 7 tools to 12, and from "search a graph we shipped" to "understand
+any codebase". An agent can now build a graphify knowledge graph for a project
+(`catalyst_graph_build` - structural AST pass, no LLM, no token cost), then ask it where something
+lives, what it connects to, how two things are related, and what a file reaches outside itself,
+before reading a single line of source. The graph tools take the bundled Catalyst graph, any
+project's `graphify-out/graph.json`, or a path, through one normalising reader, so an agent never
+has to know which shape it is holding.
+
+The bundled Catalyst graph was refreshed to the current library - it was still describing v1.7.0 and
+knew nothing about Commands v3 or the autonomy package - and its areas are now named by Java package
+rather than by whichever method happened to be a cluster hub.
+
+Two fixes worth naming. The server directory now declares `"type": "commonjs"`, without which
+`require` fails whenever the server runs from the repository rather than an installed app. And
+graphify's own MCP server, which this complements rather than replaces, fails to start on a stock
+install with `ModuleNotFoundError: No module named 'mcp'`; this one has no dependency that can be
+missing.

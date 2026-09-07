@@ -1,0 +1,6 @@
+{
+  "name": "catalyst-mcp",
+  "private": true,
+  "type": "commonjs",
+  "description": "Scopes this directory back to CommonJS. The app's own package.json declares \"type\": \"module\", which would otherwise make every .js here an ES module and break require() - the server runs fine from the installed app, where no such package.json is above it, and fails when run from the repo. One file removes the difference."
+}
