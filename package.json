@@ -1,6 +1,6 @@
 {
   "name": "catalyst-app",
-  "version": "2.5.0",
+  "version": "2.6.0",
   "description": "FrcCatalyst desktop companion (Tauri)",
   "private": true,
   "type": "module",
@@ -8,9 +8,11 @@
     "test": "node scripts/sync-tools.mjs --check && node --test \"src/**/*.test.js\"",
     "tauri": "tauri",
     "bundle-console": "node scripts/bundle-console.mjs",
-    "build:all": "node scripts/sync-tools.mjs && node scripts/bundle-console.mjs && tauri build",
+    "bundle-docs": "node scripts/bundle-docs.mjs",
+    "prepare-resources": "node scripts/sync-tools.mjs && node scripts/bundle-console.mjs && node scripts/bundle-docs.mjs",
     "dev": "tauri dev",
-    "build": "tauri build",
+    "build": "npm run prepare-resources && tauri build",
+    "build:all": "npm run build",
     "sync-tools": "node scripts/sync-tools.mjs"
   },
   "devDependencies": {

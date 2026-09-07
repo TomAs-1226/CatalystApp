@@ -21,7 +21,38 @@ const fs = require("fs");
 const path = require("path");
 const { spawnSync } = require("child_process");
 
-const SERVER_VERSION = "2.1.0";
+const SERVER_VERSION = "2.3.0";
+
+/**
+ * What a client is told about this server at connect time.
+ *
+ * MCP's `instructions` field is the only place to say something before the agent has called
+ * anything, and the thing most worth saying is an ordering: graph, then docs, then source. An agent
+ * that greps a robot project blind burns its context on files it did not need, and an agent that
+ * writes Catalyst code from memory writes 1.x code, because that is what the training data holds.
+ */
+const INSTRUCTIONS = [
+  "Catalyst: an FRC robotics library, its documentation, a knowledge graph of it, and the user's own projects.",
+  "",
+  "Order of work, cheapest first:",
+  "  1. catalyst_projects  - where the user's code is, which Catalyst version it builds against,",
+  "     whether that build is a pre-release or modified, and whether you may write to it.",
+  "  2. catalyst_docs_search / catalyst_docs_read  - the intended API and the house idiom.",
+  "     Search this BEFORE writing Catalyst code. Catalyst 2.x is a WPILib 2027 / Commands v3",
+  "     library and its API differs from the 1.x code that dominates any training data: there is no",
+  "     SubsystemBase, no CommandScheduler.getInstance(), ChassisSpeeds is ChassisVelocities, and",
+  "     Timer.getFPGATimestamp() is Timer.getTimestamp(). Assume nothing; look it up.",
+  "  3. catalyst_graph_*  - where a symbol lives, what it connects to, what a file reaches.",
+  "     Ask the graph before reading source; it is far cheaper than grepping a repository.",
+  "  4. catalyst_source_search / catalyst_source_read  - the truth, when the docs are not enough.",
+  "",
+  "When catalyst_projects reports a pre-release, a locally-built or a modified install, the",
+  "project's own sources outrank both the documentation and any released version's notes.",
+  "",
+  "Writing: reading is always allowed; writing needs the user to have switched it on for that",
+  "project in the Catalyst app, and is refused outside a registered project and inside .git, build,",
+  "target, node_modules, .gradle and graphify-out. Do not ask the server to relax this - ask the user.",
+].join(String.fromCharCode(10));
 const DATA = path.join(__dirname, "data");
 const motors = JSON.parse(fs.readFileSync(path.join(DATA, "motors.json"), "utf8")).motors;
 
@@ -159,6 +190,44 @@ function shortestPath(g, fromId, toId, maxDepth = 8) {
     frontier = next;
   }
   return null;
+}
+
+// ============================================================================
+//  Documentation
+//
+//  Bundled rather than read from a library checkout, because an agent writing Catalyst code usually
+//  has the *robot* project open and the library is not on the machine at all. Loaded on first use:
+//  a session that never asks a documentation question pays nothing for it.
+// ============================================================================
+
+let docsCache = null;
+function docs() {
+  if (docsCache !== null) return docsCache;
+  const p = path.join(DATA, "docs.json");
+  if (!fs.existsSync(p)) {
+    docsCache = { libraryVersion: "unknown", pages: [] };
+    return docsCache;
+  }
+  try {
+    docsCache = JSON.parse(fs.readFileSync(p, "utf8"));
+  } catch {
+    docsCache = { libraryVersion: "unknown", pages: [] };
+  }
+  return docsCache;
+}
+
+/** The lines around each hit, so a search answers the question rather than only locating it. */
+function excerpt(body, re, before = 1, after = 3, max = 3) {
+  const lines = body.split("\n");
+  const out = [];
+  for (let i = 0; i < lines.length && out.length < max; i++) {
+    if (!re.test(lines[i])) continue;
+    const lo = Math.max(0, i - before);
+    const hi = Math.min(lines.length - 1, i + after);
+    out.push(lines.slice(lo, hi + 1).join("\n").trim());
+    i = hi;   // do not report the same paragraph three times
+  }
+  return out;
 }
 
 // ============================================================================
@@ -587,6 +656,125 @@ const TOOLS = {
     },
   },
 
+  // ------------------------------------------------------------------ documentation
+
+  catalyst_docs_search: {
+    description: "Search the FrcCatalyst documentation. Use this BEFORE writing Catalyst code - it is how you find the intended API and the house idiom rather than guessing a plausible-looking one.",
+    inputSchema: {
+      type: "object",
+      required: ["query"],
+      properties: {
+        query: { type: "string", description: "Words or a regular expression, e.g. 'swerve heading lock' or 'PhysicsConstraints'." },
+        limit: { type: "number", description: "Pages to report, default 6" },
+      },
+    },
+    run: ({ query, limit = 6 }) => {
+      const d = docs();
+      if (!d.pages.length) return errText("No documentation is bundled with this build.");
+
+      // A multi-word query OR-ed together matches almost every page: "swerve heading lock" reported
+      // 26 of 30 pages, which is the same as reporting nothing. So each term is matched on its own
+      // and a page must carry *all* of them to count - with a fall back to any-term when that finds
+      // nothing, because an over-strict search that says "no results" is its own failure.
+      const raw = query.trim();
+      const terms = raw.split(/\s+/).filter(Boolean);
+      const compile = (t) => {
+        try { return new RegExp(t, "i"); }
+        catch { return new RegExp(t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"); }
+      };
+      const res = terms.map(compile);
+      const any = compile(terms.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"));
+
+      const rank = (page, needed) => {
+        const hay = page.title + "\n" + page.headings.join("\n") + "\n" + page.body;
+        const present = res.filter((r) => r.test(hay)).length;
+        if (present < needed) return null;
+        let score = 0;
+        for (const r of res) {
+          if (r.test(page.title)) score += 10;
+          score += page.headings.filter((h) => r.test(h)).length * 4;
+        }
+        // Proximity beats frequency: a page that uses the terms in one paragraph is answering the
+        // question, a page that mentions each of them fifty lines apart merely contains the words.
+        const lines = page.body.split("\n");
+        let together = 0;
+        for (let i = 0; i < lines.length; i++) {
+          const win = lines.slice(i, i + 4).join(" ");
+          if (res.every((r) => r.test(win))) together++;
+        }
+        score += Math.min(together, 10) * 3;
+        const hits = (page.body.match(new RegExp(any.source, "gi")) || []).length;
+        score += Math.min(hits, 12);
+        return score > 0 ? { page, score, hits } : null;
+      };
+
+      let scored = d.pages.map((p) => rank(p, terms.length)).filter(Boolean);
+      let strict = true;
+      if (!scored.length) {
+        scored = d.pages.map((p) => rank(p, 1)).filter(Boolean);
+        strict = false;
+      }
+      if (!scored.length) {
+        return text(`Nothing in the documentation matches "${query}".\n\nPages available:\n`
+          + d.pages.map((p) => `  ${p.path}  ${p.title}`).join("\n"));
+      }
+      scored.sort((a, b) => b.score - a.score);
+      const shown = scored.slice(0, limit);
+      const body = shown.map(({ page, hits }) => {
+        const bits = excerpt(page.body, any);
+        return `## ${page.title}   (${page.path}, ${hits} mention${hits === 1 ? "" : "s"})\n`
+          + (bits.length ? bits.map((b) => "    " + b.replace(/\n/g, "\n    ")).join("\n    ---\n") : "    (title/heading match)");
+      });
+      const how = strict || terms.length < 2 ? "" : " (no page carries every term, so these match on any of them)";
+      return text(`FrcCatalyst ${d.libraryVersion} documentation - ${scored.length} page(s) match "${query}"${how}:\n\n`
+        + body.join("\n\n")
+        + `\n\nShowing ${shown.length} of ${scored.length}. Read a whole page with catalyst_docs_read.`);
+    },
+  },
+
+  catalyst_docs_read: {
+    description: "Read a documentation page in full, or list every page when no page is named.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        page: { type: "string", description: "Path or title fragment, e.g. 'advanced/physics.md' or 'physics'. Omit to list all pages." },
+        section: { type: "string", description: "Only the part under this heading." },
+      },
+    },
+    run: ({ page, section }) => {
+      const d = docs();
+      if (!d.pages.length) return errText("No documentation is bundled with this build.");
+      if (!page) {
+        return text(`FrcCatalyst ${d.libraryVersion} documentation, ${d.pages.length} pages:\n`
+          + d.pages.map((p) => `  ${p.path.padEnd(34)} ${p.title}`).join("\n"));
+      }
+      const q = norm(page);
+      const hit = d.pages.find((p) => norm(p.path) === q)
+               || d.pages.find((p) => norm(p.title) === q)
+               || d.pages.find((p) => norm(p.path).includes(q) || norm(p.title).includes(q));
+      if (!hit) {
+        return errText(`No page matching "${page}". Try catalyst_docs_search, or omit the page to list them.`);
+      }
+      if (!section) {
+        return text(`# ${hit.title}   (${hit.path})\n\n${hit.body}`);
+      }
+      const sq = norm(section);
+      const lines = hit.body.split("\n");
+      const start = lines.findIndex((l) => /^#{2,4}\s/.test(l) && norm(l.replace(/^#+\s*/, "")).includes(sq));
+      if (start < 0) {
+        return text(`"${section}" is not a heading in ${hit.path}. Headings:\n`
+          + hit.headings.map((h) => "  " + h).join("\n"));
+      }
+      const level = (lines[start].match(/^#+/) || ["##"])[0].length;
+      let end = lines.length;
+      for (let i = start + 1; i < lines.length; i++) {
+        const m = lines[i].match(/^(#{2,4})\s/);
+        if (m && m[1].length <= level) { end = i; break; }
+      }
+      return text(`# ${hit.title} > ${section}   (${hit.path})\n\n${lines.slice(start, end).join("\n").trim()}`);
+    },
+  },
+
   // ------------------------------------------------------------------ projects
 
   catalyst_projects: {
@@ -602,16 +790,36 @@ const TOOLS = {
           + (where ? `\n\nRegistry: ${where}` : ""));
       }
       const rows = list.map((p) => {
+        const a = p.analysis || {};
         const bits = [
           p.catalyst_version ? `Catalyst ${p.catalyst_version}` : "no Catalyst vendordep",
           p.year ? `WPILib ${p.year}` : null,
+          a.resolves_from ? `from ${a.resolves_from}` : null,
           (p.agentWrite || p.agent_write) ? "you may write here" : "read-only to you",
         ].filter(Boolean);
-        return `  ${p.name}\n    ${p.path}\n    ${bits.join("  ·  ")}`
-          + (p.note ? `\n    note: ${p.note}` : "");
+        const lines = [`  ${p.name}`, `    ${p.path}`];
+        if (a.kind) lines.push(`    ${a.kind}`);
+        lines.push("    " + bits.join("  ·  "));
+        if (p.note) lines.push(`    note: ${p.note}`);
+        // The findings are the point: they say when this install is not the one the docs describe.
+        for (const n of a.notes || []) lines.push(`    ! ${n}`);
+        return lines.join(String.fromCharCode(10));
       });
+      // Naming the documentation's version beside the projects' is what makes a mismatch visible.
+      // An agent that sees the docs describe 2.0.0-alpha.2 while the project builds something else
+      // will go and check; one that never sees the two numbers together will not think to.
+      const dv = docs().libraryVersion;
+      const versions = [...new Set(list.map((p) => p.catalyst_version).filter(Boolean))];
+      const drift = dv !== "unknown" && versions.length > 0 && !versions.includes(dv);
+
       return text(`${list.length} registered project(s), most recently opened first:\n\n${rows.join("\n\n")}`
-        + `\n\nRegistry: ${where}`);
+        + `\n\nRegistry: ${where}`
+        + `\n\nThe bundled documentation describes FrcCatalyst ${dv}.`
+        + (drift ? ` No project above is on that version - where the two could differ, the project's own sources decide.` : "")
+        + `\n\nBefore writing Catalyst code here: search catalyst_docs_search for the intended API, `
+        + `and where a note above says the install is a pre-release, modified, or locally built, `
+        + `confirm the signature in the project's own sources rather than trusting a released `
+        + `version's documentation.`);
     },
   },
 
@@ -847,6 +1055,7 @@ function handle(msg) {
         protocolVersion: (params && params.protocolVersion) || "2024-11-05",
         capabilities: { tools: {} },
         serverInfo: { name: "catalyst", version: SERVER_VERSION },
+        instructions: INSTRUCTIONS,
       });
     }
     if (method === "notifications/initialized" || method === "notifications/cancelled") return;

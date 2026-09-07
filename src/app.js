@@ -97,6 +97,12 @@ const LINKS = [
   ["Report an issue", "https://github.com/TomAs-1226/FrcCatalyst/issues"],
 ];
 const CHANGELOG = [
+  { v: "2.6.0", t: "Import a project as it is", date: "2026-09-07", items: [
+    "Import an existing robot project without installing anything into it. Catalyst reads it and says what it found: which Catalyst version it builds against, where that library comes from, and what else is in vendordeps.",
+    "It now names a pre-release or a hand-edited install rather than reporting a version and leaving you to find out. A project on an alpha, or one whose FrcCatalyst.json is not the file this app ships, says so on the card.",
+    "Your AI agent gets the same reading, plus the Catalyst documentation - 31 pages it can search and quote. It is told when the docs and your project describe different versions, so it checks your sources instead of writing against a release you are not on.",
+    "Those docs were corrected first. Every code sample that still taught WPILib 2026 - the old scheduler, SubsystemBase, ChassisSpeeds, Timer.getFPGATimestamp, Color.kGreen - is now the 2027 shape, and the Autonomy 2.0 stack has a page for the first time.",
+    "Your project list is now kept twice. It went missing once during development, and losing it loses every folder you imported and every permission you granted; if the live copy is ever gone or unreadable, Catalyst puts the last good one back."] },
   { v: "2.5.0", t: "Version drift, fixed at the root", date: "2026-09-07", items: [
     "The About page said 2.0.0 for four releases, because the version was typed in two places. It is now read from the binary, so it cannot drift again.",
     "The install page states plainly which library version it installs and why that is not the newest one in the source."] },
@@ -291,15 +297,29 @@ async function renderProjects() {
     return;
   }
   list.innerHTML = projects.map((p) => {
+    const a = p.analysis || {};
     const meta = [
       p.catalyst_version ? "Catalyst v" + escapeHtml(p.catalyst_version) : "no Catalyst vendordep",
       p.year ? "WPILib " + escapeHtml(p.year) : null,
+      a.kind ? escapeHtml(a.kind) : null,
+      a.resolves_from ? "from " + escapeHtml(a.resolves_from) : null,
     ].filter(Boolean).join(" · ");
+    // The rest of vendordeps is the project's configuration in one line - it is how you tell a
+    // Phoenix-and-PathPlanner robot from a REV one without opening the folder.
+    const others = (a.vendordeps || [])
+      .filter((v) => v !== "FrcCatalyst.json")
+      .map((v) => v.replace(/\.json$/, ""));
+    const deps = others.length
+      ? `<div class="proj-deps">vendordeps: ${others.map(escapeHtml).join(", ")}</div>`
+      : "";
+    const findings = (a.notes || []).map((n) => `<div class="proj-finding">${escapeHtml(n)}</div>`).join("");
     return `<div class="proj" data-path="${escapeHtml(p.path)}">
       <div class="proj-main">
         <div class="proj-name">${escapeHtml(p.name)}</div>
         <div class="proj-path">${escapeHtml(p.path)}</div>
         <div class="proj-meta">${meta}</div>
+        ${deps}
+        ${findings}
         <input class="proj-note" data-note="${escapeHtml(p.path)}" value="${escapeHtml(p.note || "")}"
                placeholder="Note for yourself and for the agent (optional)" />
       </div>
@@ -334,7 +354,12 @@ async function pickProjectFolder() {
   catch (e) { $("#projAddNote").textContent = "Could not open the picker: " + e; return; }
   if (!dir) return;
   try {
-    const p = await invoke("register_project", { dir, name: null });
+    // Hand the bundled vendordep across so the analysis can say whether this project's install is
+    // the one we ship or a modified/locally-built one. Reading it can fail in a browser preview;
+    // the analysis copes with null.
+    let bundled = null;
+    try { bundled = await invoke("read_bundled_vendordep"); } catch (_) { /* analysis degrades */ }
+    const p = await invoke("register_project", { dir, name: null, bundledVendordep: bundled });
     $("#projAddNote").textContent = `Imported ${p.name}. Writing is off until you switch it on.`;
     renderProjects();
   } catch (e) {
@@ -449,6 +474,13 @@ async function paintAppVersion() {
 function wireProjects() {
   const b = $("#projAddBtn");
   if (b) b.addEventListener("click", pickProjectFolder);
+
+  // Refresh the registry at startup, not only when this page is opened. list_projects re-reads every
+  // project and rewrites the file when anything changed, and that file is what the MCP server hands
+  // to an AI agent. Without this, a user who launches the app and never clicks Projects leaves the
+  // agent reading an analysis from whenever they last visited - which is exactly the stale-version
+  // problem the analysis exists to prevent.
+  if (IN_APP) renderProjects().catch(() => { /* the page reports its own errors when opened */ });
 }
 function wireCopy() {
   $("#copyMcp").addEventListener("click", async () => {

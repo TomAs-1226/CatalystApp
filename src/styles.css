@@ -363,3 +363,8 @@ h1 { color: var(--white); font-size: 23px; font-weight: 600; margin-bottom: 6px;
 .proj-write { display: flex; align-items: center; gap: 7px; font-size: 12.5px; white-space: nowrap; cursor: pointer; }
 .proj-write input { cursor: pointer; }
 .btn.tiny { padding: 4px 10px; font-size: 12px; }
+.proj-finding { margin-top: 6px; padding: 6px 9px; border-radius: 7px; font-size: 12px; line-height: 1.45;
+                background: rgba(251,191,36,.09); border: 1px solid rgba(251,191,36,.22); color: #fbbf24; }
+
+/* The rest of vendordeps: a project's configuration in one line, quieter than a finding. */
+.proj-deps { margin-top: 5px; font-size: 12px; opacity: .62; }

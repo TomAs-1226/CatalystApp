@@ -260,8 +260,11 @@
 
         <div class="panel">
           <div class="settings-title">Import a project</div>
-          <p class="hint-line">Pick the folder with <code>build.gradle</code> in it. Catalyst reads its
-          season and its installed version; it does not modify anything.</p>
+          <p class="hint-line">Any WPILib project, already written, whether or not Catalyst is in it.
+          Pick the folder with <code>build.gradle</code> in it and Catalyst reads it and reports what it
+          found &mdash; season, installed Catalyst version, where that library resolves from, and the
+          rest of <code>vendordeps</code>. It writes nothing and changes nothing. To <em>add</em>
+          Catalyst to a project, use the Install page instead.</p>
           <button class="btn" id="projAddBtn">Choose robot project folder&hellip;</button>
           <p class="hint-line" id="projAddNote"></p>
         </div>

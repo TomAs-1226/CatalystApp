@@ -1,7 +1,8 @@
 # Catalyst MCP server
 
-A small stdio server that gives an AI agent three things: Catalyst's own tools, a knowledge graph of
-the Catalyst library, and the ability to build and query a knowledge graph of **your** project.
+A small stdio server that gives an AI agent four things: Catalyst's own tools, the Catalyst
+documentation, a knowledge graph of the library, and the ability to build and query a knowledge graph
+of **your** project - plus a door to the projects you have imported into the app.
 
 No npm dependencies, no network. Plain Node reading plain JSON.
 
@@ -42,6 +43,18 @@ Catalyst tools and the builder.
 | `catalyst_build_mechanism` | Ready-to-paste Java for a mechanism config |
 | `catalyst_can_conflicts` | Duplicate CAN ids, per bus |
 
+**Documentation** — 31 pages bundled with the app, so they are there whether or not a library
+checkout is on the machine.
+
+| | |
+|---|---|
+| `catalyst_docs_search` | Find the intended API. Search this *before* writing Catalyst code |
+| `catalyst_docs_read` | A whole page, one section of it, or the list of pages |
+
+A multi-word query must match every term to count as a hit, and pages that use the terms close
+together rank above pages that merely contain all of them. An OR-ed query reported 26 of 30 pages,
+which is the same as reporting nothing.
+
 **Knowledge graph** — every one takes an optional `graph:` argument: a project root, a
 `graphify-out` directory, a path to a `graph.json`, or `"bundled"` (the default) for the shipped
 Catalyst graph.
@@ -71,8 +84,15 @@ Catalyst graph.
 | `catalyst_source_search` | Regex with context, skipping build output and binaries |
 | `catalyst_source_read` | A file, or just the part around one symbol |
 
-The intended order is graph first, source second: ask the graph where something lives, then read
-only that. It is much cheaper than grepping a repository blind.
+The intended order is projects, docs, graph, source - and the server says so at connect time, in
+MCP's `instructions` field, because that is the only place to tell an agent anything before it has
+called a tool. Ask the graph where something lives, then read only that; it is much cheaper than
+grepping a repository blind.
+
+The instructions also name the renames that catch a model out. Catalyst 2.x is a WPILib 2027 /
+Commands v3 library, and 1.x is what dominates the training data: an agent writing from memory
+reaches for `SubsystemBase`, `CommandScheduler.getInstance()`, `ChassisSpeeds` and
+`Timer.getFPGATimestamp()`, none of which exist here.
 
 ## Writing to the user's code
 
