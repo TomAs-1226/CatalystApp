@@ -21,7 +21,7 @@ const fs = require("fs");
 const path = require("path");
 const { spawnSync } = require("child_process");
 
-const SERVER_VERSION = "2.3.0";
+const SERVER_VERSION = "2.3.1";
 
 /**
  * What a client is told about this server at connect time.
@@ -198,13 +198,29 @@ function shortestPath(g, fromId, toId, maxDepth = 8) {
 //  Bundled rather than read from a library checkout, because an agent writing Catalyst code usually
 //  has the *robot* project open and the library is not on the machine at all. Loaded on first use:
 //  a session that never asks a documentation question pays nothing for it.
+//
+//  Cached against the file's size and mtime, not merely "have we loaded it". An agent session
+//  outlives an app update - this server is a long-running process, and updating Catalyst rewrites
+//  docs.json underneath it - so a load-once cache serves whatever the docs were when the session
+//  connected and never says otherwise. That is the exact failure this file exists to prevent, and it
+//  was caught here first: the server quoted a paragraph that had been corrected on disk minutes
+//  earlier. One stat() per call is nothing next to being confidently wrong.
 // ============================================================================
 
 let docsCache = null;
+let docsStamp = "";
 function docs() {
-  if (docsCache !== null) return docsCache;
   const p = path.join(DATA, "docs.json");
-  if (!fs.existsSync(p)) {
+  let stamp = "";
+  try {
+    const st = fs.statSync(p);
+    stamp = `${st.size}:${st.mtimeMs}`;
+  } catch {
+    // Gone or unreadable. Fall through with an empty stamp so a file that comes back reloads.
+  }
+  if (docsCache !== null && stamp === docsStamp) return docsCache;
+  docsStamp = stamp;
+  if (!stamp) {
     docsCache = { libraryVersion: "unknown", pages: [] };
     return docsCache;
   }

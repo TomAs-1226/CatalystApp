@@ -102,6 +102,7 @@ const CHANGELOG = [
     "It now names a pre-release or a hand-edited install rather than reporting a version and leaving you to find out. A project on an alpha, or one whose FrcCatalyst.json is not the file this app ships, says so on the card.",
     "Your AI agent gets the same reading, plus the Catalyst documentation - 31 pages it can search and quote. It is told when the docs and your project describe different versions, so it checks your sources instead of writing against a release you are not on.",
     "Those docs were corrected first. Every code sample that still taught WPILib 2026 - the old scheduler, SubsystemBase, ChassisSpeeds, Timer.getFPGATimestamp, Color.kGreen - is now the 2027 shape, and the Autonomy 2.0 stack has a page for the first time.",
+    "The agent re-reads the documentation when Catalyst updates it. Its server is a long-running process and loaded the docs once, so a session that started before an update kept quoting the old ones - which is the exact mistake the bundled docs exist to prevent.",
     "Your project list is now kept twice. It went missing once during development, and losing it loses every folder you imported and every permission you granted; if the live copy is ever gone or unreadable, Catalyst puts the last good one back."] },
   { v: "2.5.0", t: "Version drift, fixed at the root", date: "2026-09-07", items: [
     "The About page said 2.0.0 for four releases, because the version was typed in two places. It is now read from the binary, so it cannot drift again.",
