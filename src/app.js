@@ -93,7 +93,7 @@ const DEPS = [
 ];
 
 const ACCENTS = {
-  coral: ["e94560", "ff6b81"], blue: ["3b82f6", "60a5fa"],
+  coral: ["E9583D", "FF7358"], blue: ["3b82f6", "60a5fa"],
   green: ["22c55e", "4ade80"], purple: ["8b5cf6", "a78bfa"],
 };
 const LINKS = [
