@@ -85,8 +85,11 @@
         <div class="panel">
           <h2 class="panel-title">About</h2>
           <div class="about-grid">
-            <div class="about-k">App version</div><div class="about-v" id="aboutApp">1.4.3</div>
-            <div class="about-k">Bundled library</div><div class="about-v" id="aboutLib">1.7.0</div>
+            <!-- Both are overwritten at render time - #aboutApp from the binary, #aboutLib from
+                 LIB_VERSION - so these are only what shows for the frame before that lands. They
+                 were 1.4.3 (which is the Console's version, not this app's) and 1.7.0. -->
+            <div class="about-k">App version</div><div class="about-v" id="aboutApp">2.6.1</div>
+            <div class="about-k">Bundled library</div><div class="about-v" id="aboutLib">2.0.0-beta.1</div>
             <div class="about-k">Knowledge graph</div><div class="about-v" id="aboutGraph">bundled, agent-only</div>
           </div>
           <div class="links" id="aboutLinks"></div>
@@ -101,6 +104,101 @@
           <h1>What's new</h1>
           <p class="sub">Recent FrcCatalyst releases. The app bundles the library, so updating the app brings the newest version with it.</p>
         </div>
+
+        <!--
+          The launch panel.
+
+          This is deliberately not a changelog row. A changelog answers "what changed since the last
+          one"; this answers "what am I holding, and should I put it on my robot" - and for this
+          release those are different questions with different audiences. A team opening the app the
+          week 2.0 lands needs the second answer before it reads a single bullet.
+
+          So it is built as three layers you can stop reading at any point in: the version and one
+          sentence, the limit, and the three things that must be true before it runs. The limit comes
+          second on purpose. Requirements fail loudly - the build aborts, nobody is surprised - but
+          "never driven on a robot" fails quietly, in an elimination match, and a reader who stops
+          early must not be the one who misses it. Someone who reads only the headings still leaves
+          knowing it is not for a robot they are competing with.
+
+          For the same reason the release date is alone in the top-right slot. "867 tests, 0 failures"
+          is true and it was there, but sat beside the version it became the second thing read, and
+          the pair says "tested, ship it". The number belongs where it cannot be misread: next to the
+          sentence saying none of those tests drives a robot.
+
+          It is static markup on purpose - renderWhatsNew() only writes #changelog, so this panel is
+          never re-rendered. The install button routes through the existing [data-view] delegation
+          and needs no code at all; only the 1.x button is wired, in renderWhatsNew.
+
+          Styling is existing classes plus inline --cat-* tokens, because styles.css is not this
+          file's to change. Prominence is the ink-800 ground with the stronger hairline and a coral
+          version number - the same treatment .cl-item.latest already gets - not a shadow and not a
+          coral wash, which would say "error" about a release announcement.
+        -->
+        <div class="panel" id="launchPanel" style="border-color: var(--cat-hair-str);">
+          <div class="section-label">What this app installs</div>
+
+          <div style="display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 12px;">
+            <h2 style="font-size: 18px; font-weight: 600; color: var(--cat-white); letter-spacing: -0.02em;">Catalyst
+              <span style="font-family: 'Cascadia Code', ui-monospace, monospace; font-variant-numeric: tabular-nums; font-weight: 700; color: var(--cat-coral);">2.0.0-beta.1</span>
+            </h2>
+            <span style="margin-left: auto; font-size: 12px; color: var(--cat-muted); font-variant-numeric: tabular-nums;">9 September 2026</span>
+          </div>
+
+          <p style="font-size: 15px; line-height: 1.55; color: var(--cat-text); max-width: 62ch; margin: 0;">
+            The pre-season release: built against the platform the 2027 season will run on, so your
+            team can port over the offseason instead of in January.
+          </p>
+
+          <div class="divider"></div>
+
+          <!-- Amber, because this is a state of the release, not decoration - the same rule
+               .proj-finding uses for a finding with real consequence. -->
+          <div class="proj-finding" style="margin-top: 0; max-width: 68ch;">
+            <h3 style="font-size: 15px; font-weight: 600; color: var(--cat-white); margin-bottom: 6px;">Not for a robot you are competing with</h3>
+            <p style="margin: 0;">
+              It has never been driven on a robot. It has run on a bench &mdash; a Pigeon on
+              <code style="font-family: 'Cascadia Code', ui-monospace, monospace; font-size: 12px;">can_s0</code>,
+              the onboard IMU, the board's own status topics &mdash; but swerve, mechanisms, autos and
+              vision have not moved a robot. Its 867 tests pass with no failures; none of them drives one.
+              It is also a beta pinned to a WPILib alpha that has changed
+              <code style="font-family: 'Cascadia Code', ui-monospace, monospace; font-size: 12px;">Mechanism</code>
+              from an interface to a class and back across three builds. Pre-season and offseason robots only.
+            </p>
+            <p style="margin: 8px 0 0;">
+              Competing this season? <b style="color: var(--cat-white); font-weight: 600;">Stay on Catalyst 1.x</b>
+              &mdash; tag <code style="font-family: 'Cascadia Code', ui-monospace, monospace; font-size: 12px;">v1.12.0</code>,
+              WPILib 2026, roboRIO.
+            </p>
+          </div>
+
+          <div class="divider"></div>
+
+          <!-- Three rows because three things gate the build. The vendor libraries are a version
+               list you check once, not a thing that stops you, so they go under the rule as prose. -->
+          <div class="section-label">Before it will run</div>
+          <div class="about-grid" style="margin-bottom: 0;">
+            <div class="about-k">WPILib</div><div class="about-v">2027.0.0-alpha-7</div>
+            <div class="about-k">Systemcore OS</div><div class="about-v">beta 14</div>
+            <div class="about-k">Java</div><div class="about-v">25</div>
+          </div>
+          <p class="hint-line">
+            <b style="color: var(--cat-text); font-weight: 600;">Flash the OS first.</b> That pairing is
+            not optional: a build made against alpha-7 aborts on Systemcore OS beta 13 before your robot
+            code runs. Vendor libraries are Phoenix 6 26.50.0-alpha-1, PathPlanner 2027.0.0-alpha-3 and
+            LimelightLib 2.0.0-beta8-alpha7.
+          </p>
+
+          <!-- The primary button names the beta rather than saying "it", so the one control that puts
+               this on a robot cannot be clicked without reading what it installs. The secondary goes to
+               the v1.12.0 tag, not /releases - that page is topped by this beta, which is the one thing
+               a competing team must not take. -->
+          <div class="row" style="margin-top: 16px;">
+            <button class="btn primary" data-view="install">Install the beta into a project</button>
+            <button class="btn" id="wnOneXBtn">Get Catalyst 1.12.0</button>
+          </div>
+        </div>
+
+        <div class="section-label">Release history</div>
         <div class="changelog" id="changelog"></div>
       </section>
 
@@ -118,6 +216,12 @@
           It needs <b>WPILib 2027 alpha-7</b> and <b>Systemcore OS beta 14</b>, and that pairing is
           not optional: a build made against alpha-7 aborts on beta 13 before your robot code runs.
           Flash the OS first.
+          <br><br>
+          <!-- This page is where the vendordep actually gets written into someone's robot project,
+               and it was the one screen in the flow that said nothing about the limit. The What's New
+               panel can be skipped; this cannot. -->
+          It is a beta and it has <b>never been driven on a robot</b> &mdash; pre-season and offseason
+          robots only. If you are competing this season, install Catalyst 1.x (tag v1.12.0) instead.
         </div>
         <div class="panel">
           <div class="row">

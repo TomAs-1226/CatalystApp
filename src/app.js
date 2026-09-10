@@ -15,7 +15,12 @@ const IN_APP = !!TAURI;
  * plain browser, where there is no binary to ask.
  */
 let APP_VERSION = "dev";
-const LIB_VERSION = "2.0.0-alpha.1";   // the FrcCatalyst version bundled inside this app
+// The FrcCatalyst version bundled inside this app. It must equal the `version` in
+// src-tauri/resources/FrcCatalyst.json, which is the file actually written into a project - this
+// constant only labels it. It was left on 2.0.0-alpha.1 when the resource moved to 2.0.0-beta.1,
+// and the mismatch showed up as the update banner offering the beta to an app that already
+// bundled it, because cmpVer ranks beta above alpha exactly as it should.
+const LIB_VERSION = "2.0.0-beta.1";
 const LIB_FRC_YEAR = "2027";           // the season that version targets
 
 // The feed for the line this build is on. Pointing at the stable vendordep would have meant a
@@ -259,6 +264,12 @@ function setView(view) {
     $("#view-doctor").classList.remove("hidden");
   } else if (view === "vendordeps") {
     $("#view-vendordeps").classList.remove("hidden");
+  } else if (view === "projects") {
+    // This branch was missing, so "projects" fell through to the else and showed Home. The nav item
+    // lit up, the hash became #projects and renderProjects() ran - into a section that stayed
+    // hidden - which is why it looked like a render bug rather than a routing one. The Projects page
+    // was unreachable, and "open the last page I was on" landed a projects user on Home.
+    $("#view-projects").classList.remove("hidden");
   } else {
     $("#view-home").classList.remove("hidden");
     renderRecent();
@@ -422,6 +433,15 @@ function renderWhatsNew() {
   $("#changelog").innerHTML = CHANGELOG.map((c, i) =>
     `<div class="cl-item${i === 0 ? " latest" : ""}"><div class="cl-head"><span class="cl-ver">v${c.v}</span><span class="cl-title">${c.t}</span><span class="cl-date">${c.date}</span></div><ul>${c.items.map((it) => `<li>${it}</li>`).join("")}</ul></div>`
   ).join("");
+  // The launch panel is static markup in index.html, so only its one external button needs wiring.
+  // Assigned, not added: this runs on every visit to the view and a listener per visit would open
+  // a browser tab per visit.
+  //
+  // It goes to the v1.12.0 tag, not to /releases. That list is ordered newest-first and its top
+  // entry is 2.0.0-beta.1, so the button meant for teams that must not run the beta was landing
+  // them on it.
+  const oneX = $("#wnOneXBtn");
+  if (oneX) oneX.onclick = () => openExternal("https://github.com/TomAs-1226/FrcCatalyst/releases/tag/v1.12.0");
 }
 async function openExternal(url) {
   if (IN_APP && TAURI.opener) { try { await TAURI.opener.openUrl(url); return; } catch (_) {} }

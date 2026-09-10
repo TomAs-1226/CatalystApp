@@ -1,22 +1,50 @@
-# Catalyst desktop app
+# Catalyst App
 
-A small cross-platform (Windows / Mac) companion app for **FrcCatalyst**, built with [Tauri](https://tauri.app).
-It puts every Catalyst tool in one window and installs the library straight into your robot project.
+The desktop companion for **FrcCatalyst**: it installs the library straight into your robot project
+and puts every Catalyst tool in one window, working offline.
 
-> **App v1.4.3**, bundling **FrcCatalyst v1.7.0** (Physics Core, simulation-validated) — feature-complete: tools,
-> installer, offline auto-update, the AI-agent connector, and a
-> full settings page. Windows builds locally; the macOS build runs in CI (see
-> [`.github/workflows/build-app.yml`](.github/workflows/build-app.yml)).
+**App 2.6.1** · installs **FrcCatalyst 2.0.0-beta.1** · Windows and macOS · built with
+[Tauri](https://tauri.app) — a Rust backend and a plain HTML/CSS/JS frontend, no framework. Windows
+builds locally; the macOS build runs in CI
+([`.github/workflows/build-app.yml`](.github/workflows/build-app.yml)).
+
+**The Catalyst family.** [FrcCatalyst](https://github.com/TomAs-1226/FrcCatalyst) is the library that
+runs on the robot. **Catalyst App** installs it and holds the design-time tools.
+[Catalyst Console](https://github.com/TomAs-1226/CatalystConsole) is the driver-station dashboard that
+watches it run. [Catalyst X1](https://github.com/TomAs-1226/CatalystX1) is team 5805's swerve test
+drivebase, where 2.x is being brought up on hardware.
+
+## Before you install 2.x into a robot project
+
+Catalyst 2.0.0-beta.1 is a **pre-season beta**, pinned to a WPILib **alpha**.
+
+| | |
+|---|---|
+| Requires | WPILib 2027.0.0-alpha-7, Systemcore OS beta 14, Java 25 |
+| Beside it | Phoenix 6 26.50.0-alpha-1, PathPlanner 2027.0.0-alpha-3, LimelightLib 2.0.0-beta8-alpha7 |
+| Tests | 867, 0 failures |
+| Driven on a robot | **never.** It has run on a bench — a Pigeon on `can_s0`, the onboard IMU, the board's own status topics. Swerve, mechanisms, autos and vision have not been driven. |
+
+The OS pairing is hard rather than advisory: a build made against alpha-7 aborts on Systemcore OS
+beta 13 before your robot code runs. Flash the OS first.
+
+So put it on an offseason robot, over the offseason, and have the port done before January rather
+than during it. **If you are competing, stay on 1.x** — tag `v1.12.0`, WPILib 2026, roboRIO. This app
+does not bundle 1.x; that vendordep comes from the
+[library's own releases](https://github.com/TomAs-1226/FrcCatalyst/releases).
 
 ## What it does
 
-- **Tools** — the Builder, MotorType browser, PID tuner, Motion Magic, Wiring, CAN IDs, Aiming, Auto,
-  and State Machine visualizer, all bundled and working offline (the same self-contained tools from
-  the docs site, with the app's sleek scrollbar injected into each).
+- **Tools** — eleven, bundled and working offline: Builder, Motors, PID Tuner, Motion Magic, Wiring,
+  CAN IDs, Aiming, Auto, State Machine, Motor History, Autonomy 2.0. They are the same self-contained
+  pages the docs site serves.
 - **Install into a project** — pick your GradleRIO project folder; the app checks it really is a
   WPILib project, tells you if Catalyst is already there (and which version), then drops
-  `FrcCatalyst.json` into `vendordeps/` from a bundled copy (offline). It can also fetch the three
-  required vendordeps (Phoenix 6, PathPlanner, PhotonVision) in the same click.
+  `FrcCatalyst.json` into `vendordeps/` from a bundled copy (offline). It fetches LimelightLib in the
+  same click. It does not fetch Phoenix 6 or PathPlanner: neither publishes a 2027 vendordep JSON at a
+  stable address yet, so the app tells you to add them from VS Code's vendor library list rather than
+  writing a 2026 file that looks installed and fails at build time. PhotonVision is not offered at
+  all — there is no 2027 build of it.
 - **Auto-update** — offline-graceful checks for a newer app *and* a newer library, with an
   ask / auto / manual setting. See [Auto-update](#auto-update-phase-2).
 - **AI-agent connector** — a bundled MCP server exposing the tools and a distilled knowledge graph to
@@ -39,7 +67,8 @@ All prerequisites are in place; `npm run build` produces the installers under
 `src-tauri/target/release/bundle/`. Note: with `createUpdaterArtifacts` on, a local build prompts once
 for the updater-key password — set `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` (empty if the key has none) or
 let CI produce the signed updater artifacts.
-Install it once (this is a one-time, ~2–4 GB setup):
+
+On a machine without the MSVC Build Tools, install them once (~2–4 GB):
 
 ```bash
 winget install --id Microsoft.VisualStudio.2022.BuildTools --override "--quiet --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
@@ -63,7 +92,7 @@ CatalystApp/
     index.html              the shell
     app.js                  nav + installer logic (uses window.__TAURI__)
     styles.css              Catalyst brand (dark navy + coral)
-    tools/<tool>/index.html the 9 bundled tools
+    tools/<tool>/index.html the 11 bundled tools
   src-tauri/                Rust backend
     src/main.rs             commands: detect_project, read_bundled_vendordep, write_vendordep
     tauri.conf.json         window, bundling, resources
@@ -77,7 +106,7 @@ In that mode the tools work and the install step is disabled (it needs the deskt
 
 ## Updating the bundled library
 
-The app ships one version of `FrcCatalyst.json` (currently **v1.3.3**). To cut a new app release that
+The app ships one version of `FrcCatalyst.json` (currently **2.0.0-beta.1**). To cut a new app release that
 installs a newer library, drop the new `FrcCatalyst.json` into `src-tauri/resources/`, bump the version
 in `tauri.conf.json` + `package.json` + `Cargo.toml`, and rebuild.
 
@@ -121,7 +150,7 @@ Desktop, Claude Code, Cursor — can use Catalyst's tools and query its knowledg
 order. It is **dependency-free and offline**: no npm packages, no network. It speaks newline-delimited
 JSON-RPC 2.0 over stdio and reads its data from `resources/mcp/data`.
 
-Seven tools:
+Eighteen tools. Seven of them answer a design question straight out:
 
 | Tool | What it does |
 |---|---|
@@ -132,6 +161,9 @@ Seven tools:
 | `catalyst_graph_search` | Search the Catalyst knowledge graph by name. |
 | `catalyst_graph_neighbors` | See what a class or concept connects to. |
 | `catalyst_graph_overview` | A map of the library: core abstractions and areas. |
+
+The other eleven read graphs, docs, registered projects and source. They arrived in 2.3.0 and 2.4.0
+and are described in those sections below.
 
 The **Connect an AI agent** page in the app shows the exact config to paste (with the real bundled
 server path resolved at runtime):
@@ -145,15 +177,11 @@ with each app version — reachable only through the agent server, never shown i
 it is a plain file on disk, so this is *"not surfaced in the app,"* not cryptographically secret. True
 secrecy would require hosting it behind an online API instead of bundling it.
 
-The server is tested end-to-end with a stdio harness (`initialize` → `tools/list` → `tools/call` for
-every tool): **14/14 checks pass**.
-
 ## Roadmap
 
 - ~~Phase 1 — Shell + tools + repo installer~~ ✅
 - ~~Phase 2 — Auto-update (app + library), offline-graceful~~ ✅
 - ~~Phase 3 — AI-agent connector (bundled MCP server + agent-only knowledge graph)~~ ✅
-- **Next** — compile a signed Windows build (needs the MSVC Build Tools), then a Mac build via CI.
 
 ## Motor History tool (2.1.0)
 
