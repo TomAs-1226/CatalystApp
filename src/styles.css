@@ -1,16 +1,44 @@
+/* ---------------------------------------------------------------------- tokens
+
+   One palette for the whole product. The --cat-* names are the system.
+
+   The short names underneath are not legacy clutter: app.js rewrites --coral and
+   --coral-lt at runtime for the accent picker (app.js:142-143) and one inline style
+   still reads --muted (app.js:640). Coral therefore resolves *through* --coral rather
+   than the other way round - defined the other way, a chosen accent would repaint
+   nothing that this file styles with a --cat-* token. */
 :root {
-  --bg: #0f1420;
-  --panel: #151c2b;
-  --panel-2: #1a2233;
-  --hair: rgba(255, 255, 255, 0.07);
-  --hair-2: rgba(255, 255, 255, 0.12);
   --coral: #e94560;
   --coral-lt: #ff6b81;
-  --text: #d5dbe8;
-  --white: #f4f7fc;
-  --muted: #7f8aa3;
-  --green: #4ac97e;
-  --tb-h: 38px;
+
+  --cat-ink-900: #0b0f1a;
+  --cat-ink-800: #111726;
+  --cat-ink-700: #182034;
+  --cat-hair: rgba(255, 255, 255, 0.07);
+  --cat-hair-str: rgba(255, 255, 255, 0.13);
+  --cat-coral: var(--coral);
+  --cat-coral-lt: var(--coral-lt);
+  --cat-coral-dk: #c0314e;
+  --cat-text: #d5dbe8;
+  --cat-white: #f4f7fc;
+  --cat-muted: #7f8aa3;
+  --cat-ok: #4ade80;
+  --cat-warn: #fbbf24;
+  --cat-bad: #f87171;
+  --cat-info: #60a5fa;
+
+  /* Aliases, so nothing outside this file has to learn the token names. */
+  --bg: var(--cat-ink-900);
+  --panel: var(--cat-ink-800);
+  --panel-2: var(--cat-ink-700);
+  --hair: var(--cat-hair);
+  --hair-2: var(--cat-hair-str);
+  --text: var(--cat-text);
+  --white: var(--cat-white);
+  --muted: var(--cat-muted);
+  --green: var(--cat-ok);
+
+  --tb-h: 40px;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -19,35 +47,47 @@
 html, body {
   height: 100%;
   font-family: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
-  background: var(--bg);
-  color: var(--text);
+  font-size: 15px;
+  line-height: 1.55;
+  background: var(--cat-ink-900);
+  color: var(--cat-text);
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
   user-select: none;
 }
-button { font-family: inherit; }
+button, input, select { font-family: inherit; }
+
+/* Every control here sets cursor:default for a native feel, which leaves the keyboard
+   with no other signal of where it is. */
+:focus-visible {
+  outline: 2px solid var(--cat-coral);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}
 
 /* ---------- Title bar ---------- */
 #titlebar {
   height: var(--tb-h);
   display: flex; align-items: center; justify-content: space-between;
-  background: rgba(11, 15, 24, 0.6);
-  border-bottom: 1px solid var(--hair);
+  background: var(--cat-ink-900);
+  border-bottom: 1px solid var(--cat-hair);
 }
-.tb-left { display: flex; align-items: center; gap: 9px; padding-left: 12px; height: 100%; }
+.tb-left { display: flex; align-items: center; gap: 8px; padding-left: 12px; height: 100%; }
 .tb-mark {
-  width: 18px; height: 18px; border-radius: 5px;
-  background: linear-gradient(135deg, var(--coral), var(--coral-lt));
-  box-shadow: 0 0 0 1px rgba(255,255,255,0.08) inset;
+  width: 20px; height: 20px; border-radius: 6px;
+  background: linear-gradient(135deg, var(--cat-coral), var(--cat-coral-lt));
+  box-shadow: 0 0 0 1px var(--cat-hair-str) inset;
 }
-.tb-title { font-size: 12.5px; font-weight: 600; color: var(--text); letter-spacing: .2px; }
+.tb-title { font-size: 13px; font-weight: 600; color: var(--cat-text); }
 .tb-controls { display: flex; height: 100%; }
 .tb-btn {
-  width: 46px; height: 100%; border: none; background: none; cursor: default;
-  color: var(--muted); display: flex; align-items: center; justify-content: center;
+  width: 48px; height: 100%; border: none; background: none; cursor: default;
+  color: var(--cat-muted); display: flex; align-items: center; justify-content: center;
 }
-.tb-btn svg { width: 11px; height: 11px; }
-.tb-btn:hover { background: rgba(255,255,255,0.08); color: var(--white); }
+.tb-btn svg { width: 12px; height: 12px; }
+.tb-btn:hover { background: var(--cat-ink-700); color: var(--cat-white); }
 .tb-btn.close:hover { background: #e81123; color: #fff; }
 
 /* ---------- Shell ---------- */
@@ -55,220 +95,256 @@ button { font-family: inherit; }
 
 #sidebar {
   width: 216px; min-width: 216px;
-  background: rgba(255,255,255,0.015);
-  border-right: 1px solid var(--hair);
+  background: var(--cat-ink-900);
+  border-right: 1px solid var(--cat-hair);
   display: flex; flex-direction: column;
-  padding: 10px 8px;
+  padding: 8px;
 }
 .nav-label {
-  font-size: 10.5px; text-transform: uppercase; letter-spacing: 1.4px;
-  color: var(--muted); padding: 14px 12px 6px; font-weight: 600;
+  font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--cat-muted); padding: 16px 12px 8px; font-weight: 600;
 }
-.nav-group { display: flex; flex-direction: column; gap: 1px; }
+.nav-group { display: flex; flex-direction: column; gap: 2px; }
 .nav-spacer { flex: 1; }
 
 .nav-item {
   position: relative;
-  display: flex; align-items: center; gap: 11px;
-  background: none; border: none; color: var(--text);
-  font-size: 13.5px; text-align: left; cursor: default;
-  padding: 8px 12px; border-radius: 7px; width: 100%;
+  display: flex; align-items: center; gap: 12px;
+  background: none; border: none; color: var(--cat-text);
+  font-size: 13px; text-align: left; cursor: default;
+  padding: 8px 12px; border-radius: 8px; width: 100%;
 }
-.nav-item svg { width: 18px; height: 18px; stroke-width: 1.9; color: var(--muted); flex: none; }
-.nav-item:hover { background: rgba(255,255,255,0.05); color: var(--white); }
-.nav-item:hover svg { color: var(--text); }
-.nav-item.active { background: rgba(233,69,96,0.13); color: var(--white); }
-.nav-item.active svg { color: var(--coral); }
+.nav-item svg { width: 18px; height: 18px; stroke-width: 1.9; color: var(--cat-muted); flex: none; }
+.nav-item:hover { background: var(--cat-ink-800); color: var(--cat-white); }
+.nav-item:hover svg { color: var(--cat-text); }
+/* The active item lifts by ground and is marked by the accent rail. A coral wash here
+   would be a second accent, and a hard-coded one - the accent picker only reaches the
+   rail and the icon. */
+.nav-item.active { background: var(--cat-ink-700); color: var(--cat-white); }
+.nav-item.active svg { color: var(--cat-coral); }
 .nav-item.active::before {
-  content: ""; position: absolute; left: 3px; top: 8px; bottom: 8px;
-  width: 3px; border-radius: 2px; background: var(--coral);
+  content: ""; position: absolute; left: 4px; top: 8px; bottom: 8px;
+  width: 2px; border-radius: 2px; background: var(--cat-coral);
 }
 
 /* ---------- Main ---------- */
 #main { flex: 1; overflow: auto; position: relative; }
-.view { padding: 28px 34px; max-width: 960px; }
+.view { padding: 24px 32px; max-width: 960px; }
 .view.hidden { display: none; }
-/* The last block in a view carries its own bottom margin - .panel is 16px - and it stacked on top of
-   the view's bottom padding, so a page that fit ended up scrolling to reveal nothing but the gap. One
-   gap, the padding, is the intent. */
+/* The last block in a view carries its own bottom margin and it stacked on top of the
+   view's bottom padding, so a page that fit ended up scrolling to reveal nothing but the
+   gap. One gap, the padding, is the intent. */
 .view > :last-child { margin-bottom: 0; }
 #view-tool { padding: 0; max-width: none; height: 100%; }
 
-.page-head { margin-bottom: 22px; }
-h1 { color: var(--white); font-size: 23px; font-weight: 600; margin-bottom: 6px; letter-spacing: -.2px; }
-.sub { color: var(--muted); font-size: 13.5px; line-height: 1.5; max-width: 640px; }
-.accent { color: var(--coral); }
+.page-head { margin-bottom: 24px; }
+h1 { color: var(--cat-white); font-size: 24px; font-weight: 600; margin-bottom: 8px; letter-spacing: -0.02em; }
+.sub { color: var(--cat-muted); font-size: 15px; line-height: 1.55; max-width: 640px; }
+.accent { color: var(--cat-coral); }
 
-/* ---------- Home tool list (native rows, not web cards) ---------- */
-.tool-list { display: flex; flex-direction: column; gap: 2px; margin-bottom: 20px; }
-.tool-row {
-  display: flex; align-items: center; gap: 14px;
-  padding: 12px 14px; border-radius: 9px; cursor: default;
-  border: 1px solid transparent;
+/* ---------- Surfaces ----------
+
+   Two grounds, and only two. A panel lifts off the page by being ink-800 on ink-900 with
+   a hairline; anything that should read as recessed inside a panel - a log, a code block,
+   a detection result - goes back to ink-900 with the same hairline. Depth is the ground,
+   never a shadow. */
+.panel, .cl-item, .notice, .banner {
+  background: var(--cat-ink-800); border: 1px solid var(--cat-hair);
+  border-radius: 12px; padding: 16px; margin-bottom: 24px; max-width: 680px;
 }
-.tool-row:hover { background: var(--panel); border-color: var(--hair); }
-.tool-row .tr-ico {
-  width: 34px; height: 34px; border-radius: 8px; flex: none;
-  background: var(--panel-2); display: flex; align-items: center; justify-content: center;
+.detect, .install-log, .code-block, .doc-fix, .doc-code, .proj-note, .proj-finding {
+  background: var(--cat-ink-900); border: 1px solid var(--cat-hair); border-radius: 8px;
 }
-.tool-row:hover .tr-ico { background: rgba(233,69,96,0.14); }
-.tool-row .tr-ico svg { width: 18px; height: 18px; color: var(--text); stroke-width: 1.9; }
-.tool-row:hover .tr-ico svg { color: var(--coral-lt); }
-.tool-row .tr-name { color: var(--white); font-weight: 600; font-size: 14px; }
-.tool-row .tr-desc { color: var(--muted); font-size: 12.5px; margin-top: 1px; }
-.tool-row .tr-chev { margin-left: auto; color: var(--muted); opacity: 0; }
-.tool-row:hover .tr-chev { opacity: 1; }
-.tool-row .tr-chev svg { width: 16px; height: 16px; }
+
+.panel-title {
+  margin: 0 0 12px; font-size: 15px; font-weight: 600;
+  color: var(--cat-white); letter-spacing: -0.02em;
+}
+.row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.path { color: var(--cat-muted); font-family: "Cascadia Code", ui-monospace, monospace; font-size: 12px; word-break: break-all; user-select: text; }
+.divider { height: 1px; background: var(--cat-hair); margin: 16px 0; }
 
 /* ---------- Buttons ---------- */
 .btn {
   display: inline-flex; align-items: center; gap: 8px;
-  background: var(--panel-2); color: var(--white); border: 1px solid var(--hair-2);
-  padding: 9px 15px; border-radius: 7px; font-size: 13px; cursor: default; font-weight: 500;
+  background: var(--cat-ink-700); color: var(--cat-white); border: 1px solid var(--cat-hair-str);
+  padding: 8px 16px; border-radius: 8px; font-size: 13px; cursor: default; font-weight: 500;
 }
 .btn svg { width: 16px; height: 16px; }
-.btn:hover { background: #212a3d; border-color: rgba(255,255,255,0.2); }
-.btn.primary { background: var(--coral); border-color: transparent; color: #fff; }
-.btn.primary:hover { background: var(--coral-lt); }
-.btn.big { padding: 11px 18px; font-size: 13.5px; }
-
-/* ---------- Panels ---------- */
-.panel {
-  background: var(--panel); border: 1px solid var(--hair);
-  border-radius: 11px; padding: 18px; margin-bottom: 16px; max-width: 680px;
+/* Hover lifts the ground by a fixed sliver of white instead of naming a second grey, so a button
+   on a panel and a button on the page brighten by the same amount. The rules below use the
+   background shorthand, which clears this, and that is how primary and danger keep their own hover. */
+.btn:hover, .link-btn:hover {
+  background-image: linear-gradient(rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.06));
+  border-color: var(--cat-hair-str);
 }
-.row { display: flex; align-items: center; gap: 13px; flex-wrap: wrap; }
-.path { color: var(--muted); font-family: "Cascadia Code", ui-monospace, monospace; font-size: 12px; word-break: break-all; user-select: text; }
-.divider { height: 1px; background: var(--hair); margin: 14px 0; }
+.btn.primary { background: var(--cat-coral); border-color: transparent; color: #fff; }
+.btn.primary:hover { background: var(--cat-coral-lt); }
+.btn.primary:active { background: var(--cat-coral-dk); }
+.btn.big { padding: 12px 20px; font-size: 15px; }
+.btn.tiny { padding: 4px 12px; font-size: 12px; }
+/* Destructive is a state, not the accent. Coral here would say "this is the thing to do". */
+.btn.danger { background: rgba(248, 113, 113, 0.10); border-color: rgba(248, 113, 113, 0.34); color: var(--cat-bad); }
+.btn.danger:hover { background: rgba(248, 113, 113, 0.18); }
 
-.detect { margin-top: 16px; padding: 14px; border-radius: 9px; background: rgba(0,0,0,0.22); border: 1px solid var(--hair); }
+/* ---------- Home tool list (native rows, not web cards) ---------- */
+.tool-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 24px; }
+.tool-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px; border-radius: 8px; cursor: default;
+  border: 1px solid transparent;
+}
+.tool-row:hover { background: var(--cat-ink-800); border-color: var(--cat-hair); }
+.tool-row .tr-ico {
+  width: 36px; height: 36px; border-radius: 8px; flex: none;
+  background: var(--cat-ink-700); display: flex; align-items: center; justify-content: center;
+}
+.tool-row .tr-ico svg { width: 18px; height: 18px; color: var(--cat-text); stroke-width: 1.9; }
+.tool-row:hover .tr-ico svg { color: var(--cat-white); }
+.tool-row .tr-name { color: var(--cat-white); font-weight: 600; font-size: 15px; }
+.tool-row .tr-desc { color: var(--cat-muted); font-size: 13px; margin-top: 2px; }
+.tool-row .tr-chev { margin-left: auto; color: var(--cat-muted); opacity: 0; }
+.tool-row:hover .tr-chev { opacity: 1; }
+.tool-row .tr-chev svg { width: 16px; height: 16px; }
+
+/* ---------- Section label + recent projects ---------- */
+.section-label {
+  font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--cat-muted); font-weight: 600; margin: 0 0 12px;
+}
+.recent-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 24px; }
+.recent-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; border: 1px solid transparent; cursor: default; }
+.recent-item:hover { background: var(--cat-ink-800); border-color: var(--cat-hair); }
+.recent-item .ri-ico { width: 32px; height: 32px; border-radius: 8px; background: var(--cat-ink-700); display: flex; align-items: center; justify-content: center; flex: none; }
+.recent-item .ri-ico svg { width: 16px; height: 16px; color: var(--cat-text); }
+.recent-item .ri-name { color: var(--cat-white); font-weight: 600; font-size: 15px; }
+.recent-item .ri-path { color: var(--cat-muted); font-size: 12px; margin-top: 2px; font-family: "Cascadia Code", ui-monospace, monospace; }
+.recent-item .ri-ver { margin-left: auto; font-size: 12px; color: var(--cat-muted); font-variant-numeric: tabular-nums; }
+
+/* ---------- Install page ---------- */
+.detect { margin-top: 16px; padding: 12px; }
 .detect.hidden, .install-options.hidden, .install-log.hidden, .notice.hidden, .banner.hidden { display: none; }
-.detect .d-row { display: flex; align-items: center; gap: 8px; padding: 3px 0; font-size: 13.5px; }
-.detect .ok { color: var(--green); font-weight: 700; }
-.detect .bad { color: var(--coral-lt); font-weight: 700; }
-.detect .d-title { color: var(--white); font-weight: 600; font-size: 14px; margin-bottom: 8px; }
+.detect .d-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 13px; }
+.detect .ok { color: var(--cat-ok); font-weight: 700; }
+.detect .bad { color: var(--cat-bad); font-weight: 700; }
+.detect .d-title { color: var(--cat-white); font-weight: 600; font-size: 15px; margin-bottom: 8px; }
 
-.install-options { margin-top: 16px; display: flex; flex-direction: column; gap: 13px; }
-.check, .radio { display: flex; align-items: center; gap: 10px; color: var(--text); font-size: 13.5px; cursor: default; }
-.check input, .radio input { width: 16px; height: 16px; accent-color: var(--coral); }
-.check em, .radio em { color: var(--muted); font-style: normal; font-size: 12px; }
-.radio { padding: 6px 0; }
+.install-options { margin-top: 16px; display: flex; flex-direction: column; gap: 12px; }
+.check, .radio { display: flex; align-items: center; gap: 12px; color: var(--cat-text); font-size: 13px; cursor: default; }
+.check input, .radio input { width: 16px; height: 16px; accent-color: var(--cat-coral); }
+.check em, .radio em { color: var(--cat-muted); font-style: normal; font-size: 12px; }
+.radio { padding: 4px 0; }
 
 .install-log {
-  margin-top: 16px; padding: 13px; border-radius: 9px;
-  background: #0a0e17; border: 1px solid var(--hair);
-  font-family: "Cascadia Code", ui-monospace, monospace; font-size: 12.5px; line-height: 1.7; user-select: text;
+  margin-top: 16px; padding: 12px;
+  font-family: "Cascadia Code", ui-monospace, monospace; font-size: 13px; line-height: 1.7; user-select: text;
 }
-.install-log .log-ok { color: var(--green); }
-.install-log .log-bad { color: var(--coral-lt); }
+.install-log .log-ok { color: var(--cat-ok); }
+.install-log .log-bad { color: var(--cat-bad); }
 
+/* A notice is prose the reader has to actually read, so it gets a readable body colour and
+   an informational rule - not a coral wash, which said "error" about text that is neither an
+   error nor the primary action. */
 .notice {
-  margin-top: 4px; padding: 13px 15px; border-radius: 9px; max-width: 680px;
-  background: rgba(233, 69, 96, 0.09); border: 1px solid rgba(233, 69, 96, 0.32);
-  color: var(--text); font-size: 13px; line-height: 1.5;
+  padding: 16px 16px 16px 14px;
+  border-left: 2px solid var(--cat-info);
+  color: var(--cat-text); font-size: 13px; line-height: 1.55;
 }
-
-/* ---------- Updates ---------- */
-.up-row { display: flex; align-items: center; gap: 14px; }
-.up-name { color: var(--white); font-weight: 600; font-size: 14px; }
-.up-meta { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
-.up-status { margin-left: auto; font-size: 12.5px; color: var(--muted); }
-.up-status.avail { color: var(--coral-lt); font-weight: 600; }
-.up-status.ok { color: var(--green); }
-.settings-title { color: var(--white); font-weight: 600; font-size: 14px; margin-bottom: 10px; }
+.notice code { font-family: "Cascadia Code", ui-monospace, monospace; font-size: 12px; }
+.notice.info strong { color: var(--cat-white); }
 
 /* ---------- Update banner ---------- */
 .banner {
-  margin: 0 34px; margin-top: 20px;
+  margin: 24px 32px 0; max-width: none;
   display: flex; align-items: center; gap: 12px;
-  padding: 11px 15px; border-radius: 9px;
-  background: rgba(233,69,96,0.12); border: 1px solid rgba(233,69,96,0.35);
-  color: var(--white); font-size: 13.5px;
+  padding: 12px 16px 12px 14px;
+  border-left: 2px solid var(--cat-info);
+  color: var(--cat-text); font-size: 13px;
 }
 .banner .b-actions { margin-left: auto; display: flex; gap: 8px; }
 
-/* ---------- Section label + recent projects ---------- */
-.section-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.3px; color: var(--muted); font-weight: 600; margin: 4px 0 10px; }
-.recent-list { display: flex; flex-direction: column; gap: 2px; margin-bottom: 22px; }
-.recent-item { display: flex; align-items: center; gap: 13px; padding: 11px 14px; border-radius: 9px; border: 1px solid transparent; cursor: default; }
-.recent-item:hover { background: var(--panel); border-color: var(--hair); }
-.recent-item .ri-ico { width: 32px; height: 32px; border-radius: 8px; background: var(--panel-2); display: flex; align-items: center; justify-content: center; flex: none; }
-.recent-item .ri-ico svg { width: 17px; height: 17px; color: var(--coral-lt); }
-.recent-item .ri-name { color: var(--white); font-weight: 600; font-size: 13.5px; }
-.recent-item .ri-path { color: var(--muted); font-size: 11.5px; margin-top: 1px; font-family: "Cascadia Code", ui-monospace, monospace; }
-.recent-item .ri-ver { margin-left: auto; font-size: 12px; color: var(--muted); }
+/* ---------- Updates ---------- */
+.up-row { display: flex; align-items: center; gap: 12px; }
+.up-name { color: var(--cat-white); font-weight: 600; font-size: 15px; }
+.up-meta { color: var(--cat-muted); font-size: 12px; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.up-status { margin-left: auto; font-size: 13px; color: var(--cat-muted); font-variant-numeric: tabular-nums; }
+.up-status.avail { color: var(--cat-info); font-weight: 600; }
+.up-status.ok { color: var(--cat-ok); }
 
 /* ---------- Settings ---------- */
 .swatches { display: flex; gap: 12px; }
-.swatch { width: 34px; height: 34px; border-radius: 9px; cursor: default; border: 2px solid transparent; position: relative; }
-.swatch.active { border-color: var(--white); }
-.swatch.active::after { content: ""; position: absolute; inset: 0; border-radius: 7px; box-shadow: 0 0 0 2px var(--bg) inset; }
+.swatch { width: 32px; height: 32px; border-radius: 8px; cursor: default; border: 2px solid transparent; position: relative; }
+.swatch.active { border-color: var(--cat-white); }
+.swatch.active::after { content: ""; position: absolute; inset: 0; border-radius: 6px; box-shadow: 0 0 0 2px var(--cat-ink-800) inset; }
 .set-row { display: flex; align-items: center; gap: 16px; }
 .set-row > div:first-child { flex: 1; }
-.set-name { color: var(--white); font-weight: 600; font-size: 14px; }
-.set-desc { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
-.select { background: var(--panel-2); color: var(--white); border: 1px solid var(--hair-2); border-radius: 7px; padding: 8px 12px; font-size: 13px; font-family: inherit; }
-.switch { position: relative; width: 42px; height: 24px; flex: none; }
+.set-name { color: var(--cat-white); font-weight: 600; font-size: 15px; }
+.set-desc { color: var(--cat-muted); font-size: 13px; margin-top: 2px; }
+.select { background: var(--cat-ink-700); color: var(--cat-white); border: 1px solid var(--cat-hair-str); border-radius: 8px; padding: 8px 12px; font-size: 13px; }
+.switch { position: relative; width: 44px; height: 24px; flex: none; }
 .switch input { opacity: 0; width: 0; height: 0; }
-.switch .track { position: absolute; inset: 0; background: var(--panel-2); border: 1px solid var(--hair-2); border-radius: 999px; transition: background .15s; }
-.switch .track::before { content: ""; position: absolute; width: 16px; height: 16px; left: 4px; top: 3px; border-radius: 50%; background: var(--muted); transition: transform .15s, background .15s; }
-.switch input:checked + .track { background: var(--coral); border-color: transparent; }
+.switch .track { position: absolute; inset: 0; background: var(--cat-ink-700); border: 1px solid var(--cat-hair-str); border-radius: 999px; transition: background .15s; }
+.switch .track::before { content: ""; position: absolute; width: 16px; height: 16px; left: 4px; top: 3px; border-radius: 50%; background: var(--cat-muted); transition: transform .15s, background .15s; }
+.switch input:checked + .track { background: var(--cat-coral); border-color: transparent; }
 .switch input:checked + .track::before { transform: translateX(18px); background: #fff; }
-.about-grid { display: grid; grid-template-columns: 150px 1fr; gap: 8px 16px; margin-bottom: 14px; }
-.about-k { color: var(--muted); font-size: 13px; }
-.about-v { color: var(--text); font-size: 13px; font-family: "Cascadia Code", ui-monospace, monospace; }
+.switch input:focus-visible + .track { outline: 2px solid var(--cat-coral); outline-offset: 2px; }
+
+.about-grid { display: grid; grid-template-columns: 152px 1fr; gap: 8px 16px; margin-bottom: 16px; }
+.about-k { color: var(--cat-muted); font-size: 13px; }
+.about-v { color: var(--cat-text); font-size: 13px; font-family: "Cascadia Code", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
 .links { display: flex; flex-wrap: wrap; gap: 8px; }
-.link-btn { display: inline-flex; align-items: center; gap: 7px; background: var(--panel-2); border: 1px solid var(--hair); color: var(--text); padding: 7px 12px; border-radius: 7px; font-size: 12.5px; cursor: default; }
-.link-btn:hover { background: #212a3d; color: var(--white); }
+.link-btn { display: inline-flex; align-items: center; gap: 8px; background: var(--cat-ink-700); border: 1px solid var(--cat-hair); color: var(--cat-text); padding: 8px 12px; border-radius: 8px; font-size: 13px; cursor: default; }
+.link-btn:hover { color: var(--cat-white); }
 .link-btn svg { width: 14px; height: 14px; }
-.btn.danger { background: rgba(233,69,96,0.12); border-color: rgba(233,69,96,0.4); color: var(--coral-lt); }
-.btn.danger:hover { background: rgba(233,69,96,0.2); }
 
 /* ---------- What's new ---------- */
-.changelog { display: flex; flex-direction: column; gap: 14px; max-width: 720px; }
-.cl-item { background: var(--panel); border: 1px solid var(--hair); border-radius: 11px; padding: 16px 18px; }
-.cl-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; }
-.cl-ver { color: var(--coral-lt); font-weight: 700; font-size: 15px; font-family: "Cascadia Code", ui-monospace, monospace; }
-.cl-title { color: var(--white); font-weight: 600; font-size: 14px; }
-.cl-date { margin-left: auto; color: var(--muted); font-size: 12px; }
-.cl-item ul { margin: 0; padding-left: 18px; }
-.cl-item li { color: var(--text); font-size: 13.5px; line-height: 1.6; }
-.cl-item.latest { border-color: rgba(233,69,96,0.4); }
+.changelog { display: flex; flex-direction: column; gap: 12px; max-width: 680px; }
+.cl-item { margin-bottom: 0; }
+.cl-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px; }
+.cl-ver { color: var(--cat-white); font-weight: 700; font-size: 15px; font-family: "Cascadia Code", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+.cl-title { color: var(--cat-white); font-weight: 600; font-size: 15px; }
+.cl-date { margin-left: auto; color: var(--cat-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.cl-item ul { margin: 0; padding-left: 20px; }
+.cl-item li { color: var(--cat-text); font-size: 13px; line-height: 1.55; }
+/* One entry in this list is the version you are being offered, so one entry gets the accent - and it
+   gets it through the variable, because the accent picker rewrites that and cannot reach a literal. */
+.cl-item.latest { border-color: var(--cat-hair-str); }
+.cl-item.latest .cl-ver { color: var(--cat-coral); }
 
 /* ---------- Agent page ---------- */
 .code-wrap { position: relative; }
 .code-block {
-  background: #0a0e17; border: 1px solid var(--hair); border-radius: 9px;
-  padding: 14px 16px; font-family: "Cascadia Code", ui-monospace, monospace;
-  font-size: 12.5px; line-height: 1.65; color: #c9d4ea; overflow-x: auto; user-select: text;
+  padding: 12px 16px; font-family: "Cascadia Code", ui-monospace, monospace;
+  font-size: 13px; line-height: 1.65; color: var(--cat-text); overflow-x: auto; user-select: text;
   white-space: pre;
 }
-.copy-btn { position: absolute; top: 9px; right: 9px; padding: 5px 11px; font-size: 12px; }
-.copy-btn.done { background: rgba(74,201,126,0.16); border-color: var(--green); color: var(--green); }
-.hint-line { color: var(--muted); font-size: 12px; margin-top: 9px; font-family: "Cascadia Code", ui-monospace, monospace; word-break: break-all; user-select: text; }
-.tool-caps { display: flex; flex-direction: column; gap: 9px; }
-.cap { display: flex; gap: 11px; align-items: flex-start; }
-.cap .cap-name { color: var(--coral-lt); font-family: "Cascadia Code", ui-monospace, monospace; font-size: 12.5px; font-weight: 600; min-width: 210px; }
-.cap .cap-desc { color: var(--text); font-size: 13px; }
-.notice.info { background: rgba(96,165,250,0.08); border-color: rgba(96,165,250,0.3); }
-.notice.info strong { color: var(--white); }
+.copy-btn { position: absolute; top: 8px; right: 8px; padding: 4px 12px; font-size: 12px; }
+.copy-btn.done { background: rgba(74, 222, 128, 0.14); border-color: rgba(74, 222, 128, 0.4); color: var(--cat-ok); }
+/* Prose on the Projects page and a filesystem path on the Agents page share this class, so it
+   has to wrap a path that has no spaces in it without pushing the panel wide. */
+.hint-line { color: var(--cat-muted); font-size: 13px; line-height: 1.55; margin-top: 8px; overflow-wrap: anywhere; user-select: text; }
+.hint-line code { font-family: "Cascadia Code", ui-monospace, monospace; font-size: 12px; color: var(--cat-text); }
+.tool-caps { display: flex; flex-direction: column; gap: 8px; }
+.cap { display: flex; gap: 12px; align-items: flex-start; }
+.cap .cap-name { color: var(--cat-white); font-family: "Cascadia Code", ui-monospace, monospace; font-size: 13px; font-weight: 600; min-width: 208px; }
+.cap .cap-desc { color: var(--cat-text); font-size: 13px; }
 
 /* ---------- Tool iframe ---------- */
 /* display:block, or the iframe sits on a text baseline and the line's descender adds ~4px under it -
    enough to give every tool page a scrollbar for content that already fits exactly. */
-#toolFrame { display: block; width: 100%; height: 100%; border: none; background: var(--bg); }
+#toolFrame { display: block; width: 100%; height: 100%; border: none; background: var(--cat-ink-900); }
 
-* { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.16) transparent; }
+* { scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.16) transparent; }
 ::-webkit-scrollbar { width: 12px; height: 12px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
 ::-webkit-scrollbar-corner { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.14); border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14); border-radius: 999px;
   border: 3px solid transparent; background-clip: padding-box; min-height: 40px;
 }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.26); background-clip: padding-box; }
-::-webkit-scrollbar-thumb:active { background: var(--coral); background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.26); background-clip: padding-box; }
+::-webkit-scrollbar-thumb:active { background: rgba(255, 255, 255, 0.34); background-clip: padding-box; }
 
 /* ---------------------------------------------------------------------- doctor
 
@@ -277,94 +353,105 @@ h1 { color: var(--white); font-size: 23px; font-weight: 600; margin-bottom: 6px;
    no colour-only signalling - every level has its own glyph as well. */
 
 .doc-verdict {
-  margin-top: 18px; padding: 13px 16px; border-radius: 10px;
-  font-size: 14.5px; font-weight: 600; border: 1px solid var(--hair-2);
+  margin-top: 16px; padding: 12px 16px; border-radius: 8px;
+  font-size: 15px; font-weight: 600; border: 1px solid var(--cat-hair-str);
 }
-.doc-verdict.checking { color: var(--muted); }
-.doc-verdict.ready    { color: var(--green); border-color: rgba(74, 201, 126, 0.35); }
-.doc-verdict.blocked  { color: var(--coral-lt); border-color: rgba(233, 69, 96, 0.4); }
+.doc-verdict.checking { color: var(--cat-muted); }
+.doc-verdict.ready    { color: var(--cat-ok);  border-color: rgba(74, 222, 128, 0.35); }
+.doc-verdict.blocked  { color: var(--cat-bad); border-color: rgba(248, 113, 113, 0.4); }
 
-.doc-findings { margin-top: 14px; display: flex; flex-direction: column; gap: 2px; }
+.doc-findings { margin-top: 16px; display: flex; flex-direction: column; }
 .doc-row {
-  display: grid; grid-template-columns: 22px 1fr; gap: 10px;
-  padding: 12px 2px; border-bottom: 1px solid var(--hair);
+  display: grid; grid-template-columns: 24px 1fr; gap: 12px;
+  padding: 12px 0; border-bottom: 1px solid var(--cat-hair);
 }
 .doc-row:last-child { border-bottom: 0; }
-.doc-mark { font-size: 13px; line-height: 1.5; text-align: center; }
-.doc-row.ok      .doc-mark { color: var(--green); }
-.doc-row.warn    .doc-mark { color: #ffb454; }
-.doc-row.blocker .doc-mark { color: var(--coral); }
+.doc-mark { font-size: 13px; line-height: 1.55; text-align: center; }
+.doc-row.ok      .doc-mark { color: var(--cat-ok); }
+.doc-row.warn    .doc-mark { color: var(--cat-warn); }
+.doc-row.blocker .doc-mark { color: var(--cat-bad); }
 
-.doc-what { font-size: 13.5px; font-weight: 600; color: var(--white); }
+.doc-what { font-size: 15px; font-weight: 600; color: var(--cat-white); }
 /* Wrapped at a readable measure. These explanations are two or three sentences and the whole point
    is that somebody reads them rather than skimming past. */
 .doc-detail {
-  margin-top: 5px; font-size: 12.5px; line-height: 1.6; color: var(--text); max-width: 68ch;
+  margin-top: 4px; font-size: 13px; line-height: 1.55; color: var(--cat-text); max-width: 68ch;
 }
-.doc-fix, .doc-fix-line { margin-top: 9px; font-size: 12px; }
+.doc-fix, .doc-fix-line { margin-top: 8px; font-size: 12px; }
 .doc-fix {
-  padding: 10px 12px; background: var(--bg); border: 1px solid var(--hair);
-  border-radius: 8px; overflow-x: auto; white-space: pre;
+  padding: 12px; overflow-x: auto; white-space: pre;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  color: var(--text); line-height: 1.6;
+  color: var(--cat-text); line-height: 1.55;
 }
-.doc-fix-line { color: var(--muted); }
+.doc-fix-line { color: var(--cat-muted); }
 
 /* --- the migration list --------------------------------------------------- */
 
-.doc-migration { display: flex; flex-direction: column; gap: 18px; margin-top: 6px; }
+.doc-migration { display: flex; flex-direction: column; gap: 16px; margin-top: 16px; }
 .doc-file-name {
-  display: flex; align-items: center; gap: 9px;
+  display: flex; align-items: center; gap: 8px;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 12.5px; color: var(--white); padding-bottom: 8px;
-  border-bottom: 1px solid var(--hair);
+  font-size: 13px; color: var(--cat-white); padding-bottom: 8px;
+  border-bottom: 1px solid var(--cat-hair);
 }
 .doc-count {
-  font-family: inherit; font-size: 11px; color: var(--muted);
-  background: var(--panel-2); border-radius: 999px; padding: 1px 8px;
+  font-family: inherit; font-size: 12px; color: var(--cat-muted);
+  background: var(--cat-ink-700); border-radius: 999px; padding: 0 8px;
+  font-variant-numeric: tabular-nums;
 }
 .doc-usage {
-  display: grid; grid-template-columns: 44px 1fr; gap: 10px; padding: 10px 0;
-  border-bottom: 1px solid var(--hair);
+  display: grid; grid-template-columns: 44px 1fr; gap: 12px; padding: 12px 0;
+  border-bottom: 1px solid var(--cat-hair);
 }
 .doc-usage:last-child { border-bottom: 0; }
 .doc-line {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 11.5px; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums;
+  font-size: 12px; color: var(--cat-muted); text-align: right; font-variant-numeric: tabular-nums;
 }
-.doc-rename { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12.5px; }
+.doc-rename { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; }
 .doc-rename code {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;
-  padding: 2px 7px; border-radius: 5px;
+  padding: 2px 8px; border-radius: 4px;
 }
-.doc-rename .old { background: rgba(233, 69, 96, 0.14); color: var(--coral-lt); }
-.doc-rename .new { background: rgba(74, 201, 126, 0.14); color: var(--green); }
-.doc-rename .arrow { color: var(--muted); }
-.doc-rename .removed { color: var(--muted); font-size: 12px; }
-.doc-why { margin-top: 5px; font-size: 12px; color: var(--muted); max-width: 66ch; line-height: 1.55; }
+/* Gone and its replacement: state, so the semantic pair, not the accent. */
+.doc-rename .old { background: rgba(248, 113, 113, 0.13); color: var(--cat-bad); }
+.doc-rename .new { background: rgba(74, 222, 128, 0.13); color: var(--cat-ok); }
+.doc-rename .arrow { color: var(--cat-muted); }
+.doc-rename .removed { color: var(--cat-muted); font-size: 12px; }
+.doc-why { margin-top: 4px; font-size: 12px; color: var(--cat-muted); max-width: 66ch; line-height: 1.55; }
 .doc-code {
-  margin-top: 7px; padding: 7px 10px; background: var(--bg); border-radius: 6px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px;
-  color: var(--text); overflow-x: auto; white-space: pre;
+  margin-top: 8px; padding: 8px 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;
+  color: var(--cat-text); overflow-x: auto; white-space: pre;
 }
-
-.panel-title { margin: 0 0 6px; font-size: 15px; font-weight: 650; color: var(--white); }
 
 /* ---- registered projects ---------------------------------------------------------------------- */
-.proj { display: flex; gap: 18px; align-items: flex-start; padding: 14px 0; border-top: 1px solid var(--hair, rgba(255,255,255,.08)); }
+.proj { display: flex; gap: 16px; align-items: flex-start; padding: 16px 0; border-top: 1px solid var(--cat-hair); }
 .proj:first-child { border-top: 0; }
 .proj-main { flex: 1; min-width: 0; }
-.proj-name { font-weight: 650; font-size: 14px; }
-.proj-path { font-family: ui-monospace, Consolas, monospace; font-size: 11.5px; opacity: .6; word-break: break-all; margin-top: 2px; }
-.proj-meta { font-size: 12px; opacity: .75; margin-top: 4px; }
-.proj-note { width: 100%; margin-top: 8px; padding: 6px 9px; border-radius: 7px; font-size: 12.5px;
-             border: 1px solid var(--hair, rgba(255,255,255,.12)); background: rgba(0,0,0,.2); color: inherit; font-family: inherit; }
-.proj-side { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; flex-shrink: 0; }
-.proj-write { display: flex; align-items: center; gap: 7px; font-size: 12.5px; white-space: nowrap; cursor: pointer; }
-.proj-write input { cursor: pointer; }
-.btn.tiny { padding: 4px 10px; font-size: 12px; }
-.proj-finding { margin-top: 6px; padding: 6px 9px; border-radius: 7px; font-size: 12px; line-height: 1.45;
-                background: rgba(251,191,36,.09); border: 1px solid rgba(251,191,36,.22); color: #fbbf24; }
+.proj-name { font-weight: 600; font-size: 15px; color: var(--cat-white); }
+.proj-path { font-family: ui-monospace, Consolas, monospace; font-size: 12px; color: var(--cat-muted); word-break: break-all; margin-top: 2px; }
+/* Colour, not opacity: opacity fades the ground through the text and puts these lines at a
+   contrast nobody chose. */
+.proj-meta { font-size: 12px; color: var(--cat-muted); margin-top: 4px; font-variant-numeric: tabular-nums; }
+.proj-deps { margin-top: 4px; font-size: 12px; color: var(--cat-muted); }
 
-/* The rest of vendordeps: a project's configuration in one line, quieter than a finding. */
-.proj-deps { margin-top: 5px; font-size: 12px; opacity: .62; }
+.proj-note {
+  width: 100%; margin-top: 8px; padding: 8px 12px; font-size: 13px;
+  color: var(--cat-text); font-family: inherit;
+}
+.proj-note::placeholder { color: var(--cat-muted); }
+.proj-side { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; flex-shrink: 0; }
+.proj-write { display: flex; align-items: center; gap: 8px; font-size: 13px; white-space: nowrap; cursor: pointer; }
+.proj-write input { cursor: pointer; accent-color: var(--cat-coral); }
+
+/* A finding here is two or three sentences of real consequence - a hand-edited vendordep, a
+   library built from source whose API is ahead of its tag. Amber text on an amber panel made
+   every one of them shout the same word and none of them readable, so the severity moves to the
+   rule at the edge and the sentence gets body colour and a measure you can read at. */
+.proj-finding {
+  margin-top: 8px; padding: 12px 12px 12px 10px;
+  border-left: 2px solid var(--cat-warn);
+  color: var(--cat-text); font-size: 13px; line-height: 1.55; max-width: 72ch;
+}
+.proj-finding + .proj-finding { margin-top: 4px; }

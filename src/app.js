@@ -97,6 +97,10 @@ const LINKS = [
   ["Report an issue", "https://github.com/TomAs-1226/FrcCatalyst/issues"],
 ];
 const CHANGELOG = [
+  { v: "2.6.1", t: "Catalyst 2.0.0-beta.1, and one look across all three", date: "2026-09-09", items: [
+    "Installs Catalyst 2.0.0-beta.1. The old notice told you to wait for WPILib alpha-7 before the newer features were installable - alpha-7 arrived, so everything the app advertises is in the version it installs.",
+    "It needs WPILib 2027 alpha-7 and Systemcore OS beta 14, and that pairing is not optional: a build made against alpha-7 aborts on beta 13 before your robot code runs. Flash the OS first.",
+    "The app, the Console and the docs site now share one set of colours, spacing and type. Status colours mean status and nothing else, and numbers that change no longer shift width as they do."] },
   { v: "2.6.0", t: "Import a project as it is", date: "2026-09-07", items: [
     "Import an existing robot project without installing anything into it. Catalyst reads it and says what it found: which Catalyst version it builds against, where that library comes from, and what else is in vendordeps.",
     "It now names a pre-release or a hand-edited install rather than reporting a version and leaving you to find out. A project on an alpha, or one whose FrcCatalyst.json is not the file this app ships, says so on the card.",

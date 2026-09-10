@@ -58,7 +58,7 @@
         </div>
 
         <div class="panel">
-          <div class="settings-title">Accent color</div>
+          <h2 class="panel-title">Accent color</h2>
           <div class="swatches" id="swatches"></div>
         </div>
 
@@ -83,7 +83,7 @@
         </div>
 
         <div class="panel">
-          <div class="settings-title">About</div>
+          <h2 class="panel-title">About</h2>
           <div class="about-grid">
             <div class="about-k">App version</div><div class="about-v" id="aboutApp">1.4.3</div>
             <div class="about-k">Bundled library</div><div class="about-v" id="aboutLib">1.7.0</div>
@@ -111,14 +111,13 @@
           <p class="sub">Point Catalyst at your GradleRIO project and it drops the vendordep straight in. The library installs from the copy bundled in this app, so it works with no internet.</p>
         </div>
         <div class="notice" id="alphaNotice">
-          <b>Which library version this installs.</b> The bundled vendordep points at
-          <code>v2.0.0-alpha.1</code>, the newest 2.x tag that can actually be fetched. Later tags are
-          pinned to the <em>released</em> WPILib 2027 alpha-6 — the build a Systemcore runs — and that
-          WPILib is on no public maven, so JitPack cannot build them. Features listed under app
-          versions 2.1 and above (Motor History, Autonomy 2.0, the new decision cores) are in the
-          library source but <b>not</b> in the version this installs. To use them today, build
-          FrcCatalyst from source on a machine with the WPILib 2027 installer and publish it to your
-          local maven. This resolves itself when WPILib publishes alpha-7.
+          <b>What this installs.</b> The bundled vendordep points at <code>v2.0.0-beta.1</code>, and
+          everything the app advertises is in it &mdash; Motor History, Autonomy 2.0, the decision
+          cores. It fetches from JitPack like any other vendordep.
+          <br><br>
+          It needs <b>WPILib 2027 alpha-7</b> and <b>Systemcore OS beta 14</b>, and that pairing is
+          not optional: a build made against alpha-7 aborts on beta 13 before your robot code runs.
+          Flash the OS first.
         </div>
         <div class="panel">
           <div class="row">
@@ -242,7 +241,7 @@
         </div>
 
         <div class="panel">
-          <div class="settings-title">When an update is available</div>
+          <h2 class="panel-title">When an update is available</h2>
           <label class="radio"><input type="radio" name="upmode" value="auto"><span>Install it automatically</span></label>
           <label class="radio"><input type="radio" name="upmode" value="ask" checked><span>Ask me first <em>(recommended)</em></span></label>
           <label class="radio"><input type="radio" name="upmode" value="manual"><span>Only when I check here</span></label>
@@ -259,7 +258,7 @@
         </div>
 
         <div class="panel">
-          <div class="settings-title">Import a project</div>
+          <h2 class="panel-title">Import a project</h2>
           <p class="hint-line">Any WPILib project, already written, whether or not Catalyst is in it.
           Pick the folder with <code>build.gradle</code> in it and Catalyst reads it and reports what it
           found &mdash; season, installed Catalyst version, where that library resolves from, and the
@@ -270,12 +269,12 @@
         </div>
 
         <div class="panel" id="projListPanel">
-          <div class="settings-title">Registered</div>
+          <h2 class="panel-title">Registered</h2>
           <div id="projList"></div>
         </div>
 
         <div class="panel">
-          <div class="settings-title">What an agent can do</div>
+          <h2 class="panel-title">What an agent can do</h2>
           <p class="hint-line" id="projRegPath"></p>
           <p class="hint-line">An agent can always <b>read</b> a registered project and search its
           knowledge graph. It can <b>write</b> only where you have switched it on, and never inside
@@ -291,7 +290,7 @@
         </div>
 
         <div class="panel">
-          <div class="settings-title">1. Paste this into your agent's MCP config</div>
+          <h2 class="panel-title">1. Paste this into your agent's MCP config</h2>
           <div class="code-wrap">
             <pre id="mcpConfig" class="code-block">…</pre>
             <button class="btn copy-btn" id="copyMcp">Copy</button>
@@ -300,7 +299,7 @@
         </div>
 
         <div class="panel">
-          <div class="settings-title">2. What the agent can do</div>
+          <h2 class="panel-title">2. What the agent can do</h2>
           <div class="tool-caps" id="agentCaps"></div>
         </div>
 
