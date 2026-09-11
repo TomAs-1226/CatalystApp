@@ -15,7 +15,20 @@ on:
     tags: ["app-v*"]
 
 jobs:
+  # Fast gate, matching the console's workflow. The matrix below takes minutes per platform, and a
+  # version that disagrees with itself, or a failing unit test, should not cost that to discover.
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Test
+        run: npm test
+
   build:
+    needs: check
     permissions:
       contents: write
     strategy:
