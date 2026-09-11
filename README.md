@@ -21,17 +21,33 @@ Catalyst 2.0.0-beta.1 is a **pre-season beta**, pinned to a WPILib **alpha**.
 | | |
 |---|---|
 | Requires | WPILib 2027.0.0-alpha-7, Systemcore OS beta 14, Java 25 |
-| Beside it | Phoenix 6 26.50.0-alpha-1, PathPlanner 2027.0.0-alpha-3, LimelightLib 2.0.0-beta8-alpha7 |
+| Beside it | LimelightLib 2.0.0-beta8-alpha7. **Phoenix 6 and PathPlannerLib have no alpha-7 release yet**; the 26.50.0-alpha-1 and 2027.0.0-alpha-3 it compiles against are alpha-5/6 builds |
 | Tests | 867, 0 failures |
-| Driven on a robot | **never.** It has run on a bench — a Pigeon on `can_s0`, the onboard IMU, the board's own status topics. Swerve, mechanisms, autos and vision have not been driven. |
+| Driven on a robot | **never.** The bench runs (a Pigeon on `can_s0`, the onboard IMU, the board's own status topics) were the alpha-6 builds before it, on OS beta 13. Swerve, mechanisms, autos and vision have not been driven. |
 
 The OS pairing is hard rather than advisory: a build made against alpha-7 aborts on Systemcore OS
 beta 13 before your robot code runs. Flash the OS first.
+
+**A robot with CTRE motors cannot run this yet.** There is no Phoenix 6 release for WPILib
+alpha-7, so on OS beta 14 its motors have nothing to run them. Keep that robot on OS beta 13 with
+Catalyst 2.0.0-alpha.3, a source build, which this app does not install. See
+[Versions and compatibility](https://tomas-1226.github.io/FrcCatalyst/versions.html).
 
 So put it on an offseason robot, over the offseason, and have the port done before January rather
 than during it. **If you are competing, stay on 1.x** — tag `v1.12.0`, WPILib 2026, roboRIO. This app
 does not bundle 1.x; that vendordep comes from the
 [library's own releases](https://github.com/TomAs-1226/FrcCatalyst/releases).
+
+## Versions and compatibility
+
+| Robot | App |
+|---|---|
+| Catalyst 1.12.0 on a roboRIO | **App 1.4.3**: branch `main`, release `app-v1.4.3`. This app does not bundle 1.x. |
+| Catalyst 2.0.0-alpha.3 on Systemcore OS image 13 (WPILib alpha-6), which is what runs CTRE motors today | This app's tools work; its install button does not help, because it installs beta.1. Add alpha.3 from a source build. |
+| Catalyst 2.0.0-beta.1 on Systemcore OS image 14 (WPILib alpha-7) | **App 2.6.1**: this branch, `systemcore`. Not a GitHub release yet. |
+
+The whole map (library, Console, agent, vendor libraries and Systemcore images) is on
+[Versions and compatibility](https://tomas-1226.github.io/FrcCatalyst/versions.html).
 
 ## What it does
 
@@ -41,9 +57,9 @@ does not bundle 1.x; that vendordep comes from the
 - **Install into a project** — pick your GradleRIO project folder; the app checks it really is a
   WPILib project, tells you if Catalyst is already there (and which version), then drops
   `FrcCatalyst.json` into `vendordeps/` from a bundled copy (offline). It fetches LimelightLib in the
-  same click. It does not fetch Phoenix 6 or PathPlanner: neither publishes a 2027 vendordep JSON at a
-  stable address yet, so the app tells you to add them from VS Code's vendor library list rather than
-  writing a 2026 file that looks installed and fails at build time. PhotonVision is not offered at
+  same click. It does not fetch Phoenix 6 or PathPlanner, and for WPILib alpha-7 there is nothing to
+  fetch yet: neither has an alpha-7 release, so a robot with CTRE devices cannot use what this
+  installs (see above). PhotonVision is not offered at
   all — there is no 2027 build of it.
 - **Auto-update** — offline-graceful checks for a newer app *and* a newer library, with an
   ask / auto / manual setting. See [Auto-update](#auto-update-phase-2).
