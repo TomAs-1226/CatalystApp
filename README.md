@@ -8,6 +8,15 @@ It puts every Catalyst tool in one window and installs the library straight into
 > full settings page. Windows builds locally; the macOS build runs in CI (see
 > [`.github/workflows/build-app.yml`](.github/workflows/build-app.yml)).
 
+## Versions and compatibility
+
+**App 1.4.3** (this branch, `main`; release `app-v1.4.3`) is the app for Catalyst 1.x on a roboRIO.
+It bundles FrcCatalyst 1.7.0; the newest 1.x is 1.12.0. The app for Catalyst 2.x on Systemcore is
+App 2.6.1 on the `systemcore` branch, which bundles 2.0.0-beta.1 and is not a GitHub release yet.
+
+Which library, app, console and Systemcore image go together is kept on one page:
+[Versions and compatibility](https://tomas-1226.github.io/FrcCatalyst/versions.html).
+
 ## What it does
 
 - **Tools** — the Builder, MotorType browser, PID tuner, Motion Magic, Wiring, CAN IDs, Aiming, Auto,
