@@ -515,6 +515,6 @@ h1 { color: var(--cat-white); font-size: 24px; font-weight: 600; margin-bottom: 
 }
 
 .rev-2::before {
-  content: "92 a0";
+  content: "\2192\00a0";
   color: var(--cat-coral);
 }

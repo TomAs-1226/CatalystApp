@@ -40,6 +40,7 @@ const ICONS = {
   aiming: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
   auto: '<circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/>',
   statemachine: '<rect width="8" height="8" x="3" y="3" rx="2"/><path d="M7 11v4a2 2 0 0 0 2 2h4"/><rect width="8" height="8" x="13" y="13" rx="2"/>',
+  driverconfig: '<line x1="6" x2="10" y1="12" y2="12"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="15" x2="15.01" y1="13" y2="13"/><line x1="18" x2="18.01" y1="11" y2="11"/><rect width="20" height="12" x="2" y="6" rx="2"/>',
   install: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>',
   updates: '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
   doctor: '<path d="M11 2v3"/><path d="M17 2v3"/><path d="M8 5h12a1 1 0 0 1 1 1v5a7 7 0 0 1-14 0V6a1 1 0 0 1 1-1z"/><path d="M14 18a3 3 0 1 0 6 0v-3"/><circle cx="20" cy="10" r="1.4"/>',
@@ -71,6 +72,7 @@ const TOOLS = [
   { id: "statemachine", name: "State Machine", desc: "Paste your graph and see the states." },
   { id: "history",      name: "Motor History", desc: "Every motor's hours, peaks and past names, pulled off the robot." },
   { id: "autonomy",     name: "Autonomy 2.0",  desc: "Plan the logic, see what will actually run, take the code." },
+  { id: "driverconfig", name: "Driver Config", desc: "Sticks, buttons and rumble for each driver, written into your robot project." },
 ];
 
 // Vendor libraries Catalyst builds against.
@@ -762,6 +764,14 @@ async function checkApp(manual) {
 document.addEventListener("click", (e) => {
   const nav = e.target.closest("[data-view]");
   if (nav) setView(nav.dataset.view);
+});
+
+// A tool page asking for one of the app's own views: Driver Config sends people to Projects to
+// switch writing on. Same origin only, and only a view that exists.
+window.addEventListener("message", (e) => {
+  if (e.origin !== location.origin || !e.data || e.data.type !== "catalyst:navigate") return;
+  const v = e.data.view;
+  if (VIEWS.includes(v) || TOOLS.some((t) => t.id === v)) setView(v);
 });
 
 function injectIframeScrollbar() {

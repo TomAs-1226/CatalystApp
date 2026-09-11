@@ -215,7 +215,10 @@ fn main() {
             projects::register_project,
             projects::forget_project,
             projects::set_agent_write,
-            projects::set_project_note
+            projects::set_project_note,
+            projects::read_project_file,
+            projects::write_project_file,
+            projects::project_java_sources
         ])
         .run(tauri::generate_context!())
         .expect("error while running the Catalyst app");

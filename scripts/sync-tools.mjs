@@ -38,8 +38,14 @@ if (!source) {
   process.exit(0);
 }
 
+/**
+ * Tools that exist only in this app. Driver Config writes into a robot project through the app's
+ * project registry, which a docs page cannot reach, so the library has no copy to sync it from.
+ */
+const APP_ONLY = new Set(["driverconfig"]);
+
 /** The tools the app actually shows. Anything else in the docs folder is not the app's business. */
-const BUNDLED = readdirSync(dest).filter((n) => statSync(join(dest, n)).isDirectory());
+const BUNDLED = readdirSync(dest).filter((n) => statSync(join(dest, n)).isDirectory() && !APP_ONLY.has(n));
 
 /** Line endings differ between the two checkouts and mean nothing here. */
 const normalise = (s) => s.replace(/\r\n/g, "\n");
