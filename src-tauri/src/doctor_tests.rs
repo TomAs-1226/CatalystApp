@@ -362,10 +362,22 @@ fn the_shipped_example_is_on_the_2027_toolchain() {
     // The flags are deliberately not asserted here: the example is a plain java project, not a
     // GradleRIO one, because GradleRIO 2027 ships only inside the WPILib installer. Its build.gradle
     // documents that and carries the flags commented out, ready to paste back.
-    let example = PathBuf::from("C:/Users/yu_th/dev/FrcCatalyst-v1.1.0/example");
-    if !example.exists() {
-        return; // not checked out beside this repo
-    }
+    // Which checkout, though. This app ships the 2.0 line, whose example targets Java 25 and
+    // WPILib 2027; the 1.x checkout beside it carries a 2026 example on Java 17. The path used to be
+    // hard-coded at the 1.x one, so this test failed while everything was correct — a failure nobody
+    // can act on, against a project this app does not ship. Only the 2027 line is checked, and when
+    // it is not on the machine the test says nothing rather than something wrong.
+    let dev = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("..").join("..");
+    let example = [
+        dev.join("_worktrees/FrcCatalyst-systemcore/example"),
+        dev.join("FrcCatalyst/example"),
+    ]
+    .into_iter()
+    .find(|p| p.join("build.gradle").exists());
+
+    let Some(example) = example else {
+        return; // the 2027 library is not checked out beside this repo
+    };
     let d = diagnose_project(example.to_string_lossy().to_string());
 
     assert!(

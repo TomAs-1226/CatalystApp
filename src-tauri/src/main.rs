@@ -1,9 +1,12 @@
 // Prevents an extra console window on Windows in release builds.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod agent;
 mod doctor;
 mod projects;
+mod pty;
 mod vendordeps;
+mod workspace;
 
 use serde::Serialize;
 use std::fs;
@@ -193,6 +196,9 @@ fn save_text_file(path: String, content: String) -> Result<String, String> {
 
 fn main() {
     tauri::Builder::default()
+        // The open terminals, which outlive any one command: a PTY is a child process and a pair of
+        // threads, and the commands that write to it need to find the same one again.
+        .manage(pty::PtyRegistry::default())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
@@ -215,7 +221,19 @@ fn main() {
             projects::register_project,
             projects::forget_project,
             projects::set_agent_write,
-            projects::set_project_note
+            projects::set_project_note,
+            pty::pty_open,
+            pty::pty_write,
+            pty::pty_resize,
+            pty::pty_close,
+            pty::pty_list,
+            workspace::ws_tree,
+            workspace::ws_read,
+            workspace::ws_write,
+            workspace::ws_search,
+            workspace::ws_files,
+            agent::agent_status,
+            agent::agent_prepare
         ])
         .run(tauri::generate_context!())
         .expect("error while running the Catalyst app");
