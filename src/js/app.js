@@ -5,7 +5,7 @@
 // into a view and a view never reaches into the shell — the one thing they share is the open
 // project, which travels as a `catalyst:project` event.
 
-import { $, $$, IN_APP, TAURI, appWindow, invoke, settings, svg } from "./core.js";
+import { $, $$, IN_APP, TAURI, appWindow, escapeHtml, invoke, settings, svg } from "./core.js";
 import { TOOLS } from "./data.js";
 import { stateLayer } from "./motion.js";
 
@@ -514,12 +514,15 @@ function renderPalette(query) {
     .slice(0, 40)
     .map((r) => r.item);
   paletteIndex = 0;
+  // Escaped, all of it. Labels and details here are file names and project paths off the disk, and
+  // a repository is somebody else's choice of file names: one called `<img src=x onerror=…>.java`
+  // would otherwise run in a window that can open a terminal.
   $("#paletteList").innerHTML = hits.map((i, n) => `
     <button class="palette-item" role="option" data-n="${n}" aria-selected="${n === 0}">
       ${svg(i.icon || (i.kind === "page" ? "home" : "folder"))}
-      <span>${i.label}</span>
-      ${i.detail ? `<span class="palette-item__detail">${i.detail}</span>` : ""}
-      <span class="palette-item__kind">${i.kind}</span>
+      <span>${escapeHtml(i.label)}</span>
+      ${i.detail ? `<span class="palette-item__detail">${escapeHtml(i.detail)}</span>` : ""}
+      <span class="palette-item__kind">${escapeHtml(i.kind)}</span>
     </button>`).join("");
   $$("#paletteList .palette-item").forEach((el) => {
     el.onclick = () => runPalette(hits[+el.dataset.n]);
