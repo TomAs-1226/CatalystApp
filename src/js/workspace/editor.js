@@ -1509,6 +1509,31 @@ export function mountEditor({ el, root, onAsk }) {
     revealAt(at);
   }
 
+  /**
+   * Write one tab to disk and mark it clean at the version that was written.
+   *
+   * The text and its version are read together, before the write, not after it returns: whatever
+   * is typed while the write is crossing the IPC boundary is not on disk, and reading the version
+   * afterwards marked those keystrokes saved.
+   */
+  async function writeTab(tab) {
+    const version = tab.model.getAlternativeVersionId();
+    const content = tab.model.getValue();
+    try {
+      await invoke("ws_write", { path: tab.path, content });
+    } catch (e) {
+      // ws_write refuses a path outside a registered project. That is the message to show, verbatim.
+      say(errorText(e), "bad");
+      return false;
+    }
+    dirt.track(tab.path, version);
+    tab.confirmAt = 0;
+    renderTabs();
+    paintStatus();
+    announce(tab.path);
+    return true;
+  }
+
   async function saveActive() {
     const tab = activePath && tabFor(activePath);
     if (!tab) return false;
@@ -1517,22 +1542,26 @@ export function mountEditor({ el, root, onAsk }) {
     // the answer to a second press rather than a second write.
     if (saving) return saving;
     saving = (async () => {
-      try {
-        await invoke("ws_write", { path: tab.path, content: tab.model.getValue() });
-      } catch (e) {
-        // ws_write refuses a path outside a registered project. That is the message to show, verbatim.
-        say(errorText(e), "bad");
-        return false;
-      }
-      dirt.track(tab.path, tab.model.getAlternativeVersionId());
-      tab.confirmAt = 0;
-      renderTabs();
-      paintStatus();
-      announce(tab.path);
-      say(`Saved ${tabTitle(tab.path)}`);
-      return true;
+      const ok = await writeTab(tab);
+      if (ok) say(`Saved ${tabTitle(tab.path)}`);
+      return ok;
     })().finally(() => { saving = null; });
     return saving;
+  }
+
+  /**
+   * Every file with changes, one write at a time. True only when all of them reached the disk,
+   * because the caller is usually about to throw the buffers away and needs to know it can.
+   */
+  async function saveAll() {
+    if (saving) await saving;
+    const dirty = tabs.filter(isDirty);
+    let ok = true;
+    for (const tab of dirty) ok = (await writeTab(tab)) && ok;
+    if (dirty.length && ok) {
+      say(dirty.length === 1 ? `Saved ${tabTitle(dirty[0].path)}` : `Saved ${dirty.length} files`);
+    }
+    return ok;
   }
 
   /** Alt+Z. The setting is remembered, because a person who wraps wraps every file. */
@@ -1650,6 +1679,7 @@ export function mountEditor({ el, root, onAsk }) {
     ready,
     openFile,
     saveActive,
+    saveAll,
     closeFile,
     activePath: () => activePath,
     dirtyPaths,
