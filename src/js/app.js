@@ -77,16 +77,27 @@ function token(name, fallback) {
  * removes the animation and this hides at once instead of waiting out a duration that is not there.
  */
 function leave(el, hide) {
+  // Each exit carries its own token, so the ceiling timer of an exit that was interrupted cannot end a
+  // later one early.
+  const token = String((+el.dataset.leaveToken || 0) + 1);
+  el.dataset.leaveToken = token;
   el.dataset.leaving = "true";
-  const running = el.getAnimations({ subtree: true }).filter((a) => a.playState === "running");
+  // Only animations that end. A spinner inside a leaving view is `infinite`, its `finished` never
+  // resolves, and waiting on it would leave the view on screen for good.
+  const running = el.getAnimations({ subtree: true }).filter((a) =>
+    a.playState === "running" && a.effect?.getComputedTiming?.().endTime !== Infinity);
   const finish = () => {
-    // It came back while it was going. Whoever brought it back owns it now.
-    if (el.dataset.leaving !== "true") return;
+    // It came back while it was going, or left again since. Whoever did that owns it now.
+    if (el.dataset.leaving !== "true" || el.dataset.leaveToken !== token) return;
     delete el.dataset.leaving;
     hide();
   };
   if (!running.length) { finish(); return; }
   Promise.allSettled(running.map((a) => a.finished)).then(finish);
+  // And a ceiling, because the longest role is under 800ms: an exit that has not finished by 1.5s is
+  // one whose animation stopped being driven - a hidden window, a cancelled effect - and the view
+  // still has to go.
+  setTimeout(finish, 1500);
 }
 
 /** Cancel an exit in progress, because the thing is being shown again. */
