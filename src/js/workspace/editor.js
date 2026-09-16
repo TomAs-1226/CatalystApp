@@ -151,6 +151,29 @@ export function relativePath(root, path) {
 }
 
 /**
+ * The @-mention Claude Code reads for a file, or for lines of it: `@src/Robot.java#L10-20 `.
+ *
+ * It is the form Claude Code's own editor integrations insert, so the session resolves it the way it
+ * would from an IDE. Project-relative, because the session runs in the project directory and an
+ * absolute Windows path is both longer and a second way of naming the same file.
+ *
+ * A selection dragged to the start of the next line has not selected anything on that line, and
+ * counting it would name a line the question is not about. An empty selection is the file.
+ *
+ * @param {string} root the project directory
+ * @param {string} path the file
+ * @param {{startLineNumber, startColumn, endLineNumber, endColumn}|null} [sel] Monaco's selection
+ */
+export function mentionFor(root, path, sel) {
+  const rel = relativePath(root, path);
+  if (!sel) return `@${rel} `;
+  const { startLineNumber: a, startColumn: ac, endLineNumber: b, endColumn: bc } = sel;
+  if (a === b && ac === bc) return `@${rel} `;
+  const end = b > a && bc === 1 ? b - 1 : b;
+  return end > a ? `@${rel}#L${a}-${end} ` : `@${rel}#L${a} `;
+}
+
+/**
  * A path split where the status bar can let it give way.
  *
  * The folders are the part that can be dropped when the pane is narrow; the file name is the part
@@ -943,7 +966,7 @@ const WRAP_KEY = "ws.editor.wrap";
  * @param {string} [args.root] the project directory, for the path the status bar prints
  * @returns {object} the pane's API; see the return statement at the end of this function
  */
-export function mountEditor({ el, root }) {
+export function mountEditor({ el, root, onAsk }) {
   if (!el) throw new Error("mountEditor needs an element");
   ensureStylesheet("cat-editor-css", EDITOR_STYLES);
 
@@ -1421,10 +1444,27 @@ export function mountEditor({ el, root }) {
 
   // ---------- opening and saving ----------
 
-  async function openFile(path) {
+  /**
+   * Put the caret on a line and bring it into view, after a file has opened.
+   *
+   * Only when the line is outside the viewport does the view move: a jump to a line already on screen
+   * that recentres anyway makes the code under the reader's eye slide away for no reason.
+   */
+  const revealAt = (at) => {
+    const line = Math.floor(Number(at?.line));
+    if (!editor || !Number.isFinite(line) || line < 1) return;
+    const model = editor.getModel();
+    const target = model ? Math.min(line, model.getLineCount()) : line;
+    const column = Math.max(1, Math.floor(Number(at?.col)) || 1);
+    editor.setPosition({ lineNumber: target, column });
+    editor.revealLineInCenterIfOutsideViewport(target);
+    editor.focus();
+  };
+
+  async function openFile(path, at) {
     if (!path) return;
     const open = tabFor(path);
-    if (open) { activate(path); return; }
+    if (open) { activate(path); revealAt(at); return; }
 
     // Decline the ones we already know about, before the round trip.
     if (isBinaryPath(path)) { say(binaryNote(path), "note"); return; }
@@ -1465,6 +1505,7 @@ export function mountEditor({ el, root }) {
     });
     activate(tab.path);
     say("");
+    revealAt(at);
   }
 
   async function saveActive() {
@@ -1566,6 +1607,23 @@ export function mountEditor({ el, root }) {
       [m.KeyMod.CtrlCmd | m.KeyMod.Shift | m.KeyCode.Tab], () => cycleTabs(-1));
     act("catalyst.wordWrap", "Toggle word wrap", [m.KeyMod.Alt | m.KeyCode.KeyZ],
       () => { toggleWordWrap(); });
+
+    // Ctrl+Alt+K is the key Claude Code's own editor integrations use for the same thing, so the
+    // hand that already knows it does not have to learn a second one. It goes in the context menu
+    // first, because right-clicking the code in question is where someone looks for it.
+    if (typeof onAsk === "function") {
+      disposers.push(editor.addAction({
+        id: "catalyst.askClaude",
+        label: "Ask Claude about this",
+        keybindings: [m.KeyMod.CtrlCmd | m.KeyMod.Alt | m.KeyCode.KeyK],
+        contextMenuGroupId: "navigation",
+        contextMenuOrder: 0,
+        run: () => {
+          if (!activePath) return;
+          onAsk(mentionFor(root, activePath, editor.getSelection()), { path: activePath });
+        },
+      }));
+    }
 
     // The status bar is only ever as true as its last event, so it takes every event that can
     // change it: the caret, the selection, the text, the model, its language and its indentation.

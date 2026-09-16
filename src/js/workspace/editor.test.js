@@ -428,3 +428,38 @@ test("every language the outline claims is one it can actually answer for", () =
     assert.ok(outlineSymbols(language, samples[language]).length > 0, `no symbols for ${language}`);
   }
 });
+
+// --- the @-mention handed to Claude --------------------------------------------
+
+import { mentionFor } from "./editor.js";
+
+const ROOT = "C:\\Users\\x\\dev\\Robot";
+const FILE = "C:\\Users\\x\\dev\\Robot\\src\\main\\java\\frc\\robot\\Robot.java";
+const sel = (startLineNumber, startColumn, endLineNumber, endColumn) =>
+  ({ startLineNumber, startColumn, endLineNumber, endColumn });
+
+test("a mention names the file relative to the project, forward-slashed", () => {
+  assert.equal(mentionFor(ROOT, FILE, null), "@src/main/java/frc/robot/Robot.java ");
+});
+
+test("an empty selection is the whole file, not the line the caret is on", () => {
+  assert.equal(mentionFor(ROOT, FILE, sel(12, 5, 12, 5)), "@src/main/java/frc/robot/Robot.java ");
+});
+
+test("a selection inside one line names that line", () => {
+  assert.equal(mentionFor(ROOT, FILE, sel(42, 3, 42, 19)), "@src/main/java/frc/robot/Robot.java#L42 ");
+});
+
+test("a selection across lines names the range", () => {
+  assert.equal(mentionFor(ROOT, FILE, sel(10, 1, 20, 8)), "@src/main/java/frc/robot/Robot.java#L10-20 ");
+});
+
+test("a selection dragged to the start of the next line does not count that line", () => {
+  // Selecting lines 10 to 20 by dragging down the gutter ends at column 1 of line 21.
+  assert.equal(mentionFor(ROOT, FILE, sel(10, 1, 21, 1)), "@src/main/java/frc/robot/Robot.java#L10-20 ");
+  assert.equal(mentionFor(ROOT, FILE, sel(7, 1, 8, 1)), "@src/main/java/frc/robot/Robot.java#L7 ");
+});
+
+test("a root that differs only in drive-letter case still yields a relative mention", () => {
+  assert.equal(mentionFor("c:\\users\\x\\dev\\robot", FILE, null), "@src/main/java/frc/robot/Robot.java ");
+});

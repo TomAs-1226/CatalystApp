@@ -117,10 +117,12 @@ async function mountEditor(p) {
   const el = $("#wsEditor");
   try {
     const mod = await import("../workspace/editor.js");
-    const api = mod.mountEditor({ el, root: p.path });
+    const api = mod.mountEditor({ el, root: p.path, onAsk: (text) => askClaude(text) });
     // The editor module may hand its API back, or export it — accept either, so the pane and this
-    // view can be worked on separately.
+    // view can be worked on separately. The rest of what it hands back is kept, not filtered down
+    // to three methods: the palette and the problems list reach for more than open and save.
     panes.editor = {
+      ...(api || {}),
       destroy: api?.destroy || mod.destroy,
       openFile: api?.openFile || mod.openFile,
       saveActive: api?.saveActive || mod.saveActive,
@@ -211,11 +213,27 @@ export async function showAgentSetup() {
   return true;
 }
 
-/** Open a file in the editor, from the tree, a search hit or the palette's quick open. */
-export async function openPath(path) {
+/** Open a file in the editor, from the tree, a search hit, a build problem or the palette. */
+export async function openPath(path, at) {
   if (!path) return;
   if (!panes.editor) await activate();
-  panes.editor?.openFile?.(path);
+  panes.editor?.openFile?.(path, at);
+}
+
+/**
+ * Put text in the Claude session's prompt, and stop there.
+ *
+ * Nothing is sent. The editor's mention and a build problem both arrive as the start of a question,
+ * and the question is the user's to finish: pressing Return for them would hand an agent that can
+ * change the project a sentence the app wrote. When there is no session to paste into - the CLI is
+ * missing, or has not started - the setup strip opens, because it is the thing that says why.
+ */
+export async function askClaude(text) {
+  if (!text) return false;
+  if ($("#wsBody").dataset.agent === "off") toggle("agent");
+  const sent = await panes.agent?.send?.(text);
+  if (!sent) panes.agent?.showSetup?.();
+  return !!sent;
 }
 
 /** Show the Find pane and put the caret in it. Ctrl+Shift+F, and the toolbar. */
