@@ -205,3 +205,60 @@
   overflow-wrap: anywhere;
   user-select: text;
 }
+
+/* ---------- the pane's head, and the setup strip that folds under it ---------- */
+
+.ws-agent__head .cat-dot { margin-left: var(--cat-space-2); flex: none; }
+.ws-agent__head .cat-eyebrow { flex: none; }
+.ws-agent-head-note {
+  font-family: var(--cat-mono);
+  font-size: var(--cat-fs-12);
+  font-variant-numeric: tabular-nums;
+  color: var(--cat-quiet);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.ws-agent-head-space { flex: 1; }
+/* The head is 32px; the identity's button is 34px tall because it is sized for a card. A control in
+   a strip is sized for the strip, the same way the dock's close button is. */
+.ws-agent__head .cat-btn { min-height: 24px; padding: 0 var(--cat-space-3); font-size: var(--cat-fs-12); }
+.ws-agent__head .cat-btn:has(svg) { width: 24px; padding: 0; }
+.ws-agent__head .cat-btn svg { width: 14px; height: 14px; }
+.ws-agent__head .cat-btn[hidden] { display: none; }
+
+/* A grid row folds: 1fr to 0fr animates where `height: auto` cannot, and nothing needs to measure
+   the chips first. What sits in the row is an unpadded wrapper allowed to be shorter than its
+   content; the strip's own padding and border would otherwise be a floor the row cannot fold past.
+   Settle, the role the panes fold with. */
+.ws-agent-fold {
+  display: grid;
+  grid-template-rows: 1fr;
+  flex: none;
+  transition: grid-template-rows var(--cat-dur-settle) var(--cat-ease-settle);
+}
+.ws-agent-fold__inner { min-height: 0; overflow: hidden; }
+.ws-agent-fold[data-open="off"] { grid-template-rows: 0fr; }
+/* Hidden after the fold rather than during it, for the same reason the panes do it: what you cannot
+   see must not take focus, but it has to stay visible while it is still travelling. */
+.ws-agent-fold[data-open="off"] > .ws-agent-fold__inner {
+  visibility: hidden;
+  transition: visibility 0s linear var(--cat-dur-settle);
+}
+/* The state the pane opens in is not a change, so it does not travel. */
+.ws-agent-fold[data-instant],
+.ws-agent-fold[data-instant] > .ws-agent-fold__inner { transition: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ws-agent-fold, .ws-agent-fold[data-open="off"] > .ws-agent-fold__inner { transition: none; }
+}
+
+/* ---------- Settings → AI agents: the same setup, outside the workspace ---------- */
+
+.agent-setup__chips { margin-top: var(--cat-space-4); }
+.agent-setup__chips:empty { display: none; }
+.agent-setup__msg { margin-top: var(--cat-space-3); max-width: 68ch; }
+.agent-setup__actions { margin-top: var(--cat-space-4); }
+.agent-setup__actions[hidden] { display: none; }
+.agent-setup__space { flex: 1; }

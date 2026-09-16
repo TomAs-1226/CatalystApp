@@ -190,10 +190,25 @@ async function mountAgentPane(p) {
   const el = $("#wsAgent");
   try {
     const { mountAgent } = await import("../workspace/agent.js");
-    panes.agent = mountAgent({ el, dir: p.path });
+    panes.agent = mountAgent({ el, dir: p.path, onHide: () => toggle("agent") });
   } catch (e) {
     fallback(el, "The Claude pane could not load.", e);
   }
+}
+
+/**
+ * Show the Claude pane with its setup strip open, from Settings or the palette.
+ *
+ * Returns false when there is no pane to show it in — no project open — so the caller can say that
+ * instead of navigating somewhere empty.
+ */
+export async function showAgentSetup() {
+  if (!project.get()) return false;
+  if (!panes.agent) await activate();
+  if (!panes.agent?.showSetup) return false;
+  if ($("#wsBody").dataset.agent === "off") toggle("agent");
+  panes.agent.showSetup();
+  return true;
 }
 
 /** Open a file in the editor, from the tree, a search hit or the palette's quick open. */

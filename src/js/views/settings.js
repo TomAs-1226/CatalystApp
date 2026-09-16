@@ -6,7 +6,8 @@
 
 import { $, $$, IN_APP, escapeHtml, invoke, openExternal, pickDirectory, settings } from "../core.js";
 import { AGENT_CAPS, APP_VERSION_FALLBACK, LIB_VERSION, LINKS } from "../data.js";
-import { go, project } from "../app.js";
+import { go, openAgentSetup, project } from "../app.js";
+import { isReady, normalizeStatus, prepareSummary, renderChips } from "../workspace/agent.js";
 
 /** The pages the app will open itself at. A stored value that is none of them falls back to Home. */
 const STARTUP = ["home", "workspace", "last"];
@@ -20,8 +21,12 @@ const OWN_KEYS = ["accent", "startup", "includeDeps", "updateMode", "lastView"];
 export function init() {
   $("#projAddBtn").addEventListener("click", pickProjectFolder);
   wireCopy();
+  wireAgentSetup();
   renderSettings();
   renderAgents();
+  // The setup card is about whichever project is open, so it follows the project rather than waiting
+  // to be looked at again - a card still describing the last project is worse than an empty one.
+  document.addEventListener("catalyst:project", () => { renderAgentSetup().catch(() => {}); });
 
   /* Refresh the registry when this page first loads, not only when the Projects tab is opened.
    * list_projects re-reads every project and rewrites the file when anything changed, and that file
@@ -232,7 +237,85 @@ async function pickProjectFolder() {
 
 let agentsRendered = false;
 
+/** The last status read for the open project, so a summary can say what a setup changed. */
+let setupStatus = normalizeStatus(null);
+let setupBusy = false;
+
+function wireAgentSetup() {
+  $("#agentSetupPrepare").addEventListener("click", () => { prepareAgentSetup().catch(() => {}); });
+  $("#agentSetupRecheck").addEventListener("click", () => { renderAgentSetup({ say: true }).catch(() => {}); });
+  $("#agentSetupOpen").addEventListener("click", () => { openAgentSetup().catch(() => {}); });
+}
+
+/**
+ * The open project's Claude setup, as the workspace pane would show it.
+ *
+ * With no project open, or outside the desktop app, the card says which of those it is instead of
+ * showing four chips that all read "not found" - that would describe a broken setup, and there is
+ * nothing broken, only nothing to look at.
+ */
+async function renderAgentSetup({ say = false } = {}) {
+  const p = project.get();
+  const chips = $("#agentSetupChips");
+  const msg = $("#agentSetupMsg");
+  const actions = $("#agentSetupActions");
+  $("#agentSetupProject").textContent = p ? p.name : "";
+
+  if (!p || !IN_APP) {
+    chips.innerHTML = "";
+    actions.hidden = !p;
+    msg.textContent = !p
+      ? "Open a project in the workspace and its Claude setup appears here: whether the CLI is found, the Catalyst tools are wired, and the project has its instructions."
+      : "Checking a project's setup needs the desktop app.";
+    return;
+  }
+
+  actions.hidden = false;
+  setBusy(true);
+  if (say) msg.textContent = "Checking…";
+  try {
+    setupStatus = normalizeStatus(await invoke("agent_status", { dir: p.path }));
+    renderChips(chips, setupStatus);
+    msg.textContent = isReady(setupStatus)
+      ? "Everything the session needs is in place. The workspace keeps this folded away until something changes."
+      : "Something the session needs is missing — set the project up to fix it.";
+  } catch (e) {
+    msg.textContent = "Could not read the setup: " + e;
+  } finally {
+    setBusy(false);
+  }
+}
+
+async function prepareAgentSetup() {
+  const p = project.get();
+  if (!p || setupBusy) return;
+  const before = setupStatus;
+  setBusy(true);
+  $("#agentSetupMsg").textContent = "Setting the project up…";
+  try {
+    setupStatus = normalizeStatus(await invoke("agent_prepare", { dir: p.path }));
+    renderChips($("#agentSetupChips"), setupStatus);
+    $("#agentSetupMsg").textContent = prepareSummary(before, setupStatus);
+  } catch (e) {
+    $("#agentSetupMsg").textContent = "Could not set the project up: " + e;
+  } finally {
+    setBusy(false);
+  }
+}
+
+function setBusy(on) {
+  setupBusy = on;
+  $("#agentSetupPrepare").disabled = on;
+  $("#agentSetupRecheck").disabled = on;
+  const ready = isReady(setupStatus);
+  $("#agentSetupPrepare").textContent = ready ? "Set up again" : "Set this project up";
+  // The signal colour is for something that needs doing. Setting up a project that is already set up
+  // is housekeeping, and a crimson button there says otherwise.
+  $("#agentSetupPrepare").classList.toggle("cat-btn--primary", !ready);
+}
+
 async function renderAgents() {
+  renderAgentSetup().catch(() => {});
   const caps = $("#agentCaps");
   if (!caps.childElementCount) {
     caps.innerHTML = AGENT_CAPS.map(([name, desc]) => `

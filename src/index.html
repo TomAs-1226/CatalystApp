@@ -447,9 +447,27 @@
           <div class="stack" data-panel="agents" hidden>
             <div class="page-head">
               <h1>AI agents</h1>
-              <p class="sub">The workspace runs Claude Code for you. This is for connecting an agent
-                that lives outside the app.</p>
+              <p class="sub">What the Claude session in your project can see, and the same tools for
+                an agent that lives outside the app.</p>
             </div>
+
+            <!-- The setup the workspace's Claude pane folds away once it is complete. It lives here
+                 too so it can be found without opening the workspace first. -->
+            <div class="cat-card" id="agentSetupCard">
+              <div class="cat-card__head">
+                <h2 class="cat-card__title">Claude Code in this project</h2>
+                <span class="hint" id="agentSetupProject"></span>
+              </div>
+              <div class="agent-setup__chips ws-chips" id="agentSetupChips"></div>
+              <p class="agent-setup__msg hint" id="agentSetupMsg" aria-live="polite"></p>
+              <div class="row agent-setup__actions" id="agentSetupActions">
+                <button class="cat-btn cat-btn--primary" id="agentSetupPrepare">Set this project up</button>
+                <button class="cat-btn" id="agentSetupRecheck">Re-check</button>
+                <span class="agent-setup__space"></span>
+                <button class="cat-btn cat-btn--ghost" id="agentSetupOpen">Open the Claude pane</button>
+              </div>
+            </div>
+
             <div class="cat-card">
               <div class="cat-card__head"><h2 class="cat-card__title">Connect an outside agent</h2></div>
               <p class="hint">The workspace runs Claude Code for you, already wired to this server. To

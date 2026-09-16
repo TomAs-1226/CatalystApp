@@ -1,7 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { cliSearchPlaces, isReady, normalizeStatus, prepareSummary, statusChips } from "./agent.js";
+import {
+  cliSearchPlaces, isReady, normalizeStatus, paneTone, prepareSummary, statusChips, stripVisible,
+} from "./agent.js";
 
 const READY = {
   cli_path: "C:\\Users\\x\\AppData\\Roaming\\Claude\\claude-code\\2.1.271\\claude.exe",
@@ -123,4 +125,31 @@ test("prepare says so when it did not manage to fix something", () => {
 test("a summary is always a sentence, never an empty string", () => {
   assert.ok(prepareSummary(null, null).length > 0);
   assert.ok(prepareSummary(READY, READY).length > 0);
+});
+
+// --- the strip folds away once there is nothing left for it to say -------------
+
+test("a ready project folds the strip away", () => {
+  assert.equal(stripVisible({ status: READY, open: false }), false);
+});
+
+test("the strip comes back when asked for, even with nothing wrong", () => {
+  assert.equal(stripVisible({ status: READY, open: true }), true);
+});
+
+test("a project missing anything keeps its strip, whatever was asked", () => {
+  // Folding a broken setup out of sight is the one outcome worse than the clutter: the session
+  // would answer from training data with nothing on screen saying why.
+  for (const missing of ["cli_path", "mcp_wired", "claude_md", "project_registered"]) {
+    const status = { ...READY, [missing]: missing === "cli_path" ? null : false };
+    assert.equal(stripVisible({ status, open: false }), true, missing);
+  }
+  assert.equal(stripVisible({ status: null, open: false }), true, "no status yet");
+});
+
+test("the head's one dot is the worst of the four", () => {
+  assert.equal(paneTone(READY), "ok");
+  assert.equal(paneTone({ ...READY, claude_md: false }), "warn");
+  assert.equal(paneTone({ ...READY, claude_md: false, cli_path: null }), "bad");
+  assert.equal(paneTone(null), "bad", "nothing read yet is not fine");
 });

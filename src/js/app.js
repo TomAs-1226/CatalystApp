@@ -479,6 +479,7 @@ async function openPalette() {
     { label: "Settings", kind: "page", go: "settings/general" },
     { label: "Your projects", kind: "page", go: "settings/projects" },
     { label: "AI agents", kind: "page", go: "settings/agents" },
+    { label: "Claude Code setup", kind: "command", icon: "autonomy", detail: "Check what the agent in this project can see", run: "agentSetup" },
     ...TOOLS.map((t) => ({ label: t.name, kind: "tool", icon: t.id, go: `tool/${t.id}` })),
   ];
 
@@ -566,7 +567,27 @@ async function runPalette(item) {
     await go("workspace");
     return;
   }
+  if (item.run === "agentSetup") {
+    await openAgentSetup();
+    return;
+  }
   await go(item.go);
+}
+
+/**
+ * The Claude pane with its setup strip showing, wherever this was asked for from.
+ *
+ * With no project open there is no pane to show, so it goes to Settings → AI agents, which says what
+ * setup means and how to open a project, rather than to an empty workspace.
+ */
+export async function openAgentSetup() {
+  if (!project.get()) {
+    await go("settings/agents");
+    return;
+  }
+  await go("workspace");
+  const mod = await import("./views/workspace.js");
+  if (!(await mod.showAgentSetup())) await go("settings/agents");
 }
 
 function wirePalette() {
