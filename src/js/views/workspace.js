@@ -6,7 +6,7 @@
 // the terminal, and a pane that fails to load must leave the rest of the workspace working.
 
 import { $, $$, IN_APP, invoke, pickDirectory, settings, svg, escapeHtml } from "../core.js";
-import { project, tabMark } from "../app.js";
+import { ask, project, tabMark } from "../app.js";
 
 /** The mounted panes, so a project change can take them down before putting them back up. */
 const panes = { tree: null, editor: null, agent: null, terminal: null, runner: null, find: null };
@@ -23,6 +23,9 @@ export function init() {
   $("#wsBuildBtn").onclick = () => run("build");
   $("#wsDeployBtn").onclick = () => run("deploy");
   document.addEventListener("catalyst:project", () => { if (!$("#view-workspace").hidden) activate(); });
+  // Opening another project takes the editor down, and so does closing the window; either way every
+  // unsaved buffer goes with it. This is the one place that knows there are buffers to lose.
+  project.guard((next, reason) => confirmUnsaved(next, reason));
 
   // Ctrl+S reaches the editor wherever the focus is inside the workspace, because a code pane that
   // only saves when its own textarea has focus is a pane that loses work.
@@ -67,6 +70,42 @@ export async function activate() {
   await mountPanes(p);
 }
 
+/**
+ * Ask what to do with unsaved files before the editor is taken down. Resolves true to go on.
+ *
+ * Save is the focused choice, so Enter keeps the work; not saving is there, and quiet, because
+ * sometimes the edits were an experiment. A save that fails - a file outside the registry, a disk
+ * that refused - resolves false: the editor has said why, and going on would lose what it could not
+ * write.
+ */
+async function confirmUnsaved(next, { quitting = false } = {}) {
+  const dirty = panes.editor?.dirtyPaths?.() || [];
+  if (!dirty.length) return true;
+
+  const p = project.get();
+  const { relativePath } = await import("../workspace/editor.js");
+  const files = dirty.map((path) => relativePath(p?.path || "", path));
+  const n = files.length;
+  const where = p?.name || "this project";
+  const title = quitting
+    ? "Save before closing Catalyst?"
+    : next ? `Save before opening ${next.name}?` : `Save before closing ${where}?`;
+
+  const choice = await ask({
+    eyebrow: "UNSAVED CHANGES",
+    title,
+    body: `${n === 1 ? "One file" : `${n} files`} in ${where} ${n === 1 ? "has" : "have"} changes that are not on disk yet.`,
+    list: files,
+    actions: [
+      { label: "Stay", value: "stay", cancel: true },
+      { label: "Don't save", value: "discard", kind: "ghost" },
+      { label: n === 1 ? "Save" : "Save all", value: "save", kind: "primary", focus: true },
+    ],
+  });
+  if (choice === "save") return (await panes.editor?.saveAll?.()) === true;
+  return choice === "discard";
+}
+
 /** Open a folder as the workspace's project, and register it so agents can see it too. */
 async function openProject() {
   if (!IN_APP) {
@@ -81,7 +120,7 @@ async function openProject() {
     let bundled = null;
     try { bundled = await invoke("read_bundled_vendordep"); } catch (_) { /* analysis degrades */ }
     const p = await invoke("register_project", { dir, name: null, bundledVendordep: bundled });
-    project.set({ name: p.name, path: p.path });
+    await project.request({ name: p.name, path: p.path });
   } catch (e) {
     note("Could not open that folder: " + e);
   }

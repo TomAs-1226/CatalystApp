@@ -919,7 +919,7 @@ pre {
 
 /* ---------------------------------------------------------------- palette */
 
-/* The one floating surface in the app, so the one piece of glass. */
+/* A floating surface, so glass: this and the dialog below are the only two in the app. */
 #palette {
   position: fixed;
   inset: 0;
@@ -962,6 +962,68 @@ pre {
   from { transform: none; opacity: 1; }
   to { transform: translateY(-8px) scale(.98); opacity: 0; }
 }
+
+/* ---------------------------------------------------------------- dialog */
+
+/* A question only the user can answer. It floats like the palette and arrives and leaves the same
+   way, from the same keyframes; it sits above it, because it can be asked while the palette is open.
+   Tile proportions: radius 20, padding 24, and the file list inside it takes the inner radius. */
+#dialog {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--cat-space-4);
+  background: rgba(0, 0, 0, .38);
+  z-index: 70;
+  animation: scrim-in var(--cat-dur-effect) var(--cat-ease-effect);
+}
+#dialog[hidden] { display: none; }
+
+.dialog-box {
+  width: min(460px, 100%);
+  padding: var(--cat-space-5);
+  border-radius: var(--cat-r-window);
+  animation: palette-in var(--cat-dur-release) var(--cat-ease-release);
+}
+.dialog-box .cat-eyebrow:empty { display: none; }
+.dialog-title {
+  margin: var(--cat-space-2) 0 0;
+  font-size: var(--cat-fs-18);
+  font-weight: var(--cat-w-semi);
+  color: var(--cat-ink-strong);
+  text-wrap: balance;
+}
+.dialog-body {
+  margin: var(--cat-space-2) 0 0;
+  font-size: var(--cat-fs-13);
+  color: var(--cat-body);
+}
+.dialog-list {
+  margin: var(--cat-space-3) 0 0;
+  padding: var(--cat-space-2) var(--cat-space-3);
+  list-style: none;
+  max-height: 168px;
+  overflow: auto;
+  border-radius: var(--cat-r-inner);
+  background: rgba(0, 0, 0, .22);
+  font-family: var(--cat-mono);
+  font-size: var(--cat-fs-12);
+  color: var(--cat-ink);
+}
+.dialog-list:empty { display: none; }
+.dialog-list li { padding: 2px 0; overflow-wrap: anywhere; }
+.dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cat-space-2);
+  margin-top: var(--cat-space-5);
+}
+/* The way out sits apart, on the left; the choices that do something sit together on the right. */
+.dialog-actions__space { flex: 1; }
+
+#dialog[data-leaving="true"] { animation: scrim-out var(--cat-dur-smooth) var(--cat-ease-smooth) forwards; }
+#dialog[data-leaving="true"] .dialog-box { animation: palette-out var(--cat-dur-smooth) var(--cat-ease-smooth) forwards; }
 
 .palette-input {
   width: 100%;
@@ -1150,6 +1212,10 @@ pre {
   #palette,
   #palette[data-leaving="true"],
   #palette[data-leaving="true"] .palette-box,
+  #dialog,
+  .dialog-box,
+  #dialog[data-leaving="true"],
+  #dialog[data-leaving="true"] .dialog-box,
   #banner,
   #banner[data-leaving="true"] { animation: none; }
 

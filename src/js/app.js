@@ -37,15 +37,22 @@ let previous = "home";
 /** The project the whole app is currently about, or null. */
 let openProject = null;
 
+/** Checks that run before the open project changes or the window closes; see `project.guard`. */
+const guards = new Set();
+
 export const project = {
   get: () => openProject,
-  /** Set from anywhere: the workspace, the Projects tab, a recent-project card. */
+  /**
+   * Set it outright, with no questions asked. For restoring the last session at start-up, where
+   * nothing is open yet that could be lost; everything a person does goes through `request`.
+   */
   set(p) {
     openProject = p;
     const chip = $("#tbProject");
     if (p) {
       chip.hidden = false;
-      chip.innerHTML = `${svg("folder")}<span>${p.name}</span>`;
+      // The name is a folder name off the disk, or whatever the registry file says, so it is text.
+      chip.innerHTML = `${svg("folder")}<span>${escapeHtml(p.name)}</span>`;
       chip.title = p.path;
     } else {
       chip.hidden = true;
@@ -54,7 +61,152 @@ export const project = {
     if (p) settings.set("openProject", JSON.stringify({ name: p.name, path: p.path }));
     else settings.remove("openProject");
   },
+  /**
+   * Register a check that runs before the project changes or the app quits.
+   *
+   * It is called with the project about to be opened (null for none) and `{ quitting }`, and
+   * resolves false to stay where things are. The workspace uses it for unsaved files: opening a
+   * project throws the editor's buffers away, and so does closing the window.
+   *
+   * @returns {() => void} unregister
+   */
+  guard(fn) {
+    guards.add(fn);
+    return () => guards.delete(fn);
+  },
+  /** Change the project if every guard agrees. Resolves true when it changed, or needed not to. */
+  async request(p) {
+    if ((p?.path ?? null) === (openProject?.path ?? null)) {
+      if (p) project.set(p);
+      return true;
+    }
+    if (!(await passGuards(p, { quitting: false }))) return false;
+    project.set(p);
+    return true;
+  },
 };
+
+async function passGuards(next, reason) {
+  for (const check of guards) {
+    try {
+      if (!(await check(next, reason))) return false;
+    } catch (err) {
+      console.error(err);
+      const why = String(err?.message || err);
+      // A guard that throws has not said it is safe to go on, and going on is the step that loses
+      // work - so switching project stays put. Quitting asks instead: a broken check that could
+      // never be satisfied would otherwise leave a window nobody can close.
+      if (!reason?.quitting) {
+        banner("Could not check for unsaved work: " + why);
+        return false;
+      }
+      try {
+        const choice = await ask({
+          title: "Close without checking for unsaved files?",
+          body: "Catalyst could not check the editor for unsaved changes: " + why,
+          actions: [
+            { label: "Stay", value: false, cancel: true, focus: true },
+            { label: "Close anyway", value: true },
+          ],
+        });
+        if (!choice) return false;
+      } catch (_) {
+        return true;
+      }
+    }
+  }
+  return true;
+}
+
+// ----------------------------------------------------------------- dialog
+//
+// One question at a time, answered with a button. A second question while one is showing answers
+// the first with its way out, because two stacked decisions about the same unsaved files are one
+// too many.
+
+let dialogDone = null;
+
+/**
+ * Ask, and resolve with the `value` of the button pressed.
+ *
+ * Escape, and a click on the scrim, choose the action marked `cancel` - the one that changes
+ * nothing. Focus starts on the action marked `focus`, or on the way out when none is, so an Enter
+ * that was meant for something behind the dialog cannot pick a destructive choice.
+ *
+ * @param {object}   q
+ * @param {string}   q.title
+ * @param {string}   [q.eyebrow]
+ * @param {string}   [q.body]
+ * @param {string[]} [q.list]     lines shown as a list, such as the files a choice affects
+ * @param {{label, value, kind?: "primary"|"ghost", cancel?: boolean, focus?: boolean}[]} q.actions
+ */
+export function ask({ title, eyebrow = "", body = "", list = [], actions }) {
+  if (dialogDone) dialogDone(null);
+  const root = $("#dialog");
+  $("#dialogEyebrow").textContent = eyebrow;
+  $("#dialogTitle").textContent = title;
+  $("#dialogBody").textContent = body;
+  const ul = $("#dialogList");
+  ul.innerHTML = "";
+  for (const line of list) {
+    const li = document.createElement("li");
+    li.textContent = line;
+    ul.appendChild(li);
+  }
+
+  const cancel = actions.find((a) => a.cancel) || actions[0];
+  const row = $("#dialogActions");
+  row.innerHTML = "";
+  const buttons = actions.map((a) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "cat-btn" + (a.kind ? ` cat-btn--${a.kind}` : "");
+    b.textContent = a.label;
+    b.addEventListener("click", () => finish(a.value));
+    return [a, b];
+  });
+  // The way out on the left, apart; everything that does something together on the right.
+  const out = buttons.find(([a]) => a === cancel);
+  if (out) row.append(out[1]);
+  const space = document.createElement("span");
+  space.className = "dialog-actions__space";
+  row.append(space);
+  for (const [a, b] of buttons) if (a !== cancel) row.append(b);
+
+  const before = document.activeElement;
+  arrive(root);
+  root.hidden = false;
+  (buttons.find(([a]) => a.focus) || out || buttons[0])?.[1].focus();
+
+  const onKey = (e) => {
+    if (e.key === "Escape") { e.preventDefault(); finish(cancel.value); }
+    else if (e.key === "Tab") {
+      // Focus stays inside while it is open; a modal whose Tab walks out into the page behind it is
+      // a modal in appearance only.
+      const els = buttons.map(([, b]) => b);
+      const i = els.indexOf(document.activeElement);
+      e.preventDefault();
+      els[(i + (e.shiftKey ? els.length - 1 : 1) + els.length) % els.length].focus();
+    }
+  };
+  const onScrim = (e) => { if (e.target === root) finish(cancel.value); };
+  root.addEventListener("keydown", onKey);
+  root.addEventListener("click", onScrim);
+
+  let resolve;
+  const answered = new Promise((r) => { resolve = r; });
+  function finish(value) {
+    if (dialogDone !== finish) return;
+    dialogDone = null;
+    root.removeEventListener("keydown", onKey);
+    root.removeEventListener("click", onScrim);
+    leave(root, () => { root.hidden = true; });
+    if (before && typeof before.focus === "function" && document.contains(before)) before.focus();
+    resolve(value === null ? cancel.value : value);
+  }
+  dialogDone = finish;
+  return answered;
+}
 
 // ----------------------------------------------------------------- motion
 //
@@ -382,6 +534,24 @@ function wireTitlebar() {
   $("#tbMin").onclick = () => appWindow()?.minimize();
   $("#tbMax").onclick = () => appWindow()?.toggleMaximize();
   $("#tbClose").onclick = () => appWindow()?.close();
+  // Every way of closing the window - that button, Alt+F4, the taskbar - arrives here as a request,
+  // so unsaved work is asked about once rather than at each of them. Tauri destroys the window
+  // itself when the handler returns unless the default was prevented, so it always is, and the
+  // window is destroyed here once the guards agree.
+  //
+  // Checked for rather than assumed: this runs during start-up, and a window API that is missing or
+  // throws must cost the close guard, not the rest of the boot after it.
+  const win = appWindow();
+  if (win && typeof win.onCloseRequested === "function") {
+    try {
+      Promise.resolve(win.onCloseRequested(async (event) => {
+        event.preventDefault();
+        if (await passGuards(null, { quitting: true })) await win.destroy();
+      })).catch((err) => console.error("close guard not installed:", err));
+    } catch (err) {
+      console.error("close guard not installed:", err);
+    }
+  }
   $("#tbProject").onclick = () => go("workspace");
 
   // The settings mode covers the rail, so its own close is the way out.
@@ -563,8 +733,7 @@ async function runPalette(item) {
     return;
   }
   if (item.open) {
-    project.set({ name: item.open.name, path: item.open.path });
-    await go("workspace");
+    if (await project.request({ name: item.open.name, path: item.open.path })) await go("workspace");
     return;
   }
   if (item.run === "agentSetup") {

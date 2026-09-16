@@ -72,11 +72,12 @@ function renderSettings() {
   $("#resetBtn").onclick = reset;
 }
 
-function reset() {
+async function reset() {
+  // Closing the project comes first, because it is the step that can be refused: unsaved files get
+  // their question before anything is cleared, and a Stay leaves the settings as they were too.
+  // It also clears the stored project and the title-bar chip, and tells every view.
+  if (!(await project.request(null))) return;
   OWN_KEYS.forEach((k) => settings.remove(k));
-  // Clears the stored project and the title-bar chip in one move, and tells every view that there
-  // is no longer a project open.
-  project.set(null);
 
   // The update-mode radios live on the Library page, and one still showing a cleared choice would
   // be lying about what the app will do.
@@ -139,11 +140,10 @@ async function renderProjects() {
 
   list.innerHTML = projects.map(projectRow).join("");
 
-  $$("#projList [data-open]").forEach((el) => el.addEventListener("click", () => {
+  $("#projList [data-open]").forEach((el) => el.addEventListener("click", async () => {
     // The link between the registry and the workspace: a project imported here is a project the
     // workspace can open, without picking the same folder a second time.
-    project.set({ name: el.dataset.openName, path: el.dataset.open });
-    go("workspace");
+    if (await project.request({ name: el.dataset.openName, path: el.dataset.open })) go("workspace");
   }));
   $$("#projList [data-write]").forEach((el) => el.addEventListener("change", async () => {
     try { await invoke("set_agent_write", { dir: el.dataset.write, allowed: el.checked }); }

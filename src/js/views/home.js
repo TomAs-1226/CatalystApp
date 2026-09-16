@@ -54,10 +54,10 @@ async function renderRecent() {
       icon: "folder",
       name: escapeHtml(p.name),
       desc: escapeHtml(meta),
-      onClick: () => {
+      onClick: async () => {
+        if (!(await project.request({ name: p.name, path: p.path }))) return;
         const next = [p.path, ...order.filter((x) => x !== p.path)].slice(0, 6);
         settings.set("recentOrder", JSON.stringify(next));
-        project.set({ name: p.name, path: p.path });
         go("workspace");
       },
     }));

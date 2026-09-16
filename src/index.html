@@ -499,6 +499,19 @@
     </div>
   </div>
 
+  <!-- A question only the user can answer, such as what happens to unsaved files. It floats over
+       everything, so it is glass, and nothing behind it takes input until it is answered. -->
+  <div id="dialog" hidden>
+    <div class="dialog-box cat-glass" role="alertdialog" aria-modal="true"
+         aria-labelledby="dialogTitle" aria-describedby="dialogBody">
+      <div class="cat-eyebrow" id="dialogEyebrow"></div>
+      <h2 class="dialog-title" id="dialogTitle"></h2>
+      <p class="dialog-body" id="dialogBody"></p>
+      <ul class="dialog-list" id="dialogList"></ul>
+      <div class="dialog-actions" id="dialogActions"></div>
+    </div>
+  </div>
+
   <div id="banner" class="cat-glass" hidden></div>
 
   <script type="module" src="js/app.js"></script>
