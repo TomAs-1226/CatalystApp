@@ -258,3 +258,20 @@ fn the_guide_names_the_graph_tools_an_agent_should_reach_for_first() {
         assert!(body.contains(tool), "{tool} is named: {body}");
     }
 }
+
+#[test]
+fn on_a_machine_with_a_memory_index_the_guide_actually_points_at_it() {
+    // Not a fixture: the point of the import is that it resolves on the machine the app runs on,
+    // and a test that only ever sees a temp directory cannot tell whether it does. Where there is no
+    // memory yet, there is nothing to assert and the test says so by passing quietly.
+    let Some(index) = shared_memory_index() else { return };
+
+    assert!(
+        Path::new(&index).is_file(),
+        "shared_memory_index returned a path that is not a file: {index}"
+    );
+    assert!(index.ends_with("MEMORY.md"), "it is the index, not a memory: {index}");
+
+    let guide = claude_md("Robot2027");
+    assert!(guide.contains(&format!("@{index}")), "the guide imports it: {guide}");
+}

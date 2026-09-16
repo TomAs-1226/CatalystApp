@@ -460,6 +460,7 @@ pre {
    value going to the width you chose, it is the shortest of the three travelling roles, and it is
    critically damped, so it never crosses its target and lays out again on the way back. */
 .ws-body {
+  position: relative;   /* a pane that floats at a narrow window is placed against this */
   display: grid;
   grid-template-columns: var(--ws-tree, 260px) 1fr var(--ws-agent, 380px);
   grid-template-rows: 1fr var(--ws-dock, 220px);
@@ -477,6 +478,53 @@ pre {
 .ws-body[data-tree="off"] { --ws-tree: 0px; }
 .ws-body[data-agent="off"] { --ws-agent: 0px; }
 .ws-body[data-dock="off"] { --ws-dock: 0px; }
+
+/* When there is not room for three columns, a pane floats instead of shrinking.
+ *
+ * The tracks are fixed widths either side of a `1fr` editor, and a grid whose tracks do not fit
+ * shrinks them all — so at a narrow window the Claude pane came out ONE PIXEL wide with 249px of
+ * content in it. Everything in it was cut off, including the button that wires the project up, which
+ * is the only way to reach that button. Below the width where all three fit, the side panes leave
+ * the grid and overlay the editor: narrow is a reason to cover something, never to slice it.
+ *
+ * The thresholds are the sums, not round numbers: rail 76 + tree 260 + agent 380 + an editor that is
+ * still worth having at 380 is 1096, and without the agent it is 716. */
+@media (max-width: 1180px) {
+  .ws-body[data-agent="on"] { grid-template-columns: var(--ws-tree, 260px) 1fr 0px; }
+
+  .ws-body[data-agent="on"] .ws-agent {
+    /* Out of the grid entirely. An absolutely positioned grid child with a definite placement takes
+       its GRID AREA as its containing block, not the container — so against a 0px column
+       `width: min(420px, 62%)` resolved to 0.8px and the pane was still a sliver. */
+    grid-column: auto;
+    grid-row: auto;
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(420px, 62%);
+    z-index: 6;
+    background: var(--cat-ground);
+    box-shadow: -24px 0 48px rgba(0, 0, 0, .5);
+  }
+}
+
+@media (max-width: 860px) {
+  .ws-body[data-tree="on"] { grid-template-columns: 0px 1fr 0px; }
+
+  .ws-body[data-tree="on"] .ws-tree {
+    grid-column: auto;
+    grid-row: auto;
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: min(280px, 70%);
+    z-index: 5;
+    background: var(--cat-ground);
+    box-shadow: 24px 0 48px rgba(0, 0, 0, .5);
+  }
+}
 
 /* Every pane names its own cell.
  *
