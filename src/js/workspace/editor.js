@@ -1104,6 +1104,7 @@ export function mountEditor({ el, root, onAsk }) {
       [["Ctrl", "P"], "Open a file by name"],
       [["Ctrl", "Shift", "F"], "Find in this project"],
       [["Ctrl", "S"], "Save what is open"],
+      [["Ctrl", "Alt", "K"], "Ask Claude about the selection"],
     ];
     for (const [caps, what] of SHORTCUTS) {
       const dt = document.createElement("dt");

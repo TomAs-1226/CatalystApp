@@ -102,9 +102,12 @@ export function buttonState({ running, activeId, awaitingConfirm }) {
  * @param {object}  opts
  * @param {Element} opts.el   the element to fill
  * @param {string}  opts.dir  the project directory every action runs in
+ * @param {function} [opts.onStart]   (id) before an action's first output
+ * @param {function} [opts.onOutput]  (text) each chunk it prints - what the problems list reads
+ * @param {function} [opts.onFinish]  (id, code|null, { stopped }) when it ends
  * @returns {{ destroy, run, stop, isRunning }}
  */
-export function mountRunner({ el, dir }) {
+export function mountRunner({ el, dir, onStart, onOutput, onFinish }) {
   el.classList.add("ws-runner");
   el.innerHTML = "";
 
@@ -213,6 +216,9 @@ export function mountRunner({ el, dir }) {
     activeId = id;
     running = true;
     paint();
+    // Told before the first byte, so whatever collects the output starts from nothing rather than
+    // appending this run's errors to the last one's.
+    if (onStart) { try { onStart(id); } catch (_) { /* a listener is not the run */ } }
 
     terminal = mountTerminal({
       el: host,
@@ -220,7 +226,12 @@ export function mountRunner({ el, dir }) {
       cwd: dir,
       args,
       restartable: false,
-      onExit: () => { running = false; paint(); },
+      onOutput,
+      onExit: (code, info) => {
+        running = false;
+        paint();
+        if (onFinish) { try { onFinish(id, code, info); } catch (_) { /* as above */ } }
+      },
       onError: () => { running = false; paint(); },
     });
     terminal.focus();

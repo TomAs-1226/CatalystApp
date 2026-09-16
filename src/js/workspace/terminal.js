@@ -430,9 +430,10 @@ const isWindows = () => {
  * @param {function} [opts.onOpen]   (id) once the session exists
  * @param {function} [opts.onExit]   (code|null, { stopped }) when it ends
  * @param {function} [opts.onError]  (message) when it could not start
- * @returns {{ destroy, focus, restart, stop, retheme, isAlive, isRunning, id }}
+ * @param {function} [opts.onOutput] (text) every chunk the program prints, as it arrives
+ * @returns {{ destroy, focus, paste, restart, stop, retheme, isAlive, isRunning, id }}
  */
-export function mountTerminal({ el, kind, cwd, args = [], restartable = true, onOpen, onExit, onError }) {
+export function mountTerminal({ el, kind, cwd, args = [], restartable = true, onOpen, onExit, onError, onOutput }) {
   el.classList.add("ws-term");
   el.dataset.kind = kind;
   el.innerHTML = "";
@@ -554,7 +555,12 @@ export function mountTerminal({ el, kind, cwd, args = [], restartable = true, on
     lastSize = size;
 
     router = makeSessionRouter({
-      onData: (text) => { if (term) term.write(text); },
+      onData: (text) => {
+        if (term) term.write(text);
+        // A listener that throws must not cost the terminal its output: what it prints is the one
+        // record of what the build did, and the listener is an extra.
+        if (onOutput) { try { onOutput(text); } catch (_) { /* the screen still has it */ } }
+      },
       onExit: (code) => {
         running = false;
         if (term) term.options.disableStdin = true;
