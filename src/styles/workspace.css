@@ -262,3 +262,110 @@
 .agent-setup__actions { margin-top: var(--cat-space-4); }
 .agent-setup__actions[hidden] { display: none; }
 .agent-setup__space { flex: 1; }
+
+/* ---------- the count on the dock's Problems tab ---------- */
+
+/* A reading, so mono and tabular; tinted rather than filled, so it sits in the strip instead of
+   shouting over it. Crimson for errors, amber for warnings only, and absent when there is nothing. */
+.dock-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  margin-left: var(--cat-space-2);
+  padding: 0 5px;
+  border-radius: var(--cat-r-pill);
+  background: var(--cat-warn-tint);
+  color: var(--cat-warn);
+  font-family: var(--cat-mono);
+  font-size: var(--cat-fs-11);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.dock-count[data-tone="bad"] { background: var(--cat-signal-tint); color: var(--cat-signal-ink); }
+.dock-count[hidden] { display: none; }
+
+/* ---------- the Problems pane ---------- */
+
+/* What the last build said was wrong, one row per place. The strip matches the runner's, the rows are
+   hairline-separated like the find results, and nothing is coloured but the dot and the summary: the
+   message is ink, because it is what gets read, and the path is quiet, because it is what gets
+   scanned. */
+.prob-pane { display: flex; flex-direction: column; min-height: 0; height: 100%; background: var(--cat-ground); }
+
+.prob-head {
+  display: flex;
+  align-items: center;
+  gap: var(--cat-space-2);
+  min-height: 32px;
+  padding: 0 var(--cat-space-2) 0 var(--cat-space-3);
+  border-bottom: 1px solid var(--cat-line);
+  background: var(--cat-surface-1);
+  flex: none;
+}
+.prob-summary { font-size: var(--cat-fs-13); color: var(--cat-quiet); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prob-summary[data-tone="bad"] { color: var(--cat-bad); }
+.prob-summary[data-tone="warn"] { color: var(--cat-warn); }
+.prob-copy { margin-left: auto; min-height: 24px; padding: 0 var(--cat-space-3); font-size: var(--cat-fs-12); }
+.prob-copy[hidden] { display: none; }
+
+.prob-list { flex: 1; min-height: 0; overflow-y: auto; }
+.prob-list[hidden] { display: none; }
+
+.prob-row {
+  display: flex;
+  align-items: center;
+  gap: var(--cat-space-2);
+  padding-right: var(--cat-space-2);
+  border-bottom: 1px solid var(--cat-line);
+  transition: background-color var(--cat-dur-effect) var(--cat-ease-effect);
+}
+.prob-row:hover { background: var(--cat-surface-1); }
+
+.prob-open {
+  display: flex;
+  align-items: center;
+  gap: var(--cat-space-3);
+  flex: 1;
+  min-width: 0;
+  min-height: 32px;
+  padding: 0 var(--cat-space-3);
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.prob-open:focus-visible { outline: 2px solid var(--cat-signal); outline-offset: -2px; border-radius: var(--cat-r-inner); }
+.prob-open .cat-dot { flex: none; }
+
+.prob-where {
+  flex: none;
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--cat-mono);
+  font-size: var(--cat-fs-12);
+  color: var(--cat-dim);
+}
+.prob-line { color: var(--cat-faint); }
+.prob-msg {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--cat-fs-13);
+  color: var(--cat-ink);
+}
+
+/* Quiet until the row is under the pointer or the keyboard, and never hidden: a control that only
+   exists on hover is one a keyboard user never finds. */
+.prob-ask { flex: none; min-height: 24px; padding: 0 var(--cat-space-3); font-size: var(--cat-fs-12); opacity: .55; }
+.prob-row:hover .prob-ask, .prob-ask:focus-visible { opacity: 1; }
+
+.prob-empty { padding: var(--cat-space-5); }
+.prob-empty[hidden] { display: none; }
+.prob-empty-text { margin-top: var(--cat-space-2); }

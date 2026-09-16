@@ -9,7 +9,7 @@ import { $, $$, IN_APP, invoke, pickDirectory, settings, svg, escapeHtml } from 
 import { ask, project, tabMark } from "../app.js";
 
 /** The mounted panes, so a project change can take them down before putting them back up. */
-const panes = { tree: null, editor: null, agent: null, terminal: null, runner: null, find: null };
+const panes = { tree: null, editor: null, agent: null, terminal: null, runner: null, find: null, problems: null };
 let mountedFor = null;
 let dockTab = "terminal";
 /** Moves the dock strip's mark; replaced whenever the dock is built for a different project. */
@@ -172,20 +172,23 @@ async function mountEditor(p) {
 }
 
 /*
- * The dock is two tabs, because they answer different questions: a terminal is where you type, and
- * the runner is where the project's own build and deploy live with their exact devtools arguments.
+ * The dock's tabs answer different questions: a terminal is where you type, the runner is where the
+ * project's own build and deploy live with their exact devtools arguments, Problems is what the last
+ * build said was wrong and where, and Find searches the project.
  */
 async function mountDock(p) {
   const dock = $("#wsDock");
   dock.innerHTML = `<div class="ws-dock__tabs">
       <button class="cat-tab" data-dock="terminal" aria-selected="true">Terminal</button>
       <button class="cat-tab" data-dock="build" aria-selected="false">Build</button>
+      <button class="cat-tab" data-dock="problems" aria-selected="false">Problems<span class="dock-count" data-problem-count hidden></span></button>
       <button class="cat-tab" data-dock="find" aria-selected="false">Find</button>
       <span style="flex:1"></span>
       <button class="cat-btn cat-btn--ghost" data-dock-close title="Hide">${svg("close")}</button>
     </div>
     <div class="ws-dock__body" data-dock-pane="terminal"></div>
     <div class="ws-dock__body" data-dock-pane="build" hidden></div>
+    <div class="ws-dock__body" data-dock-pane="problems" hidden></div>
     <div class="ws-dock__body" data-dock-pane="find" hidden></div>`;
 
   $$("[data-dock]", dock).forEach((b) => { b.onclick = () => showDockTab(b.dataset.dock); });
@@ -211,13 +214,59 @@ async function mountDock(p) {
     fallback(findEl, "Find could not load.", e);
   }
 
+  const problemsEl = $('[data-dock-pane="problems"]', dock);
+  try {
+    const { mountProblems } = await import("../workspace/problems.js");
+    const { mentionFor } = await import("../workspace/editor.js");
+    panes.problems = mountProblems({
+      el: problemsEl,
+      root: p.path,
+      onOpen: (file, line, col) => openPath(file, { line, col }),
+      // The mention and what the compiler said, as the start of a question and nothing more.
+      onAsk: (problem) => askClaude(
+        mentionFor(p.path, problem.file, { startLineNumber: problem.line, startColumn: 1, endLineNumber: problem.line, endColumn: 2 })
+        + `${problem.severity}: ${String(problem.message).split(/\r?\n/)[0]} `),
+    });
+  } catch (e) {
+    fallback(problemsEl, "The problems list could not load.", e);
+  }
+
   const runEl = $('[data-dock-pane="build"]', dock);
   try {
     const { mountRunner } = await import("../workspace/runner.js");
-    panes.runner = mountRunner({ el: runEl, dir: p.path });
+    panes.runner = mountRunner({
+      el: runEl,
+      dir: p.path,
+      onStart: () => { panes.problems?.reset?.(); paintProblemCount(); },
+      onOutput: (text) => { panes.problems?.push?.(text); countSoon(); },
+      onFinish: () => paintProblemCount(),
+    });
   } catch (e) {
     fallback(runEl, "The build runner could not load.", e);
   }
+}
+
+/**
+ * The count on the Problems tab, from the last run. Crimson only when something is an error: a
+ * warning is worth a number, not an alarm, and no problems is no badge at all.
+ */
+/* A build prints thousands of chunks; the count is recounted at most once a quarter-second while it
+ * runs, so the tab fills in as errors arrive without recounting on every one of them. */
+let countTimer = null;
+function countSoon() {
+  if (countTimer) return;
+  countTimer = setTimeout(() => { countTimer = null; paintProblemCount(); }, 250);
+}
+
+function paintProblemCount() {
+  const badge = $("[data-problem-count]");
+  if (!badge) return;
+  const list = panes.problems?.problems?.() || [];
+  const errors = list.filter((x) => x.severity === "error").length;
+  badge.hidden = !list.length;
+  badge.textContent = String(list.length);
+  badge.dataset.tone = errors ? "bad" : "warn";
+  badge.title = errors ? `${errors} error${errors === 1 ? "" : "s"}` : `${list.length} warning${list.length === 1 ? "" : "s"}`;
 }
 
 function showDockTab(tab) {
