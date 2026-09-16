@@ -29,6 +29,10 @@ AI agents use. Active work is on `systemcore` (the 2027 port); `main` is the 202
 - `npm install` once, then `npm run vendor` to put Monaco and xterm in `src/vendor/`.
 - `npm test` checks that the bundled tools match the library (`sync-tools --check`), then runs
   `node --test "src/**/*.test.js"`.
+- `npm run harness` serves the real `src/` with a stubbed `window.__TAURI__` whose file commands read
+  the disk for real and whose writes do nothing — the way to look at the workspace, the editor and
+  the panes in a browser, since outside the desktop app every command rejects by design.
+  `npm run harness -- src <project dir> <port>` picks the project it opens.
 - `npm run dev` runs the app with hot reload. `npm run build` syncs the tools, bundles the console
   and docs, then runs `tauri build`.
 - Refreshing copies from sibling checkouts (`../FrcCatalyst` or `../FrcCatalyst-v1.1.0`, and

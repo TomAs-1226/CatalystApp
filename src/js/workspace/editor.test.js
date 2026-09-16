@@ -160,6 +160,15 @@ test("the note names the file and blames nobody", () => {
     "gradle-wrapper.jar is a binary file. The editor opens text.");
 });
 
+/* Every path the backend hands the editor on this machine is a Windows one, and the first version of
+ * these two functions split on `/` alone — so the note read out the whole path. Both separators. */
+test("a windows path is split on its own separator", () => {
+  assert.equal(binaryNote("C:\\robot\\gradle\\wrapper\\gradle-wrapper.jar"),
+    "gradle-wrapper.jar is a binary file. The editor opens text.");
+  assert.equal(isBinaryPath("C:\\robot\\gradle\\wrapper\\gradle-wrapper.jar"), true);
+  assert.equal(isBinaryPath("C:\\robot\\src\\main\\java\\frc\\robot\\Robot.java"), false);
+});
+
 // --- where the file is, which is the first thing the status bar says ----------
 
 test("a file inside the project is named by its tail", () => {

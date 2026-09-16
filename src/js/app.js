@@ -439,8 +439,10 @@ async function openQuickOpen() {
     try {
       const files = await invoke("ws_files", { dir: p.path, max: 4000 });
       fileList.files = files.map((full) => {
-        const rel = full.slice(p.path.length).replace(/^[\/]+/, "");
-        const name = rel.split(/[\/]/).pop();
+        // Both separators, because this is Windows: the backend hands back `C:\…\Robot.java`, and a
+        // class that only knows `/` leaves the whole path as the file's name.
+        const rel = full.slice(p.path.length).replace(/^[\\/]+/, "");
+        const name = rel.split(/[\\/]/).pop();
         return { label: name, detail: rel, kind: "file", icon: "folder", file: full, rel };
       });
     } catch (e) {

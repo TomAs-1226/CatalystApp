@@ -16,7 +16,8 @@
     "build:all": "npm run build",
     "sync-tools": "node scripts/sync-tools.mjs",
     "identity": "node scripts/check-identity.mjs --write",
-    "check-identity": "node scripts/check-identity.mjs"
+    "check-identity": "node scripts/check-identity.mjs",
+    "harness": "node scripts/harness.mjs src"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2",

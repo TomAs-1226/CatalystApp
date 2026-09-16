@@ -74,7 +74,7 @@ const BINARY_EXT = new Set([
 
 /** Whether a path is something the editor should decline before asking the backend to read it. */
 export function isBinaryPath(path) {
-  const name = String(path || "").split(/[\/]/).pop() || "";
+  const name = String(path || "").split(/[\\/]/).pop() || "";
   const dot = name.lastIndexOf(".");
   if (dot <= 0) return false;
   return BINARY_EXT.has(name.slice(dot + 1).toLowerCase());
@@ -82,7 +82,7 @@ export function isBinaryPath(path) {
 
 /** What to say about a file the editor will not open. One sentence, no blame. */
 export function binaryNote(path) {
-  const name = String(path || "").split(/[\/]/).pop() || "this file";
+  const name = String(path || "").split(/[\\/]/).pop() || "this file";
   return `${name} is a binary file. The editor opens text.`;
 }
 
