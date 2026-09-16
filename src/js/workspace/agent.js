@@ -472,8 +472,12 @@ export function mountAgent({ el, dir, onHide }) {
     async send(text) {
       if (!terminal || !text) return false;
       try {
-        await terminal.ready;
-        await invoke("pty_write", { id: terminal.id, data: String(text) });
+        // `ready` is a function returning the first open; awaited bare, it resolved at once with
+        // the function itself and a send during startup wrote to a session that did not exist yet.
+        await terminal.ready();
+        // As a paste, so a mention or a compiler message is inserted rather than typed: typed, a
+        // leading `/` or `!` switches the CLI's mode and a newline sends half a question.
+        if (!terminal.paste(String(text))) return false;
         terminal.focus?.();
         return true;
       } catch (e) {

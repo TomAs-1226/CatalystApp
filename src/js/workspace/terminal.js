@@ -661,8 +661,12 @@ export function mountTerminal({ el, kind, cwd, args = [], restartable = true, on
       return false;
     }
     if (ctrl && ev.shiftKey && (ev.key === "V" || ev.key === "v")) {
+      // Through xterm's paste, not straight to the PTY. Written raw, every newline in the clipboard
+      // is a Return: three lines of code pasted into Claude Code sent the first one as a message.
+      // `paste` wraps the text in bracketed-paste markers when the program asked for them, which is
+      // how a TUI tells a paste from typing.
       navigator.clipboard?.readText?.()
-        .then((text) => { if (text && sessionId && running) invoke("pty_write", { id: sessionId, data: text }).catch(() => {}); })
+        .then((text) => { if (text && term && sessionId && running) term.paste(text); })
         .catch(() => {});
       return false;
     }
@@ -774,6 +778,19 @@ export function mountTerminal({ el, kind, cwd, args = [], restartable = true, on
     },
     focus() {
       if (term) term.focus();
+    },
+    /**
+     * Put text in front of the program as a paste rather than as keystrokes.
+     *
+     * A program in raw mode reads typed characters as commands: `/`, `!` and `?` each switch Claude
+     * Code into a different mode when they arrive first, and a newline submits. As a bracketed paste
+     * the same text is inserted and nothing else. Returns false when there is no live session to
+     * paste into.
+     */
+    paste(text) {
+      if (!term || !sessionId || !running || !text) return false;
+      term.paste(String(text));
+      return true;
     },
     /** Re-read the identity tokens. The accent picker repaints them under a live terminal. */
     retheme() {
