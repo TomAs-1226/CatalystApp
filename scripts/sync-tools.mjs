@@ -19,13 +19,24 @@ import { fileURLToPath } from "node:url";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const dest = join(root, "src", "tools");
 
+// The tools link `../tool.css` and `../tool.js` — one shared chrome instead of thirteen copies of
+// the same header and sidebar. They sit beside the tool folders in the library and have to land
+// beside them here, or every tool loses its stylesheet in the app and keeps it on the docs site.
+const SHARED = ["tool.css", "tool.js"];
+
 const args = process.argv.slice(2);
 const check = args.includes("--check");
 const given = args.find((a) => !a.startsWith("--"));
 
+// The 2.0 line first, because that is the line this app ships. The library keeps its 2027 work on
+// the `systemcore` branch, which on this machine is a worktree beside the repo, and that branch has
+// tools the 1.x line does not (autonomy, history). Checking against a 1.x checkout reported drift
+// for every tool and "bundled but not in the library" for the two new ones — which is a check that
+// fails while everything is correct, and a check nobody can act on gets ignored.
 const candidates = given
   ? [resolve(given)]
   : [
+      resolve(root, "../_worktrees/FrcCatalyst-systemcore/docs/tools"),
       resolve(root, "../FrcCatalyst/docs/tools"),
       resolve(root, "../FrcCatalyst-v1.1.0/docs/tools"),
     ];
@@ -44,6 +55,14 @@ const BUNDLED = readdirSync(dest).filter((n) => statSync(join(dest, n)).isDirect
 /** Line endings differ between the two checkouts and mean nothing here. */
 const normalise = (s) => s.replace(/\r\n/g, "\n");
 
+/** The shared chrome, checked and copied exactly like a tool. */
+const sharedDrift = SHARED.filter((name) => {
+  const from = join(source, name);
+  const to = join(dest, name);
+  if (!existsSync(from)) return false;
+  return !existsSync(to) || normalise(readFileSync(from, "utf8")) !== normalise(readFileSync(to, "utf8"));
+});
+
 const drifted = [];
 for (const tool of BUNDLED) {
   const from = join(source, tool, "index.html");
@@ -58,13 +77,22 @@ for (const tool of BUNDLED) {
 }
 
 if (check) {
-  if (drifted.length) {
-    console.error(`sync-tools: ${drifted.length} bundled tool(s) differ from the library: ${drifted.join(", ")}`);
+  if (drifted.length || sharedDrift.length) {
+    const what = [
+      drifted.length ? `${drifted.length} bundled tool(s) differ: ${drifted.join(", ")}` : null,
+      sharedDrift.length ? `the shared chrome differs: ${sharedDrift.join(", ")}` : null,
+    ].filter(Boolean).join("; ");
+    console.error(`sync-tools: ${what}`);
     console.error("Run `npm run sync-tools` to bring them up to date.");
     process.exit(1);
   }
-  console.log(`sync-tools: all ${BUNDLED.length} bundled tools match the library`);
+  console.log(`sync-tools: all ${BUNDLED.length} bundled tools and the shared chrome match the library`);
   process.exit(0);
+}
+
+for (const name of sharedDrift) {
+  cpSync(join(source, name), join(dest, name));
+  console.log(`  updated ${name}`);
 }
 
 for (const tool of drifted) {

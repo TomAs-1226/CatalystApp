@@ -1,0 +1,207 @@
+/* ------------------------------------------------------- workspace: terminal, agent, runner
+
+   Layout, and the few things a terminal needs that identity.css has no opinion about. Every colour,
+   space, radius, size and curve here is a --cat-* token, and the controls are the identity's own
+   primitives - .cat-btn, .cat-card, .cat-chip, .cat-dot - so a pane never restates a radius or a
+   weight it would then have to be told about again when the identity changes one.
+
+   Motion is by role, from the tokens identity.css samples out of Detent: `effect` for colour and
+   opacity, which is all that moves here. A terminal that animates its own output is a terminal you
+   cannot read, so nothing in the three panes slides, fades or springs. */
+
+/* ---------- terminal ---------- */
+
+.ws-term {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  height: 100%;
+  background: var(--cat-ground);
+}
+.ws-term-screen {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  padding: var(--cat-space-2);
+  background: var(--cat-ground);
+  overflow: hidden;
+}
+
+/* Nothing here resizes xterm. The host fills the pane, the fit addon measures it - padding
+   included - and picks the row and column count, and xterm sizes its own elements from that;
+   forcing a height onto .xterm or .xterm-screen only desynchronises the canvas from the buffer.
+   The one thing worth overriding is the opaque black the stock stylesheet paints behind the
+   scrollbar, which is the only literal colour in the vendored CSS that reaches the screen. The
+   three-class selector is deliberate: it has to win whichever order the two stylesheets land in. */
+.ws-term .ws-term-screen .xterm-viewport {
+  background-color: var(--cat-ground);
+  scrollbar-width: thin;
+  scrollbar-color: var(--cat-line-strong) transparent;
+}
+.ws-term .ws-term-screen .xterm-viewport::-webkit-scrollbar { width: 10px; }
+.ws-term .ws-term-screen .xterm-viewport::-webkit-scrollbar-track { background: transparent; }
+.ws-term .ws-term-screen .xterm-viewport::-webkit-scrollbar-thumb {
+  background: var(--cat-line-strong);
+  border-radius: var(--cat-r-pill);
+}
+
+/* The exit code, or the reason there is no terminal. It sits under the screen rather than over it,
+   because covering the last lines of a failed build hides the only thing worth reading. */
+.ws-term-note {
+  display: flex;
+  align-items: center;
+  gap: var(--cat-space-3);
+  padding: var(--cat-space-2) var(--cat-space-3);
+  border-top: 1px solid var(--cat-line);
+  background: var(--cat-surface-1);
+  font-family: var(--cat-mono);
+  font-size: var(--cat-fs-13);
+  color: var(--cat-dim);
+  user-select: text;
+}
+.ws-term-note-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.ws-term-note[data-tone="ok"] .ws-term-note-text { color: var(--cat-ok); }
+.ws-term-note[data-tone="warn"] .ws-term-note-text { color: var(--cat-warn); }
+.ws-term-note[data-tone="bad"] .ws-term-note-text { color: var(--cat-bad); }
+.ws-term-note[data-tone="dim"] .ws-term-note-text { color: var(--cat-dim); }
+
+/* identity.css defines no .hidden, so these are the definition rather than a fallback. Each one is
+   an element these panes toggle: the exit note, its Run again button, the agent's message line, the
+   deploy confirmation and the Stop button. */
+.ws-term-note.hidden,
+.ws-term-again.hidden,
+.ws-agent-msg.hidden,
+.ws-runner-confirm.hidden,
+.ws-runner-stop.hidden { display: none; }
+
+/* ---------- the Claude Code pane ---------- */
+
+.ws-agent {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  background: var(--cat-ground);
+}
+.ws-agent-strip {
+  display: flex;
+  align-items: center;
+  gap: var(--cat-space-3);
+  flex-wrap: wrap;
+  padding: var(--cat-space-2) var(--cat-space-3);
+  border-bottom: 1px solid var(--cat-line);
+  background: var(--cat-surface-1);
+}
+.ws-agent-actions { display: flex; gap: var(--cat-space-2); margin-left: auto; }
+
+.ws-chips { display: flex; align-items: center; gap: var(--cat-space-2); flex-wrap: wrap; }
+/* .cat-chip carries the shape; this only adds the key beside the value, since a status chip is a
+   label and a reading rather than a single word. */
+.ws-chip-k {
+  font-family: var(--cat-sans-text);
+  font-size: var(--cat-fs-12);
+  font-weight: var(--cat-w-normal);
+  color: var(--cat-dim);
+}
+.ws-chip-v { font-variant-numeric: tabular-nums; color: var(--cat-body); }
+.ws-chip[data-tone="ok"] .ws-chip-v { color: var(--cat-ok); }
+.ws-chip[data-tone="warn"] .ws-chip-v { color: var(--cat-warn); }
+.ws-chip[data-tone="bad"] .ws-chip-v { color: var(--cat-bad); }
+
+.ws-agent-msg {
+  padding: var(--cat-space-2) var(--cat-space-3);
+  border-bottom: 1px solid var(--cat-line);
+  background: var(--cat-surface-1);
+  font-size: var(--cat-fs-13);
+  color: var(--cat-body);
+  user-select: text;
+}
+.ws-agent-msg[data-tone="ok"] { color: var(--cat-ok); }
+.ws-agent-msg[data-tone="warn"] { color: var(--cat-warn); }
+.ws-agent-msg[data-tone="bad"] { color: var(--cat-bad); }
+.ws-agent-msg[data-tone="dim"] { color: var(--cat-dim); }
+
+.ws-agent-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.ws-agent-term { flex: 1; min-height: 0; }
+
+.ws-agent-missing { margin: var(--cat-space-4); user-select: text; }
+.ws-agent-missing-lead {
+  margin-top: var(--cat-space-2);
+  font-size: var(--cat-fs-13);
+  color: var(--cat-dim);
+}
+.ws-agent-places {
+  margin-top: var(--cat-space-2);
+  padding-left: var(--cat-space-5);
+  font-family: var(--cat-mono);
+  font-size: var(--cat-fs-13);
+  color: var(--cat-ink);
+}
+.ws-agent-places li { margin-bottom: var(--cat-space-1); }
+.ws-agent-missing-tail {
+  margin-top: var(--cat-space-3);
+  max-width: 62ch;
+  font-size: var(--cat-fs-13);
+  color: var(--cat-dim);
+}
+
+/* ---------- the devtools runner ---------- */
+
+.ws-runner {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  background: var(--cat-ground);
+}
+.ws-runner-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--cat-space-2);
+  flex-wrap: wrap;
+  padding: var(--cat-space-2) var(--cat-space-3);
+  border-bottom: 1px solid var(--cat-line);
+  background: var(--cat-surface-1);
+}
+/* .cat-btn already transitions its own colours on the effect role; this adds only the mark that
+   says which action the pane is currently about. */
+.ws-runner-btn.active { border-color: var(--cat-signal-line); color: var(--cat-signal-ink); }
+.ws-runner-state {
+  margin-left: auto;
+  font-family: var(--cat-mono);
+  font-size: var(--cat-fs-12);
+  color: var(--cat-quiet);
+  overflow-wrap: anywhere;
+  transition: color var(--cat-dur-effect) var(--cat-ease-effect);
+}
+.ws-runner-state[data-running="yes"] { color: var(--cat-signal-ink); }
+.ws-runner-stop { margin-left: var(--cat-space-2); }
+
+/* The confirmation in front of a deploy. Its own band, its own edge, and it is built fresh every
+   time - nothing here remembers an answer. */
+.ws-runner-confirm {
+  padding: var(--cat-space-3);
+  border-bottom: 1px solid var(--cat-line);
+  border-left: 2px solid var(--cat-signal);
+  background: var(--cat-signal-tint);
+  user-select: text;
+}
+.ws-runner-confirm-text {
+  max-width: 62ch;
+  font-size: var(--cat-fs-13);
+  color: var(--cat-ink);
+}
+.ws-runner-confirm-row { display: flex; gap: var(--cat-space-2); margin-top: var(--cat-space-3); }
+
+.ws-runner-term { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.ws-runner-term > div:not(.ws-runner-idle) { flex: 1; min-height: 0; }
+.ws-runner-idle {
+  flex: none;
+  padding: var(--cat-space-4);
+  font-family: var(--cat-mono);
+  font-size: var(--cat-fs-13);
+  color: var(--cat-quiet);
+  overflow-wrap: anywhere;
+  user-select: text;
+}

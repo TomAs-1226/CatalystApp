@@ -3,16 +3,22 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FrcCatalyst</title>
-  <link rel="stylesheet" href="styles.css" />
+  <title>Catalyst</title>
+  <!-- identity.css is the house stylesheet, shared with the Console and the docs. It is copied in
+       verbatim and never edited here; app.css is this app's own layout on top of it. -->
+  <link rel="stylesheet" href="styles/identity.css" />
+  <link rel="stylesheet" href="styles/app.css" />
+  <!-- The id is the one the workspace panes look for before injecting it themselves. -->
+  <link rel="stylesheet" id="cat-workspace-css" href="styles/workspace.css" />
 </head>
 <body>
-  <!-- Custom title bar (frameless window) -->
   <header id="titlebar" data-tauri-drag-region>
-    <div class="tb-left" data-tauri-drag-region>
-      <div class="tb-mark"></div>
-      <span class="tb-title" data-tauri-drag-region>FrcCatalyst</span>
-    </div>
+    <div class="tb-mark" id="tbMark" aria-hidden="true"></div>
+    <span class="tb-title cat-wordmark" data-tauri-drag-region>
+      <span class="cat-wordmark__prefix">Frc</span><span class="cat-wordmark__name">Catalyst</span>
+    </span>
+    <button class="tb-project" id="tbProject" hidden></button>
+    <div class="tb-spacer" data-tauri-drag-region></div>
     <div class="tb-controls">
       <button class="tb-btn" id="tbMin" title="Minimize" aria-label="Minimize"></button>
       <button class="tb-btn" id="tbMax" title="Maximize" aria-label="Maximize"></button>
@@ -21,405 +27,462 @@
   </header>
 
   <div id="shell">
-    <!-- Sidebar -->
-    <nav id="sidebar">
-      <div class="nav-group" id="navTop"></div>
-      <div class="nav-label">Tools</div>
-      <div class="nav-group" id="toolNav"></div>
-      <div class="nav-spacer"></div>
-      <div class="nav-group" id="navBottom"></div>
-    </nav>
+    <!--
+      Six places, not twenty.
 
-    <!-- Main content -->
+      The old sidebar listed all eleven tools and nine pages as siblings, which made the two things
+      a team does most - open its project, and install the library - as hard to find as the MotorType
+      browser. Tools are now one place that opens a grid, and the pages that answer "will this
+      project run" are one place with two tabs.
+    -->
+    <nav id="rail" aria-label="Sections"></nav>
+
     <main id="main">
-      <!-- update banner -->
-      <div id="updateBanner" class="banner hidden"></div>
-
       <!-- Home -->
-      <section id="view-home" class="view">
-        <div class="page-head">
-          <h1>Welcome to <span class="accent">Catalyst</span></h1>
-          <p class="sub">Every Catalyst tool in one place, and a one-click install straight into your robot project. Works fully offline.</p>
-        </div>
-        <div id="recentWrap" class="hidden">
-          <div class="section-label">Recent projects</div>
-          <div class="recent-list" id="recentList"></div>
-        </div>
-        <div class="section-label">Tools</div>
-        <div class="tool-list" id="homeList"></div>
-        <button class="btn primary big" data-view="install" id="homeInstallBtn"></button>
-      </section>
-
-      <!-- Settings -->
-      <section id="view-settings" class="view hidden">
-        <div class="page-head">
-          <h1>Settings</h1>
-          <p class="sub">Everything is stored on this machine. Nothing is sent anywhere.</p>
-        </div>
-
-        <div class="panel">
-          <h2 class="panel-title">Accent color</h2>
-          <div class="swatches" id="swatches"></div>
-        </div>
-
-        <div class="panel">
-          <div class="set-row">
-            <div><div class="set-name">On startup, open</div><div class="set-desc">Which page the app shows when it launches.</div></div>
-            <select id="startupSel" class="select">
-              <option value="home">Home</option>
-              <option value="last">The last page I was on</option>
-            </select>
-          </div>
-          <div class="divider"></div>
-          <div class="set-row">
-            <div><div class="set-name">Include dependencies by default</div><div class="set-desc">Pre-check the vendor libraries Catalyst uses on the install page.</div></div>
-            <label class="switch"><input type="checkbox" id="depsDefault"><span class="track"></span></label>
-          </div>
-          <div class="divider"></div>
-          <div class="set-row">
-            <div><div class="set-name">Update behavior</div><div class="set-desc">Manage auto-update on the Updates page.</div></div>
-            <button class="btn" data-view="updates">Open Updates</button>
-          </div>
-        </div>
-
-        <div class="panel">
-          <h2 class="panel-title">About</h2>
-          <div class="about-grid">
-            <!-- Both are overwritten at render time - #aboutApp from the binary, #aboutLib from
-                 LIB_VERSION - so these are only what shows for the frame before that lands. They
-                 were 1.4.3 (which is the Console's version, not this app's) and 1.7.0. -->
-            <div class="about-k">App version</div><div class="about-v" id="aboutApp">2.6.1</div>
-            <div class="about-k">Bundled library</div><div class="about-v" id="aboutLib">2.0.0-beta.1</div>
-            <div class="about-k">Knowledge graph</div><div class="about-v" id="aboutGraph">bundled, agent-only</div>
-          </div>
-          <div class="links" id="aboutLinks"></div>
-          <div class="divider"></div>
-          <button class="btn danger" id="resetBtn">Reset all settings</button>
-        </div>
-      </section>
-
-      <!-- What's New -->
-      <section id="view-whatsnew" class="view hidden">
-        <div class="page-head">
-          <h1>What's new</h1>
-          <p class="sub">Recent FrcCatalyst releases. The app bundles the library, so updating the app brings the newest version with it.</p>
-        </div>
-
-        <!--
-          The launch panel.
-
-          This is deliberately not a changelog row. A changelog answers "what changed since the last
-          one"; this answers "what am I holding, and should I put it on my robot" - and for this
-          release those are different questions with different audiences. A team opening the app the
-          week 2.0 lands needs the second answer before it reads a single bullet.
-
-          So it is built as three layers you can stop reading at any point in: the version and one
-          sentence, the limit, and the three things that must be true before it runs. The limit comes
-          second on purpose. Requirements fail loudly - the build aborts, nobody is surprised - but
-          "never driven on a robot" fails quietly, in an elimination match, and a reader who stops
-          early must not be the one who misses it. Someone who reads only the headings still leaves
-          knowing it is not for a robot they are competing with.
-
-          For the same reason the release date is alone in the top-right slot. "867 tests, 0 failures"
-          is true and it was there, but sat beside the version it became the second thing read, and
-          the pair says "tested, ship it". The number belongs where it cannot be misread: next to the
-          sentence saying none of those tests drives a robot.
-
-          It is static markup on purpose - renderWhatsNew() only writes #changelog, so this panel is
-          never re-rendered. The install button routes through the existing [data-view] delegation
-          and needs no code at all; only the 1.x button is wired, in renderWhatsNew.
-
-          Styling is existing classes plus inline --cat-* tokens, because styles.css is not this
-          file's to change. Prominence is the ink-800 ground with the stronger hairline and a coral
-          version number - the same treatment .cl-item.latest already gets - not a shadow and not a
-          coral wash, which would say "error" about a release announcement.
-        -->
-        <div class="panel" id="launchPanel" style="border-color: var(--cat-hair-str);">
-          <div class="section-label">What this app installs</div>
-
-          <div style="display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 12px;">
-            <h2 style="font-size: 18px; font-weight: 600; color: var(--cat-white); letter-spacing: -0.02em;">Catalyst
-              <span style="font-family: 'Cascadia Code', ui-monospace, monospace; font-variant-numeric: tabular-nums; font-weight: 700; color: var(--cat-coral);">2.0.0-beta.1</span>
-            </h2>
-            <span style="margin-left: auto; font-size: 12px; color: var(--cat-muted); font-variant-numeric: tabular-nums;">9 September 2026</span>
+      <section id="view-home" class="view" data-view="home">
+        <div class="page">
+          <div class="hero">
+            <span class="cat-watermark" aria-hidden="true">2.0</span>
+            <div class="cat-eyebrow">FRC CATALYST</div>
+            <h1 style="margin-top:8px">Different computer, same library.</h1>
+            <p class="sub">Every Catalyst tool, an installer that works with no internet, and a
+              workspace where you can open your robot project, edit it, build it and ask Claude about
+              it without leaving the app.</p>
+            <div class="row">
+              <button class="cat-btn cat-btn--loud" id="homeOpenBtn"></button>
+              <button class="cat-btn" data-go="library/install" id="homeInstallBtn"></button>
+              <span class="cat-pill" id="homeVersion">…</span>
+            </div>
           </div>
 
-          <p style="font-size: 15px; line-height: 1.55; color: var(--cat-text); max-width: 62ch; margin: 0;">
-            The pre-season release: built against the platform the 2027 season will run on, so your
-            team can port over the offseason instead of in January.
-          </p>
-
-          <div class="divider"></div>
-
-          <!-- Amber, because this is a state of the release, not decoration - the same rule
-               .proj-finding uses for a finding with real consequence. -->
-          <div class="proj-finding" style="margin-top: 0; max-width: 68ch;">
-            <h3 style="font-size: 15px; font-weight: 600; color: var(--cat-white); margin-bottom: 6px;">Not for a robot you are competing with</h3>
-            <p style="margin: 0;">
-              It has never been driven on a robot. It has run on a bench &mdash; a Pigeon on
-              <code style="font-family: 'Cascadia Code', ui-monospace, monospace; font-size: 12px;">can_s0</code>,
-              the onboard IMU, the board's own status topics &mdash; but swerve, mechanisms, autos and
-              vision have not moved a robot. Its 867 tests pass with no failures; none of them drives one.
-              It is also a beta pinned to a WPILib alpha that has changed
-              <code style="font-family: 'Cascadia Code', ui-monospace, monospace; font-size: 12px;">Mechanism</code>
-              from an interface to a class and back across three builds. Pre-season and offseason robots only.
-            </p>
-            <p style="margin: 8px 0 0;">
-              Competing this season? <b style="color: var(--cat-white); font-weight: 600;">Stay on Catalyst 1.x</b>
-              &mdash; tag <code style="font-family: 'Cascadia Code', ui-monospace, monospace; font-size: 12px;">v1.12.0</code>,
-              WPILib 2026, roboRIO.
-            </p>
+          <div class="section" id="recentWrap" hidden>
+            <div class="cat-eyebrow">RECENT PROJECTS</div>
+            <div class="grid" id="recentList"></div>
           </div>
 
-          <div class="divider"></div>
-
-          <!-- Three rows because three things gate the build. The vendor libraries are a version
-               list you check once, not a thing that stops you, so they go under the rule as prose. -->
-          <div class="section-label">Before it will run</div>
-          <div class="about-grid" style="margin-bottom: 0;">
-            <div class="about-k">WPILib</div><div class="about-v">2027.0.0-alpha-7</div>
-            <div class="about-k">Systemcore OS</div><div class="about-v">beta 14</div>
-            <div class="about-k">Java</div><div class="about-v">25</div>
+          <div class="section">
+            <div class="cat-eyebrow">TOOLS</div>
+            <div class="grid" id="homeList"></div>
           </div>
-          <p class="hint-line">
-            <b style="color: var(--cat-text); font-weight: 600;">Flash the OS first.</b> That pairing is
-            not optional: a build made against alpha-7 aborts on Systemcore OS beta 13 before your robot
-            code runs. Vendor libraries are Phoenix 6 26.50.0-alpha-1, PathPlanner 2027.0.0-alpha-3 and
-            LimelightLib 2.0.0-beta8-alpha7.
-          </p>
-
-          <!-- The primary button names the beta rather than saying "it", so the one control that puts
-               this on a robot cannot be clicked without reading what it installs. The secondary goes to
-               the v1.12.0 tag, not /releases - that page is topped by this beta, which is the one thing
-               a competing team must not take. -->
-          <div class="row" style="margin-top: 16px;">
-            <button class="btn primary" data-view="install">Install the beta into a project</button>
-            <button class="btn" id="wnOneXBtn">Get Catalyst 1.12.0</button>
-          </div>
-        </div>
-
-        <div class="section-label">Release history</div>
-        <div class="changelog" id="changelog"></div>
-      </section>
-
-      <!-- Installer -->
-      <section id="view-install" class="view hidden">
-        <div class="page-head">
-          <h1>Install into your robot project</h1>
-          <p class="sub">Point Catalyst at your GradleRIO project and it drops the vendordep straight in. The library installs from the copy bundled in this app, so it works with no internet.</p>
-        </div>
-        <div class="notice" id="alphaNotice">
-          <b>What this installs.</b> The bundled vendordep points at <code>v2.0.0-beta.1</code>, and
-          everything the app advertises is in it &mdash; Motor History, Autonomy 2.0, the decision
-          cores. It fetches from JitPack like any other vendordep.
-          <br><br>
-          It needs <b>WPILib 2027 alpha-7</b> and <b>Systemcore OS beta 14</b>, and that pairing is
-          not optional: a build made against alpha-7 aborts on beta 13 before your robot code runs.
-          Flash the OS first.
-          <br><br>
-          <!-- This page is where the vendordep actually gets written into someone's robot project,
-               and it was the one screen in the flow that said nothing about the limit. The What's New
-               panel can be skipped; this cannot. -->
-          It is a beta and it has <b>never been driven on a robot</b> &mdash; pre-season and offseason
-          robots only. If you are competing this season, install Catalyst 1.x (tag v1.12.0) instead.
-        </div>
-        <div class="panel">
-          <div class="row">
-            <button class="btn" id="pickBtn"></button>
-            <span class="path" id="chosenPath">No folder chosen yet</span>
-          </div>
-          <div id="detectResult" class="detect hidden"></div>
-          <div id="installOptions" class="install-options hidden">
-            <label class="check">
-              <input type="checkbox" id="includeDeps" checked />
-              <span>Also fetch vendor libraries <em>(needs internet)</em></span>
-            </label>
-            <button class="btn primary" id="installBtn">Install FrcCatalyst <span id="installVer">&hellip;</span></button>
-          </div>
-          <div id="installLog" class="install-log hidden"></div>
-        </div>
-        <div id="browserNotice" class="notice hidden">
-          You are viewing this in a browser preview. Installing needs the desktop app's file access. The tools all work here.
         </div>
       </section>
 
       <!--
-        Doctor.
+        The workspace.
 
-        Every check behind this view is for something that does not fail at build time. The project
-        compiles, the deploy succeeds, and the problem turns up on the field as something that does
-        not resemble its cause - which is exactly the class of thing worth finding before anyone
-        drives.
+        The app already knew where a team's projects were and shipped an MCP server that an agent
+        could read them through — but the team had to leave for VS Code to change a line, and for a
+        terminal to build it. This is those three things in one place: the files, a terminal that
+        runs devtools, and a Claude Code session already pointed at the project with Catalyst's own
+        MCP server wired in.
       -->
-      <section id="view-doctor" class="view hidden">
-        <div class="page-head">
-          <h1>Doctor</h1>
-          <p class="sub">Checks your project for the things that will not fail until it matters &mdash; a missing JVM flag, a Gradle that cannot read Java 25, a vendordep from last season. Nothing here writes to your project.</p>
-        </div>
-
-        <div class="panel">
-          <div class="row">
-            <button class="btn" id="docPickBtn">Choose your robot project</button>
-            <span class="path" id="docPath">No folder chosen yet</span>
+      <section id="view-workspace" class="view view--fill" data-view="workspace" hidden>
+        <div class="ws">
+          <div class="ws-bar" hidden>
+            <span class="ws-bar__name" id="wsName">No project open</span>
+            <span class="ws-bar__path" id="wsPath"></span>
+            <span class="spacer"></span>
+            <button class="cat-btn cat-btn--ghost" id="wsTreeBtn" title="Files">Files</button>
+            <button class="cat-btn cat-btn--ghost" id="wsDockBtn" title="Terminal">Terminal</button>
+            <button class="cat-btn cat-btn--ghost" id="wsAgentBtn" title="Claude">Claude</button>
+            <button class="cat-btn" id="wsBuildBtn">Build</button>
+            <button class="cat-btn cat-btn--primary" id="wsDeployBtn">Deploy</button>
           </div>
 
-          <div id="docVerdict" class="doc-verdict hidden"></div>
-          <div id="docFindings" class="doc-findings"></div>
-        </div>
-
-        <!--
-          The migration scan is its own panel because it answers a different question. The checks
-          above ask "will this run"; this asks "what do I have to change", and a team porting from
-          1.x wants the list, not a verdict.
-        -->
-        <div class="panel" id="docMigrationPanel" hidden>
-          <h2 class="panel-title">Renamed since 1.x</h2>
-          <p class="sub">Commands v3 took five decorator names and gave them incompatible return types, so Java will not allow an override. These are the call sites in your code.</p>
-          <div id="docMigration" class="doc-migration"></div>
-        </div>
-
-        <div id="docBrowserNotice" class="notice hidden">
-          You are viewing this in a browser preview. Reading your project needs the desktop app's file access.
-        </div>
-      </section>
-
-      <!--
-        Vendordeps.
-
-        The Doctor answers "will this project run" and gives one verdict. This answers "what is
-        installed", one row per file, because fixing a vendordep means opening a particular file and
-        a verdict does not say which one.
-
-        The row is built so the two problems that hide in plain sight are visible without reading:
-        the season each file declares is a chip that goes red when it disagrees with the project's,
-        and a library installed twice is marked on both of its rows.
-      -->
-      <section id="view-vendordeps" class="view hidden">
-        <div class="page-head">
-          <h1>Vendordeps</h1>
-          <p class="sub">Every vendor library in your project, with the version and season it declares &mdash; and what is wrong with the set: a file left over from last season, the same library installed twice, one that will not parse. Nothing here writes to your project.</p>
-        </div>
-
-        <div class="panel">
-          <div class="row">
-            <button class="btn" id="vdPickBtn">Choose your robot project</button>
-            <span class="path" id="vdPath">No folder chosen yet</span>
+          <div class="ws-body" id="wsBody" data-dock="off" data-agent="off" hidden>
+            <div class="ws-tree" id="wsTree"></div>
+            <div class="ws-editor" id="wsEditor"></div>
+            <div class="ws-agent" id="wsAgent"></div>
+            <div class="ws-dock" id="wsDock"></div>
           </div>
 
-          <div id="vdVerdict" class="doc-verdict hidden"></div>
-          <div id="vdSeason" class="vd-season hidden"></div>
-          <div id="vdNotes" class="doc-findings"></div>
-          <div id="vdList" class="vd-list"></div>
-        </div>
-
-        <div id="vdBrowserNotice" class="notice hidden">
-          You are viewing this in a browser preview. Reading your project needs the desktop app's file access.
-        </div>
-      </section>
-
-      <!-- Updates / Settings -->
-      <section id="view-updates" class="view hidden">
-        <div class="page-head">
-          <h1>Updates</h1>
-          <p class="sub">Keep the app and the Catalyst library current. Checks are best-effort and skipped quietly when you are offline.</p>
-        </div>
-
-        <div class="panel">
-          <div class="up-row">
-            <div>
-              <div class="up-name">This app</div>
-              <div class="up-meta" id="appVerMeta">Catalyst</div>
+          <div class="ws-empty" id="wsEmpty">
+            <div class="cat-eyebrow">WORKSPACE</div>
+            <h2>Open a robot project</h2>
+            <p>The files, a terminal that runs your devtools build and deploy, and a Claude Code
+              session that already knows this project and the Catalyst API.</p>
+            <div class="row">
+              <button class="cat-btn cat-btn--loud" id="wsOpenBtn">Open a project…</button>
+              <button class="cat-btn" data-go="settings/projects">Projects you have imported</button>
             </div>
-            <div class="up-status" id="appUpStatus">—</div>
-            <button class="btn" id="checkAppBtn">Check</button>
           </div>
-          <div class="divider"></div>
-          <div class="up-row">
-            <div>
-              <div class="up-name">FrcCatalyst library</div>
-              <div class="up-meta" id="libVerMeta">Bundled</div>
-            </div>
-            <div class="up-status" id="libUpStatus">—</div>
-            <button class="btn" id="checkLibBtn">Check</button>
-          </div>
-        </div>
-
-        <div class="panel">
-          <h2 class="panel-title">When an update is available</h2>
-          <label class="radio"><input type="radio" name="upmode" value="auto"><span>Install it automatically</span></label>
-          <label class="radio"><input type="radio" name="upmode" value="ask" checked><span>Ask me first <em>(recommended)</em></span></label>
-          <label class="radio"><input type="radio" name="upmode" value="manual"><span>Only when I check here</span></label>
         </div>
       </section>
 
-      <!-- AI agents -->
-      <section id="view-projects" class="view hidden">
-        <div class="page-head">
-          <h1>Your projects</h1>
-          <p class="sub">The robot projects Catalyst knows about on this machine. What you see here is
-          exactly what an AI agent sees through the bundled MCP server &mdash; and writing is off until
-          you say otherwise, per project.</p>
-        </div>
-
-        <div class="panel">
-          <h2 class="panel-title">Import a project</h2>
-          <p class="hint-line">Any WPILib project, already written, whether or not Catalyst is in it.
-          Pick the folder with <code>build.gradle</code> in it and Catalyst reads it and reports what it
-          found &mdash; season, installed Catalyst version, where that library resolves from, and the
-          rest of <code>vendordeps</code>. It writes nothing and changes nothing. To <em>add</em>
-          Catalyst to a project, use the Install page instead.</p>
-          <button class="btn" id="projAddBtn">Choose robot project folder&hellip;</button>
-          <p class="hint-line" id="projAddNote"></p>
-        </div>
-
-        <div class="panel" id="projListPanel">
-          <h2 class="panel-title">Registered</h2>
-          <div id="projList"></div>
-        </div>
-
-        <div class="panel">
-          <h2 class="panel-title">What an agent can do</h2>
-          <p class="hint-line" id="projRegPath"></p>
-          <p class="hint-line">An agent can always <b>read</b> a registered project and search its
-          knowledge graph. It can <b>write</b> only where you have switched it on, and never inside
-          <code>.git</code>, <code>build</code>, <code>target</code> or <code>node_modules</code> even
-          then. Nothing outside a registered folder is reachable at all.</p>
-        </div>
-      </section>
-
-      <section id="view-agents" class="view hidden">
-        <div class="page-head">
-          <h1>Connect an AI agent</h1>
-          <p class="sub">Catalyst ships a small server that lets AI agents (Claude Desktop, Claude Code, Cursor…) use these tools, read the bundled Catalyst knowledge graph, and build and query a graph of <em>your own</em> project. It runs on your machine over stdio with no npm dependencies and no internet, so it starts wherever Node does. Give it access to your own code on the <b>Projects</b> page &mdash; reading is immediate, writing is off until you switch it on per project.</p>
-        </div>
-
-        <div class="panel">
-          <h2 class="panel-title">1. Paste this into your agent's MCP config</h2>
-          <div class="code-wrap">
-            <pre id="mcpConfig" class="code-block">…</pre>
-            <button class="btn copy-btn" id="copyMcp">Copy</button>
+      <!-- Tools -->
+      <section id="view-tools" class="view" data-view="tools" hidden>
+        <div class="page">
+          <div class="page-head">
+            <h1>Tools</h1>
+            <p class="sub">Every Catalyst tool, bundled in the app so they work with no internet.
+              They are the same pages the documentation site hosts.</p>
           </div>
-          <p class="hint-line" id="mcpPathNote"></p>
-        </div>
-
-        <div class="panel">
-          <h2 class="panel-title">2. What the agent can do</h2>
-          <div class="tool-caps" id="agentCaps"></div>
-        </div>
-
-        <div class="notice info">
-          <strong>Knowledge graph.</strong>
-          It ships with the app and is reachable only by connected AI agents through this server. It is not available to users inside the app.
+          <div class="grid" id="toolsList"></div>
         </div>
       </section>
 
-      <!-- Tool frame -->
-      <section id="view-tool" class="view hidden">
+      <!-- One tool, in a frame -->
+      <section id="view-tool" class="view view--fill" data-view="tool" hidden>
         <iframe id="toolFrame" title="Catalyst tool"></iframe>
+      </section>
+
+      <!--
+        Project.
+
+        Doctor and Vendordeps answer two halves of one question — "will this project run" and "what
+        is installed in it" — so they are two tabs of one place rather than two entries in a list.
+        Neither writes anything to a project.
+      -->
+      <section id="view-project" class="view" data-view="project" hidden>
+        <div class="page">
+          <div class="page-head">
+            <h1>Project health</h1>
+            <p class="sub">The things that will not fail until it matters — a missing JVM flag, a
+              Gradle that cannot read Java 25, a vendordep from last season, the same library
+              installed twice. Nothing here writes to your project.</p>
+          </div>
+
+          <div class="cat-tabs" role="tablist" id="projectTabs">
+            <button class="cat-tab" role="tab" data-tab="doctor" aria-selected="true">Doctor</button>
+            <button class="cat-tab" role="tab" data-tab="vendordeps" aria-selected="false">Vendordeps</button>
+          </div>
+
+          <div class="stack" data-panel="doctor">
+            <div class="cat-card">
+              <div class="row">
+                <button class="cat-btn" id="docPickBtn">Choose your robot project</button>
+                <span class="path" id="docPath">No folder chosen yet</span>
+              </div>
+              <div id="docVerdict" class="verdict" hidden></div>
+              <div id="docFindings"></div>
+            </div>
+
+            <!-- The checks above ask "will this run"; this asks "what do I have to change", which a
+                 team porting from 1.x wants as a list, not a verdict. -->
+            <div class="cat-card" id="docMigrationPanel" hidden>
+              <div class="cat-card__head"><h2 class="cat-card__title">Renamed since 1.x</h2></div>
+              <p class="hint">Commands v3 took five decorator names and gave them incompatible return
+                types, so Java will not allow an override. These are the call sites in your code.</p>
+              <div id="docMigration"></div>
+            </div>
+
+            <div class="notice" id="docBrowserNotice" hidden>
+              You are viewing this in a browser preview. Reading your project needs the desktop app's
+              file access.
+            </div>
+          </div>
+
+          <div class="stack" data-panel="vendordeps" hidden>
+            <div class="cat-card">
+              <div class="row">
+                <button class="cat-btn" id="vdPickBtn">Choose your robot project</button>
+                <span class="path" id="vdPath">No folder chosen yet</span>
+              </div>
+              <div id="vdVerdict" class="verdict" hidden></div>
+              <div id="vdSeason" hidden></div>
+              <div id="vdNotes"></div>
+              <div id="vdList"></div>
+            </div>
+            <div class="notice" id="vdBrowserNotice" hidden>
+              You are viewing this in a browser preview. Reading your project needs the desktop app's
+              file access.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!--
+        Library.
+
+        Install, updates and what a release actually contains are one subject: the version of
+        Catalyst this app puts on a robot.
+      -->
+      <section id="view-library" class="view" data-view="library" hidden>
+        <div class="page">
+          <div class="page-head">
+            <h1>Library</h1>
+            <p class="sub">The Catalyst version this app installs, where it goes, and what changed.</p>
+          </div>
+
+          <div class="cat-tabs" role="tablist" id="libraryTabs">
+            <button class="cat-tab" role="tab" data-tab="install" aria-selected="true">Install</button>
+            <button class="cat-tab" role="tab" data-tab="release" aria-selected="false">This release</button>
+            <button class="cat-tab" role="tab" data-tab="updates" aria-selected="false">Updates</button>
+          </div>
+
+          <div class="stack" data-panel="install">
+            <div class="notice signal" id="alphaNotice">
+              <b>What this installs.</b> The bundled vendordep points at <code>v2.0.0-beta.1</code>, and
+              everything the app advertises is in it — Motor History, Autonomy 2.0, the decision cores.
+              It fetches from JitPack like any other vendordep.
+              <br><br>
+              It needs <b>WPILib 2027 alpha-7</b> and <b>Systemcore OS beta 14</b>, and that pairing is
+              not optional: a build made against alpha-7 aborts on beta 13 before your robot code runs.
+              Flash the OS first.
+              <br><br>
+              It is a beta and it has <b>never been driven on a robot</b> — pre-season and offseason
+              robots only. If you are competing this season, install Catalyst 1.x (tag v1.12.0) instead.
+            </div>
+
+            <div class="cat-card">
+              <div class="row">
+                <button class="cat-btn" id="pickBtn"></button>
+                <span class="path" id="chosenPath">No folder chosen yet</span>
+              </div>
+              <div id="detectResult" class="stack" hidden></div>
+              <div id="installOptions" class="row" hidden>
+                <label class="row" style="gap:8px">
+                  <input type="checkbox" id="includeDeps" checked />
+                  <span>Also fetch vendor libraries <em>(needs internet)</em></span>
+                </label>
+                <button class="cat-btn cat-btn--loud" id="installBtn">Install FrcCatalyst <span id="installVer">…</span></button>
+              </div>
+              <div id="installLog" class="stack" hidden></div>
+            </div>
+
+            <div class="notice" id="browserNotice" hidden>
+              You are viewing this in a browser preview. Installing needs the desktop app's file
+              access. The tools all work here.
+            </div>
+          </div>
+
+          <!--
+            Not a changelog row. A changelog answers "what changed since the last one"; this answers
+            "what am I holding, and should I put it on my robot" — and for this release those are
+            different questions with different audiences. The limit comes second on purpose:
+            requirements fail loudly, but "never driven on a robot" fails quietly, in an elimination
+            match, and a reader who stops early must not be the one who misses it.
+          -->
+          <div class="stack" data-panel="release" hidden>
+            <div class="cat-card">
+              <div class="cat-card__head">
+                <h2 class="cat-card__title">Catalyst <span class="cat-wordmark__version">2.0.0-beta.1</span></h2>
+                <span class="path">9 September 2026</span>
+              </div>
+              <p style="line-height:1.55;max-width:62ch">The pre-season release: built against the
+                platform the 2027 season will run on, so your team can port over the offseason
+                instead of in January.</p>
+
+              <div class="notice" style="margin-top:16px">
+                <b>Not for a robot you are competing with.</b> It has never been driven on a robot. It
+                has run on a bench — a Pigeon on <code>can_s0</code>, the onboard IMU, the board's own
+                status topics — but swerve, mechanisms, autos and vision have not moved a robot. Its
+                867 tests pass with no failures; none of them drives one. It is also a beta pinned to a
+                WPILib alpha that has changed <code>Mechanism</code> from an interface to a class and
+                back across three builds. Pre-season and offseason robots only.
+                <br><br>
+                Competing this season? <b>Stay on Catalyst 1.x</b> — tag <code>v1.12.0</code>,
+                WPILib 2026, roboRIO.
+              </div>
+
+              <div class="cat-eyebrow" style="margin:20px 0 8px">BEFORE IT WILL RUN</div>
+              <dl class="kv-grid">
+                <dt>WPILib</dt><dd>2027.0.0-alpha-7</dd>
+                <dt>Systemcore OS</dt><dd>beta 14</dd>
+                <dt>Java</dt><dd>25</dd>
+              </dl>
+              <p class="hint" style="margin-top:12px"><b style="color:var(--cat-ink)">Flash the OS
+                first.</b> That pairing is not optional: a build made against alpha-7 aborts on
+                Systemcore OS beta 13 before your robot code runs. Vendor libraries are Phoenix 6
+                26.50.0-alpha-1, PathPlanner 2027.0.0-alpha-3 and LimelightLib 2.0.0-beta8-alpha7.</p>
+
+              <div class="row" style="margin-top:16px">
+                <button class="cat-btn cat-btn--primary" data-go="library/install">Install the beta into a project</button>
+                <button class="cat-btn" id="wnOneXBtn">Get Catalyst 1.12.0</button>
+              </div>
+            </div>
+
+            <div class="cat-eyebrow">RELEASE HISTORY</div>
+            <div class="stack" id="changelog"></div>
+          </div>
+
+          <div class="stack" data-panel="updates" hidden>
+            <div class="cat-card">
+              <div class="cat-kv">
+                <div>
+                  <div class="cat-card__title">This app</div>
+                  <div class="hint" id="appVerMeta">Catalyst</div>
+                </div>
+                <div class="row">
+                  <span class="cat-kv__value" id="appUpStatus">—</span>
+                  <button class="cat-btn" id="checkAppBtn">Check</button>
+                </div>
+              </div>
+              <div class="cat-kv" style="border-bottom:0">
+                <div>
+                  <div class="cat-card__title">FrcCatalyst library</div>
+                  <div class="hint" id="libVerMeta">Bundled</div>
+                </div>
+                <div class="row">
+                  <span class="cat-kv__value" id="libUpStatus">—</span>
+                  <button class="cat-btn" id="checkLibBtn">Check</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="cat-card">
+              <div class="cat-card__head"><h2 class="cat-card__title">When an update is available</h2></div>
+              <div class="stack">
+                <label class="row"><input type="radio" name="upmode" value="auto"><span>Install it automatically</span></label>
+                <label class="row"><input type="radio" name="upmode" value="ask" checked><span>Ask me first <em>(recommended)</em></span></label>
+                <label class="row"><input type="radio" name="upmode" value="manual"><span>Only when I check here</span></label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Settings, with projects and agent access as its other two tabs. -->
+      <!--
+        Settings is a mode, not a page.
+
+        Catalyst Console puts its settings on a full surface with a column of sections, because it is
+        an instrument and settings are a state it is in rather than a window over it. This is the same
+        shape, so the two programs are recognisably one product: the rail covers the app's own rail,
+        and the close goes back to wherever you were.
+      -->
+      <section id="view-settings" class="view view--mode" data-view="settings" hidden>
+        <nav class="mode-rail" role="tablist" id="settingsTabs" aria-label="Settings sections">
+          <div class="mode-rail__head">
+            <span class="cat-eyebrow">SETTINGS</span>
+            <button class="cat-btn cat-btn--ghost" id="settingsClose" title="Close settings" aria-label="Close settings"></button>
+          </div>
+          <button class="mode-rail__item" role="tab" data-tab="general" aria-selected="true" data-icon="settings">General</button>
+          <button class="mode-rail__item" role="tab" data-tab="projects" aria-selected="false" data-icon="folder">Projects</button>
+          <button class="mode-rail__item" role="tab" data-tab="agents" aria-selected="false" data-icon="autonomy">AI agents</button>
+          <button class="mode-rail__item" role="tab" data-tab="about" aria-selected="false" data-icon="library">About</button>
+        </nav>
+
+        <div class="mode-body">
+        <div class="page">
+
+          <div class="stack" data-panel="general">
+            <div class="page-head">
+              <h1>General</h1>
+              <p class="sub">Everything is stored on this machine. Nothing is sent anywhere.</p>
+            </div>
+            <div class="cat-card">
+              <div class="cat-kv">
+                <div>
+                  <div class="cat-card__title">On startup, open</div>
+                  <div class="hint">Which page the app shows when it launches.</div>
+                </div>
+                <select id="startupSel" class="cat-field" style="width:auto">
+                  <option value="home">Home</option>
+                  <option value="workspace">The workspace</option>
+                  <option value="last">The last page I was on</option>
+                </select>
+              </div>
+              <div class="cat-kv" style="border-bottom:0">
+                <div>
+                  <div class="cat-card__title">Include dependencies by default</div>
+                  <div class="hint">Pre-check the vendor libraries Catalyst uses on the install page.</div>
+                </div>
+                <label class="switch"><input type="checkbox" id="depsDefault"><span class="track"></span></label>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="stack" data-panel="about" hidden>
+            <div class="page-head">
+              <h1 class="cat-wordmark"><span class="cat-wordmark__prefix">Frc</span><span class="cat-wordmark__name">Catalyst</span></h1>
+              <p class="sub">The desktop companion: the tools, the installer, and a workspace for your
+                robot project. Everything it stores stays on this machine.</p>
+            </div>
+            <div class="cat-card">
+              <dl class="kv-grid">
+                <dt>App version</dt><dd id="aboutApp">…</dd>
+                <dt>Bundled library</dt><dd id="aboutLib">…</dd>
+                <dt>Knowledge graph</dt><dd id="aboutGraph">bundled, agent-only</dd>
+              </dl>
+              <div class="row" id="aboutLinks" style="margin-top:16px"></div>
+            </div>
+            <div class="cat-card">
+              <div class="cat-card__head"><h2 class="cat-card__title">Start again</h2></div>
+              <p class="hint">Clears the pages you were on, the startup choice, the update setting and
+                the project this window has open. Your imported projects and their permissions are not
+                touched — those live in the registry, on the Projects page.</p>
+              <div class="row" style="margin-top:12px">
+                <button class="cat-btn" id="resetBtn">Reset all settings</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="stack" data-panel="projects" hidden>
+            <div class="page-head">
+              <h1>Projects</h1>
+              <p class="sub">The robot projects Catalyst knows about. This is exactly what an AI agent
+                sees — and what the workspace opens.</p>
+            </div>
+            <div class="cat-card">
+              <div class="cat-card__head"><h2 class="cat-card__title">Import a project</h2></div>
+              <p class="hint">Any WPILib project, already written, whether or not Catalyst is in it.
+                Pick the folder with <code>build.gradle</code> in it and Catalyst reads it and reports
+                what it found — season, installed Catalyst version, where that library resolves from,
+                and the rest of <code>vendordeps</code>. It writes nothing and changes nothing. To
+                <em>add</em> Catalyst to a project, use the Library page instead.</p>
+              <div class="row" style="margin-top:12px">
+                <button class="cat-btn" id="projAddBtn">Choose robot project folder…</button>
+              </div>
+              <p class="hint" id="projAddNote"></p>
+            </div>
+
+            <div class="cat-card">
+              <div class="cat-card__head"><h2 class="cat-card__title">Registered</h2></div>
+              <div id="projList"></div>
+            </div>
+
+            <div class="cat-card">
+              <div class="cat-card__head"><h2 class="cat-card__title">What an agent can do</h2></div>
+              <p class="hint" id="projRegPath"></p>
+              <p class="hint">An agent can always <b>read</b> a registered project and search its
+                knowledge graph. It can <b>write</b> only where you have switched it on, and never
+                inside <code>.git</code>, <code>build</code>, <code>target</code> or
+                <code>node_modules</code> even then. Nothing outside a registered folder is reachable
+                at all. The workspace's Claude session is bound by the same rules.</p>
+            </div>
+          </div>
+
+          <div class="stack" data-panel="agents" hidden>
+            <div class="page-head">
+              <h1>AI agents</h1>
+              <p class="sub">The workspace runs Claude Code for you. This is for connecting an agent
+                that lives outside the app.</p>
+            </div>
+            <div class="cat-card">
+              <div class="cat-card__head"><h2 class="cat-card__title">Connect an outside agent</h2></div>
+              <p class="hint">The workspace runs Claude Code for you, already wired to this server. To
+                use the same tools from Claude Desktop, another Claude Code window or Cursor, paste
+                this into that agent's MCP config.</p>
+              <div class="row" style="margin:12px 0">
+                <pre id="mcpConfig" style="flex:1">…</pre>
+                <button class="cat-btn" id="copyMcp">Copy</button>
+              </div>
+              <p class="hint" id="mcpPathNote"></p>
+            </div>
+
+            <div class="cat-card">
+              <div class="cat-card__head"><h2 class="cat-card__title">What it can do</h2></div>
+              <div id="agentCaps"></div>
+            </div>
+          </div>
+        </div>
+        </div>
       </section>
     </main>
   </div>
 
-  <script type="module" src="app.js"></script>
+  <!-- The command palette: the one floating surface, so the one piece of glass. -->
+  <div id="palette" hidden>
+    <div class="palette-box cat-glass">
+      <input class="palette-input" id="paletteInput" placeholder="Go to a page, a tool or a project…" aria-label="Command palette" />
+      <div class="palette-list" id="paletteList" role="listbox"></div>
+    </div>
+  </div>
+
+  <div id="banner" class="cat-glass" hidden></div>
+
+  <script type="module" src="js/app.js"></script>
 </body>
 </html>

@@ -1,0 +1,321 @@
+/* ==========================================================================
+   The code editor
+   --------------------------------------------------------------------------
+   What src/styles/app.css does not already carry for the workspace's editor
+   pane: the status bar under the text, the panel shown when no file is open,
+   the fades at the ends of an overflowing tab strip, the second press on a
+   dirty tab — and the handful of rules that have to reach inside Monaco's own
+   DOM, which a theme object cannot describe.
+
+   Injected by src/js/workspace/editor.js under the id `cat-editor-css`, the
+   same way the terminal pane links xterm's: index.html belongs to the shell.
+   Because it is appended to <head> at mount it comes after app.css, so it
+   wins a tie on source order rather than on specificity.
+
+   Every value here is a token from identity.css. Monaco's own chrome is
+   coloured from the theme object in editor.js, which reads the same tokens at
+   run time; this file only sets the shapes and the motion, which a theme
+   cannot.
+   ========================================================================== */
+
+/* --- the tab strip ------------------------------------------------------- */
+
+/* The strip scrolls; the frame does not. The fades have to be painted by
+   something that stays still, or they scroll away with the tabs they mark. */
+.ed .ed-tabbar {
+  position: relative;
+  display: flex;
+  flex: none;
+  min-width: 0;
+}
+
+.ed .ed-tabbar > .ed-tabs {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ed .ed-tabbar::before,
+.ed .ed-tabbar::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 1px;                       /* clear of the strip's own hairline */
+  width: var(--cat-space-5);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--cat-dur-effect) var(--cat-ease-effect);
+}
+
+.ed .ed-tabbar::before {
+  left: 0;
+  background: linear-gradient(90deg, var(--cat-surface-1), transparent);
+}
+
+.ed .ed-tabbar::after {
+  right: 0;
+  background: linear-gradient(270deg, var(--cat-surface-1), transparent);
+}
+
+.ed .ed-tabbar[data-overflow="start"]::before,
+.ed .ed-tabbar[data-overflow="both"]::before { opacity: 1; }
+
+.ed .ed-tabbar[data-overflow="end"]::after,
+.ed .ed-tabbar[data-overflow="both"]::after { opacity: 1; }
+
+/* A tab whose close button has been pressed once and is waiting for the
+   second. It is the only crimson in the strip, because it is the only place
+   where the next click loses work. */
+.ed .ed-tab[data-confirm="true"] {
+  background: var(--cat-signal-tint);
+  color: var(--cat-signal-ink);
+}
+
+.ed .ed-close[data-confirm="true"] {
+  width: auto;
+  padding: 0 var(--cat-space-2);
+  background: var(--cat-signal);
+  color: var(--cat-on-signal);
+  font-family: var(--cat-sans-text);
+  font-size: var(--cat-fs-11);
+  font-weight: var(--cat-w-semi);
+}
+
+.ed .ed-close[data-confirm="true"]:hover {
+  background: var(--cat-signal-lt);
+  color: var(--cat-on-signal);
+}
+
+/* A file with unsaved work says so before it is hovered, and the close cross
+   only appears under the pointer — otherwise every tab carries a target. */
+.ed .ed-close {
+  opacity: 0;
+  transition:
+    opacity var(--cat-dur-layer) var(--cat-ease-layer),
+    background-color var(--cat-dur-layer) var(--cat-ease-layer),
+    color var(--cat-dur-layer) var(--cat-ease-layer);
+}
+
+.ed .ed-tab:hover .ed-close,
+.ed .ed-tab[data-active="true"] .ed-close,
+.ed .ed-close:focus-visible,
+.ed .ed-close[data-confirm="true"] { opacity: 1; }
+
+/* --- the empty pane ------------------------------------------------------ */
+
+/* Monaco with no model still draws a gutter, one line number and a caret: the
+   picture of a file that is not there. This replaces it. */
+.ed .ed-empty {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--cat-space-6);
+  background: var(--cat-ground);
+  overflow: auto;
+}
+
+.ed .ed-empty__panel {
+  width: min(30rem, 100%);
+  display: grid;
+  gap: var(--cat-space-4);
+}
+
+.ed .ed-empty__title { font-size: var(--cat-fs-18); }
+
+.ed .ed-empty__keys {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: var(--cat-space-3) var(--cat-space-4);
+  margin: 0;
+}
+
+.ed .ed-empty__combo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cat-space-1);
+  margin: 0;
+  color: var(--cat-faint);
+  font-size: var(--cat-fs-11);
+}
+
+.ed .ed-empty__cap { padding: 0 var(--cat-space-2); }
+
+.ed .ed-empty__what {
+  margin: 0;
+  color: var(--cat-quiet);
+  font-family: var(--cat-sans-text);
+  font-size: var(--cat-fs-13);
+}
+
+/* --- the status bar ------------------------------------------------------ */
+
+.ed .ed-status {
+  display: flex;
+  align-items: center;
+  gap: var(--cat-space-3);
+  flex: none;
+  height: var(--cat-space-5);
+  padding: 0 var(--cat-space-3);
+  border-top: 1px solid var(--cat-line);
+  background: var(--cat-surface-1);
+  font-family: var(--cat-mono);
+  font-size: var(--cat-fs-11);
+  color: var(--cat-dim);
+  white-space: nowrap;
+  user-select: none;
+}
+
+/* The path is the one thing here that can be longer than the bar, so it is the
+   one thing that gives way — and it gives way from the left. Plain ellipsis
+   would eat the file name, which is the half of the path worth reading. The
+   full spelling is in the title attribute either way. */
+.ed .ed-status__path {
+  display: flex;
+  min-width: 0;
+  color: var(--cat-quiet);
+}
+
+.ed .ed-status__dir {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ed .ed-status__file { flex: none; color: var(--cat-body); }
+
+.ed .ed-status__spacer { flex: 1 1 auto; min-width: var(--cat-space-2); }
+
+.ed .ed-status__item { flex: none; }
+
+.ed button.ed-status__item {
+  padding: 0 var(--cat-space-1);
+  border: 0;
+  border-radius: var(--cat-r-inner);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    background-color var(--cat-dur-layer) var(--cat-ease-layer),
+    color var(--cat-dur-layer) var(--cat-ease-layer);
+}
+
+.ed button.ed-status__item:hover { background: var(--cat-surface-3); color: var(--cat-ink); }
+
+.ed .ed-status__wrap[data-on="false"] { color: var(--cat-faint); }
+.ed .ed-status__wrap[data-on="true"] { color: var(--cat-ink); }
+
+.ed .ed-status__saved {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cat-space-2);
+  flex: none;
+}
+
+.ed .ed-status__mark {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--cat-r-pill);
+  background: var(--cat-faint);
+  transition: background-color var(--cat-dur-effect) var(--cat-ease-effect);
+}
+
+.ed .ed-status__saved[data-dirty="true"] { color: var(--cat-signal-ink); }
+.ed .ed-status__saved[data-dirty="true"] .ed-status__mark { background: var(--cat-signal-lt); }
+
+/* ==========================================================================
+   Monaco's own chrome
+   --------------------------------------------------------------------------
+   Colour comes from the theme object in editor.js. What a theme cannot say is
+   what shape a corner is and how long a thing takes to arrive, and left alone
+   Monaco answers both with vs-dark's: square-ish boxes that slide on a linear
+   200ms. These rules are only those two answers, in the identity's terms.
+   ========================================================================== */
+
+/* Find and replace, Ctrl+F and Ctrl+H. It hangs from the top edge of the text,
+   so only its lower corners are rounded. */
+.ed .monaco-editor .find-widget {
+  border: 1px solid var(--cat-line-strong);
+  border-top: 0;
+  border-radius: 0 0 var(--cat-r-card) var(--cat-r-card);
+  box-shadow: var(--cat-glass-shadow);
+  font-family: var(--cat-sans-text);
+  transition: transform var(--cat-dur-smooth) var(--cat-ease-smooth);
+}
+
+/* Arriving is a release curve; leaving is the smooth one, which never
+   overshoots. That is the identity's rule for a panel, and the find widget is
+   the one panel in this pane that arrives and leaves. */
+.ed .monaco-editor .find-widget.visible {
+  transition: transform var(--cat-dur-release) var(--cat-ease-release);
+}
+
+.ed .monaco-editor .find-widget .monaco-inputbox {
+  border-radius: var(--cat-r-field);
+}
+
+.ed .monaco-editor .find-widget .monaco-custom-toggle,
+.ed .monaco-editor .find-widget .button,
+.ed .monaco-editor .find-widget .codicon {
+  border-radius: var(--cat-r-inner);
+  transition: background-color var(--cat-dur-layer) var(--cat-ease-layer);
+}
+
+.ed .monaco-editor .find-widget .matchesCount {
+  font-family: var(--cat-mono);
+  font-size: var(--cat-fs-11);
+}
+
+/* Go to line (Ctrl+G) and go to symbol (Ctrl+Shift+O) share one box. It floats
+   over the text, so it is the one place in this pane that takes the glass
+   shadow — not the glass itself, which is for the window's own layers. */
+.quick-input-widget {
+  border: 1px solid var(--cat-line-strong);
+  border-radius: var(--cat-r-card);
+  box-shadow: var(--cat-glass-shadow);
+  overflow: hidden;
+  font-family: var(--cat-sans-text);
+}
+
+.quick-input-widget .monaco-inputbox { border-radius: var(--cat-r-field); }
+
+.quick-input-widget .quick-input-list .monaco-list-row {
+  border-radius: var(--cat-r-inner);
+  transition: background-color var(--cat-dur-layer) var(--cat-ease-layer);
+}
+
+.quick-input-widget .quick-input-list .monaco-list-row .label-name,
+.quick-input-widget .quick-input-list .monaco-list-row .label-description {
+  font-family: var(--cat-sans-text);
+}
+
+/* The class and method pinned above the text. It is part of the text surface,
+   not a floating layer, so it separates with a hairline and no shadow. */
+.ed .monaco-editor .sticky-widget {
+  border-bottom: 1px solid var(--cat-line);
+  box-shadow: none;
+}
+
+.ed .monaco-editor .sticky-widget .sticky-line-number,
+.ed .monaco-editor .sticky-widget .sticky-line-content {
+  font-family: var(--cat-mono);
+}
+
+/* Monaco's context menu, which is the only other surface this pane can raise. */
+.monaco-menu-container {
+  border-radius: var(--cat-r-chip);
+  box-shadow: var(--cat-glass-shadow);
+  overflow: hidden;
+}
+
+/* The identity's focus ring, on anything inside the editor that takes focus.
+   Monaco draws its own on the input boxes through `focusBorder`; this is for
+   the widgets' buttons and toggles, which otherwise show nothing at all. */
+.ed .monaco-editor .find-widget .monaco-custom-toggle:focus-visible,
+.ed .monaco-editor .find-widget .button:focus-visible,
+.quick-input-widget .monaco-custom-toggle:focus-visible {
+  outline: 2px solid var(--cat-signal);
+  outline-offset: 1px;
+}

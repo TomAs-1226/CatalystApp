@@ -13,8 +13,12 @@ AI agents use. Active work is on `systemcore` (the 2027 port); `main` is the 202
 | Path | What it is |
 |---|---|
 | `src/` | Frontend: vanilla HTML/CSS/JS with no build step |
+| `src/index.html`, `src/js/` | The shell (`js/app.js` router, rail, palette), the views (`js/views/`) and the workspace panes (`js/workspace/`) |
+| `src/styles/identity.css` | **A copy** of FrcCatalyst's `docs/assets/identity.css` — the house tokens. Don't edit it here |
+| `src/styles/app.css` | This app's own layout, on top of the identity |
+| `src/vendor/` | Monaco and xterm, copied out of node_modules by `npm run vendor` (gitignored) |
 | `src/tools/<tool>/index.html` | **Copies** of FrcCatalyst's `docs/tools/`. Don't edit them here |
-| `src-tauri/` | Rust backend (`src/main.rs`, `src/projects.rs`) and `tauri.conf.json` |
+| `src-tauri/` | Rust backend (`main.rs`, `projects.rs`, `doctor.rs`, `vendordeps.rs`, and the workspace's `pty.rs`, `workspace.rs`, `agent.rs`) and `tauri.conf.json` |
 | `src-tauri/resources/FrcCatalyst.json` | The version-locked vendordep the app installs |
 | `src-tauri/resources/mcp/` | The catalyst MCP server: `server.js` (dependency-free Node), `build_graph.py`, `data/graph.json`, `data/docs.json` |
 | `src-tauri/resources/console/` | A built Catalyst Console, copied in by `npm run bundle-console` (gitignored) |
@@ -22,7 +26,7 @@ AI agents use. Active work is on `systemcore` (the 2027 port); `main` is the 202
 
 ## Commands
 
-- `npm install` once.
+- `npm install` once, then `npm run vendor` to put Monaco and xterm in `src/vendor/`.
 - `npm test` checks that the bundled tools match the library (`sync-tools --check`), then runs
   `node --test "src/**/*.test.js"`.
 - `npm run dev` runs the app with hot reload. `npm run build` syncs the tools, bundles the console
@@ -33,7 +37,20 @@ AI agents use. Active work is on `systemcore` (the 2027 port); `main` is the 202
 ## Invariants
 
 - **Tools.** Edit them in the FrcCatalyst repo (`docs/tools/<tool>/index.html`), then run
-  `npm run sync-tools` here. `npm test` fails while the copies have drifted.
+  `npm run sync-tools` here. `npm test` fails while the copies have drifted. The sync looks for the
+  2.0 line first (`../_worktrees/FrcCatalyst-systemcore`), because that is the line this app ships.
+- **The identity.** `src/styles/identity.css` and `src/js/motion.js` are copies of the library's
+  `docs/assets/` originals, shared with Catalyst Console. Change them there and copy them across;
+  a colour, a corner or a curve invented in `app.css` is the thing this file exists to prevent.
+- **Nothing is fetched at run time.** Monaco and xterm are devDependencies vendored into
+  `src/vendor/` by `scripts/vendor.mjs`. The app must keep working with no network — that is most
+  of the point of it — so never add a runtime dependency or a CDN link.
+- **The terminal's first moment.** On Windows the PTY child does not start until the terminal
+  answers a cursor-position query, so a pane must have `listen('pty://data', ...)` and its
+  `onData -> pty_write` wiring in place *before* it awaits `pty_open`. Attach the listener late and
+  the pane hangs blank with no error. Measured against ConPTY; see `src-tauri/src/pty.rs`.
+- **Writing into a project.** `ws_write` and `agent_prepare` refuse any path outside a folder in the
+  projects registry. That is the same boundary the MCP server uses; don't add a second one.
 - **Version.** Bump `tauri.conf.json`, `package.json` and `src-tauri/Cargo.toml` together. The UI
   reads the version from Rust (`app_version()`). Never reintroduce a hand-kept version constant in
   JS; the last one said 2.0.0 for four releases.

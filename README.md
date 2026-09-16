@@ -105,20 +105,56 @@ npm run build      # produces an installer in src-tauri/target/release/bundle/
 ```
 CatalystApp/
   src/                      frontend (vanilla HTML/CSS/JS — no build step)
-    index.html              the shell
-    app.js                  nav + installer logic (uses window.__TAURI__)
-    styles.css              Catalyst brand (dark navy + coral)
-    tools/<tool>/index.html the 11 bundled tools
+    index.html              the shell: title bar, rail, one section per view
+    js/app.js               the router, the rail, the command palette, the banner
+    js/core.js              the bridge to Tauri, settings, the icon set
+    js/data.js              the bundled library version, the tools, the changelog
+    js/views/<view>.js      one module per view (home, tools, project, library, settings, workspace)
+    js/workspace/           the workspace panes: tree, editor, terminal, agent, runner
+    js/motion.js            the house springs — a copy of the library's docs/assets/motion.js
+    styles/identity.css     the house tokens — a copy of the library's docs/assets/identity.css
+    styles/app.css          this app's own layout
+    styles/workspace.css    the workspace panes' own styles
+    vendor/                 Monaco and xterm, put there by `npm run vendor` (gitignored)
+    tools/<tool>/index.html the bundled tools, copied from the library (gitignored drift check in `npm test`)
   src-tauri/                Rust backend
-    src/main.rs             commands: detect_project, read_bundled_vendordep, write_vendordep
+    src/main.rs             the command surface
+    src/projects.rs         the project registry, and the write boundary agents are held to
+    src/doctor.rs           the project checks · src/vendordeps.rs  what is installed
+    src/pty.rs              terminals: the shell, devtools, and the Claude session
+    src/workspace.rs        the file tree, reading and writing a project's files
+    src/agent.rs            finds the Claude CLI and wires a project for it
     tauri.conf.json         window, bundling, resources
     capabilities/           dialog + scoped-HTTP permissions
     resources/FrcCatalyst.json   the version-locked vendordep that gets installed
+    resources/mcp/          the catalyst MCP server an outside agent connects to
     icons/                  app icons
 ```
 
 The frontend runs in a plain browser too (for quick UI work): `python -m http.server` inside `src/`.
-In that mode the tools work and the install step is disabled (it needs the desktop app's filesystem access).
+In that mode the tools work and everything that touches the file system is off, and says so, because
+it needs the desktop app.
+
+## The workspace
+
+Open a robot project and the app becomes the place you work on it, rather than the place you install
+a library and then leave.
+
+- **Files and an editor.** The tree reads one level at a time and never walks `build`, `.git` or
+  `node_modules`. The editor is Monaco, vendored into `src/vendor/` — no network, no CDN — themed
+  from the same tokens as the rest of the app. Ctrl+S writes through the Rust side, which refuses any
+  path outside a registered project.
+- **A terminal, and your own build.** The dock runs a real PTY. Its Build tab runs
+  `devtools gradle -- build` and `devtools gradle -- deploy` with the project as the working
+  directory, which is what this machine's devtools expects. Deploy asks first, every time.
+- **Claude Code, already pointed at the project.** The Claude pane starts the CLI in the project
+  folder. "Set this project up" writes two files into it: a `.mcp.json` entry for the bundled Catalyst
+  MCP server (merged — another team's servers are left alone), and a `CLAUDE.md` if there isn't one.
+  So the session starts knowing the Catalyst 2.x API, the project's own structure, and how it builds.
+  Authentication comes from the desktop app, so this is a real interactive session, not `claude -p`.
+
+Nothing in the workspace reaches outside a project the registry knows about: the same boundary the
+MCP server has always had, applied to the app's own editor.
 
 ## Updating the bundled library
 

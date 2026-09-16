@@ -5,3 +5,7 @@ src-tauri/target/
 
 # Copied in from the CatalystConsole repo by npm run bundle-console; not ours to vendor.
 src-tauri/resources/console/
+
+# Copied out of node_modules by npm run vendor (scripts/vendor.mjs): monaco-editor and xterm, as the
+# files the window loads. 24 MB of someone else's build output, restored by one command.
+src/vendor/
