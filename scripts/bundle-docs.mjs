@@ -22,9 +22,17 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const dest = join(root, "src-tauri", "resources", "mcp", "data", "docs.json");
 
 const given = process.argv.slice(2).find((a) => !a.startsWith("--"));
+// The 2.0 line first, for the same reason sync-tools looks there first: this app ships 2.x, and the
+// library keeps its 2027 work on the `systemcore` branch, which on this machine is a worktree beside
+// the repo. A 1.x checkout is still a fallback rather than an error, so without this a plain
+// `npm run build` quietly rebuilt the bundle from 1.x docs and shipped an MCP server that answers an
+// agent writing 2.x code with the 1.12.0 API — no SubsystemBase, ChassisSpeeds and getFPGATimestamp
+// are exactly what changed between the lines, so the wrong bundle is wrong about the things it is
+// asked about most, and nothing in the build says so.
 const candidates = given
   ? [resolve(given)]
   : [
+      resolve(root, "../_worktrees/FrcCatalyst-systemcore/docs"),
       resolve(root, "../FrcCatalyst/docs"),
       resolve(root, "../FrcCatalyst-v1.1.0/docs"),
     ];
