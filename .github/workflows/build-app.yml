@@ -70,15 +70,19 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           New-Item -ItemType Directory -Force -Path src-tauri/resources/console | Out-Null
-          try {
-            gh release download --repo TomAs-1226/CatalystConsole --pattern 'catalyst-console.exe' --dir src-tauri/resources/console --clobber
+          # gh is a native command, so a failure sets $LASTEXITCODE rather than throwing: the catch
+          # below never ran, and a console release without the asset failed the whole app build
+          # instead of building without it (app-v2.7.0, 2026-09-19).
+          gh release download --repo TomAs-1226/CatalystConsole --pattern 'catalyst-console.exe' --dir src-tauri/resources/console --clobber
+          if ($LASTEXITCODE -eq 0 -and (Test-Path src-tauri/resources/console/catalyst-console.exe)) {
             Write-Host "bundled Catalyst Console from its latest release"
-          } catch {
+          } else {
             # Ship without it rather than block the app's release. The app asks console_available()
             # and hides the entry, so a build with no console is coherent - just less useful.
             Write-Warning "no Catalyst Console release available; building without it"
             Set-Content -Path src-tauri/resources/console/.gitkeep -Value '' -Encoding utf8
           }
+          exit 0
 
       - name: Build and release
         uses: tauri-apps/tauri-action@v0
