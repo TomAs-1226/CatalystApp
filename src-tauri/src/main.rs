@@ -1,24 +1,47 @@
 // Prevents an extra console window on Windows in release builds.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod agent;
+mod doctor;
+mod projects;
+mod pty;
+mod vendordeps;
+mod workspace;
+
 use serde::Serialize;
 use std::fs;
 use std::path::Path;
 use tauri::Manager;
 
 #[derive(Serialize)]
-struct ProjectInfo {
+pub(crate) struct ProjectInfo {
     is_wpilib: bool,
     has_catalyst: bool,
     catalyst_version: Option<String>,
     project_name: String,
     reasons: Vec<String>,
+    /// Season the project was created for, from `.wpilib/wpilib_preferences.json`.
+    ///
+    /// Catalyst 2.x targets 2027. Installing it into a 2026 project produces something that looks
+    /// correctly configured and fails at build with an error naming none of this, so the year is
+    /// surfaced rather than assumed.
+    project_year: Option<String>,
 }
 
 /// Inspect a folder and report whether it looks like a WPILib / GradleRIO robot project,
 /// and whether FrcCatalyst is already installed (and at what version).
 #[tauri::command]
 fn detect_project(dir: String) -> ProjectInfo {
+    detect_project_info(dir)
+}
+
+/// The detection itself, callable from anywhere in the crate.
+///
+/// Split from the command because `#[tauri::command]` generates helpers named after the function,
+/// and widening the function's visibility collides with them. The project registry needs this logic
+/// too - the version and season it records must be the same ones the Doctor reports, or the app
+/// contradicts itself about the project in front of you.
+pub(crate) fn detect_project_info(dir: String) -> ProjectInfo {
     let p = Path::new(&dir);
     let build_gradle = p.join("build.gradle").exists();
     let wpilib_marker = p.join(".wpilib").join("wpilib_preferences.json").exists();
@@ -35,6 +58,10 @@ fn detect_project(dir: String) -> ProjectInfo {
     } else {
         (false, None)
     };
+
+    // Read through the vendordeps module, which is where the season is compared to something. The
+    // installer and that list disagreeing about which year a project is would be its own bug.
+    let project_year = vendordeps::project_year(p);
 
     let project_name = p
         .file_name()
@@ -55,6 +82,7 @@ fn detect_project(dir: String) -> ProjectInfo {
         catalyst_version,
         project_name,
         reasons,
+        project_year,
     }
 }
 
@@ -69,6 +97,16 @@ fn read_bundled_vendordep(app: tauri::AppHandle) -> Result<String, String> {
         )
         .map_err(|e| e.to_string())?;
     fs::read_to_string(&path).map_err(|e| format!("bundled vendordep not found: {e}"))
+}
+
+/// This app's version, read from the binary rather than repeated in the UI.
+///
+/// It used to be a constant in app.js kept in step with tauri.conf.json by hand, and it was not: the
+/// About page said 2.0.0 for four releases. Two sources of truth for a version is a bug that files
+/// itself, so there is now one - the package metadata Tauri already carries.
+#[tauri::command]
+fn app_version(app: tauri::AppHandle) -> String {
+    app.package_info().version.to_string()
 }
 
 /// Absolute path to the bundled MCP server (`resources/mcp/server.js`), for the agent config snippet.
@@ -139,8 +177,28 @@ fn write_vendordep(dir: String, filename: String, content: String) -> Result<Str
     Ok(format!("Wrote vendordeps/{filename}"))
 }
 
+/// Write a file the user chose in a save dialog. The path comes from the dialog, not from a page,
+/// and only text goes through here: the motor history the History tool fetched off the robot.
+#[tauri::command]
+fn save_text_file(path: String, content: String) -> Result<String, String> {
+    let p = Path::new(&path);
+    if path.trim().is_empty() || p.is_dir() {
+        return Err("no file chosen".to_string());
+    }
+    if let Some(dir) = p.parent() {
+        if !dir.as_os_str().is_empty() {
+            fs::create_dir_all(dir).map_err(|e| e.to_string())?;
+        }
+    }
+    fs::write(p, content).map_err(|e| e.to_string())?;
+    Ok(format!("Saved {}", p.display()))
+}
+
 fn main() {
     tauri::Builder::default()
+        // The open terminals, which outlive any one command: a PTY is a child process and a pair of
+        // threads, and the commands that write to it need to find the same one again.
+        .manage(pty::PtyRegistry::default())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
@@ -150,10 +208,180 @@ fn main() {
             detect_project,
             read_bundled_vendordep,
             write_vendordep,
+            save_text_file,
+            app_version,
             mcp_server_path,
             console_available,
-            launch_console
+            launch_console,
+            doctor::diagnose_project,
+            doctor::scan_migration,
+            vendordeps::inspect_vendordeps,
+            projects::list_projects,
+            projects::projects_registry_path,
+            projects::register_project,
+            projects::forget_project,
+            projects::set_agent_write,
+            projects::set_project_note,
+            pty::pty_open,
+            pty::pty_write,
+            pty::pty_resize,
+            pty::pty_close,
+            pty::pty_list,
+            workspace::ws_tree,
+            workspace::ws_read,
+            workspace::ws_write,
+            workspace::ws_search,
+            workspace::ws_files,
+            agent::agent_status,
+            agent::agent_prepare
         ])
         .run(tauri::generate_context!())
         .expect("error while running the Catalyst app");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use std::path::PathBuf;
+
+    /// A scratch project directory, removed when the test ends.
+    struct Project(PathBuf);
+
+    impl Project {
+        fn new(name: &str) -> Self {
+            let dir = std::env::temp_dir().join(format!("catalyst-app-test-{name}"));
+            let _ = fs::remove_dir_all(&dir);
+            fs::create_dir_all(&dir).unwrap();
+            Project(dir)
+        }
+
+        fn file(self, rel: &str, contents: &str) -> Self {
+            let path = self.0.join(rel);
+            fs::create_dir_all(path.parent().unwrap()).unwrap();
+            fs::write(path, contents).unwrap();
+            self
+        }
+
+        fn dir(self, rel: &str) -> Self {
+            fs::create_dir_all(self.0.join(rel)).unwrap();
+            self
+        }
+
+        fn detect(&self) -> ProjectInfo {
+            detect_project(self.0.to_string_lossy().to_string())
+        }
+    }
+
+    impl Drop for Project {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.0);
+        }
+    }
+
+    #[test]
+    fn a_real_wpilib_project_is_recognised() {
+        let p = Project::new("real")
+            .file("build.gradle", "plugins { id 'java' }")
+            .file(".wpilib/wpilib_preferences.json", r#"{"projectYear": "2027_alpha1"}"#);
+
+        let info = p.detect();
+        assert!(info.is_wpilib);
+        assert!(info.reasons.is_empty(), "reasons: {:?}", info.reasons);
+        assert_eq!(info.project_year.as_deref(), Some("2027_alpha1"));
+    }
+
+    #[test]
+    fn project_year_reads_the_same_whether_written_as_text_or_a_number() {
+        // WPILib has written it both ways across seasons. Returning `"2027"` for one and `2027` for
+        // the other pushes the difference into the UI, which then compares strings and disagrees
+        // with itself.
+        let text = Project::new("year-text")
+            .file("build.gradle", "")
+            .file(".wpilib/wpilib_preferences.json", r#"{"projectYear": "2026"}"#);
+        let number = Project::new("year-number")
+            .file("build.gradle", "")
+            .file(".wpilib/wpilib_preferences.json", r#"{"projectYear": 2026}"#);
+
+        assert_eq!(text.detect().project_year.as_deref(), Some("2026"));
+        assert_eq!(number.detect().project_year.as_deref(), Some("2026"));
+    }
+
+    #[test]
+    fn vendordeps_alone_are_enough_to_call_it_a_wpilib_project() {
+        // An imported project that has not been opened in VS Code yet has no .wpilib folder.
+        let p = Project::new("vendordeps-only")
+            .file("build.gradle", "")
+            .dir("vendordeps");
+
+        let info = p.detect();
+        assert!(info.is_wpilib);
+        assert!(info.project_year.is_none(), "no preferences file to read");
+    }
+
+    #[test]
+    fn a_folder_that_is_not_a_project_says_why() {
+        let p = Project::new("empty");
+        let info = p.detect();
+
+        assert!(!info.is_wpilib);
+        assert_eq!(info.reasons.len(), 2, "both reasons should be given: {:?}", info.reasons);
+        assert!(info.reasons.iter().any(|r| r.contains("build.gradle")));
+        assert!(info.reasons.iter().any(|r| r.contains(".wpilib")));
+    }
+
+    #[test]
+    fn build_gradle_alone_is_not_a_wpilib_project() {
+        // Any Gradle project has one. Installing a vendordep into a plain Java project writes a file
+        // nothing reads, and the team is left looking for a build error that never appears.
+        let p = Project::new("plain-gradle").file("build.gradle", "");
+        let info = p.detect();
+
+        assert!(!info.is_wpilib);
+        assert!(info.reasons.iter().any(|r| r.contains(".wpilib")));
+    }
+
+    #[test]
+    fn an_installed_catalyst_is_reported_with_its_version() {
+        let p = Project::new("installed")
+            .file("build.gradle", "")
+            .file("vendordeps/FrcCatalyst.json", r#"{"version": "1.12.0", "frcYear": "2026"}"#);
+
+        let info = p.detect();
+        assert!(info.has_catalyst);
+        assert_eq!(info.catalyst_version.as_deref(), Some("1.12.0"));
+    }
+
+    #[test]
+    fn a_corrupt_vendordep_is_seen_but_has_no_version() {
+        // Half-written by an interrupted install. It must still register as present, or the app
+        // offers a clean install and silently leaves the broken file in place.
+        let p = Project::new("corrupt")
+            .file("build.gradle", "")
+            .file("vendordeps/FrcCatalyst.json", "{ this is not json");
+
+        let info = p.detect();
+        assert!(info.has_catalyst, "the file is there");
+        assert!(info.catalyst_version.is_none(), "but nothing can be read from it");
+    }
+
+    #[test]
+    fn unreadable_preferences_do_not_stop_detection() {
+        let p = Project::new("bad-prefs")
+            .file("build.gradle", "")
+            .file(".wpilib/wpilib_preferences.json", "not json at all");
+
+        let info = p.detect();
+        assert!(info.is_wpilib, "the marker file exists, which is what that test is");
+        assert!(info.project_year.is_none());
+    }
+
+    #[test]
+    fn preferences_without_a_project_year_report_none() {
+        let p = Project::new("no-year")
+            .file("build.gradle", "")
+            .file(".wpilib/wpilib_preferences.json", r#"{"teamNumber": 5805}"#);
+
+        assert!(p.detect().project_year.is_none());
+    }
 }

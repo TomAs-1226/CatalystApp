@@ -1,0 +1,125 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" width="1280" height="640" role="img"
+     aria-label="CatalystApp - every Catalyst tool in one window, offline.">
+<!-- REV 2 - THE DRAWING SET.  CatalystApp sheet, 1280x640.
+
+     Sheet 2 of the assembly: the library is the part, this is the tool that installs it, and
+     CatalystConsole is the instrument that reads it. Same sheet, same title block, same fill
+     rule - a filled box was proven, a phantom-dashed box was only attempted.
+
+     The drawing here is a bill of materials, because that is what this product actually is:
+     a set of parts shipped in one window. -->
+  <defs>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M32 0H0V32" fill="none" stroke="#C4CAC3" stroke-width="1" opacity="0.9"/>
+    </pattern>
+    <style>
+      .mono { font-family: Consolas,"DejaVu Sans Mono","Liberation Mono",ui-monospace,monospace; }
+      .sans { font-family: "Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif; }
+      .lbl  { font-size:11px; letter-spacing:1.1px; fill:#5C635E; }
+      .val  { font-size:12px; fill:#1A1E1B; }
+      .zone { font-size:9px;  letter-spacing:.6px; fill:#5C635E; opacity:.75; }
+    </style>
+  </defs>
+
+  <rect width="1280" height="640" fill="#E4E7E1"/>
+  <rect x="24" y="24" width="1232" height="592" fill="url(#grid)"/>
+  <rect x="24" y="24" width="1232" height="592" fill="none" stroke="#1A1E1B" stroke-width="1"/>
+  <rect x="36" y="36" width="1208" height="568" fill="none" stroke="#5C635E" stroke-width="0.5" opacity="0.5"/>
+  <g class="mono zone">
+    <text x="29" y="128">A</text><text x="29" y="272">B</text><text x="29" y="416">C</text><text x="29" y="560">D</text>
+    <text x="176" y="34">1</text><text x="484" y="34">3</text><text x="792" y="34">5</text><text x="1100" y="34">7</text>
+  </g>
+  <g stroke="#1A1E1B" stroke-width="1"><path d="M640 24v12M640 616v-12M24 320h12M1256 320h-12"/></g>
+
+  <g transform="translate(64,74)">
+    <text class="mono lbl" x="0" y="5">REV</text>
+    <path d="M46 -12 L59 9 L33 9 Z" fill="none" stroke="#D6412A" stroke-width="1.6"/>
+    <text class="mono" x="46" y="7" font-size="12" font-weight="700" fill="#D6412A" text-anchor="middle">2</text>
+    <text class="mono lbl" x="74" y="5">DESKTOP TOOLING FOR CATALYST &#183; TEAM 5805</text>
+  </g>
+
+  <text class="sans" x="64" y="152" font-size="21" font-weight="500" fill="#5C635E">Installs the library. Checks the project. Plans the robot.</text>
+  <text class="sans" x="64" y="216" font-size="52" font-weight="800" fill="#1A1E1B"
+        textLength="940" lengthAdjust="spacingAndGlyphs">Every Catalyst tool in one window, offline.</text>
+  <path d="M64 244H1004" stroke="#C4CAC3" stroke-width="1"/>
+  <text class="sans" x="64" y="272" font-size="15.5" fill="#5C635E">No account, no network round-trip, no browser tab. It reads your GradleRIO project and tells you what it found.</text>
+
+  <!-- ============ bill of materials: what actually ships in the window ============ -->
+  <g transform="translate(64,322)">
+    <text class="mono lbl" x="0" y="0">BILL OF MATERIALS</text>
+    <rect x="0" y="12" width="600" height="196" fill="none" stroke="#1A1E1B" stroke-width="1"/>
+    <g stroke="#5C635E" stroke-width="0.5" opacity="0.6">
+      <path d="M0 38h600M0 66h600M0 94h600M0 122h600M0 150h600M0 178h600M46 12v196M420 12v196"/>
+    </g>
+    <g class="mono lbl" font-size="9.5">
+      <text x="12" y="30">ITEM</text><text x="58" y="30">DESCRIPTION</text><text x="432" y="30">NOTE</text>
+    </g>
+    <g class="mono" font-size="11.5" fill="#1A1E1B">
+      <text x="16" y="58">1</text><text x="58" y="58">Vendordep installer</text>
+      <text x="16" y="86">2</text><text x="58" y="86">Project + season detection</text>
+      <text x="16" y="114">3</text><text x="58" y="114">CAN ID planner</text>
+      <text x="16" y="142">4</text><text x="58" y="142">Wiring + SmartIO planner</text>
+      <text x="16" y="170">5</text><text x="58" y="170">Autonomy 2.0 planner</text>
+      <text x="16" y="198">6</text><text x="58" y="198">Mechanism / gain calculators</text>
+    </g>
+    <g class="mono" font-size="10.5" fill="#5C635E">
+      <text x="432" y="58">writes vendordeps/</text>
+      <text x="432" y="86">flags beta + modified</text>
+      <text x="432" y="114">five buses, 2-1-2</text>
+      <text x="432" y="142">typed pins</text>
+      <text x="432" y="170">conflict matrix</text>
+      <text x="432" y="198">emits Catalyst code</text>
+    </g>
+  </g>
+
+  <g transform="translate(64,566)">
+    <text class="mono lbl" x="0" y="0">GENERAL NOTES</text>
+    <text class="mono" x="0" y="21" font-size="11.5" fill="#1A1E1B">1.  COMPETING THIS SEASON? THE APP DOES NOT BUNDLE REV 1 &#8212; INSTALL v1.12.0 BY HAND.</text>
+  </g>
+
+  <g transform="translate(700,284)">
+    <rect x="0" y="0" width="516" height="72" fill="none" stroke="#1A1E1B" stroke-width="1"/>
+    <g stroke="#5C635E" stroke-width="0.5" opacity="0.6"><path d="M0 24h516M0 48h516M36 0v72M250 0v72M382 0v72"/></g>
+    <g class="mono lbl" font-size="9">
+      <text x="9" y="16">REV</text><text x="46" y="16">INSTALLS</text><text x="260" y="16">TARGET</text><text x="392" y="16">DATE</text>
+    </g>
+    <g class="mono" font-size="10.5" fill="#B3BBB4">
+      <text x="14" y="40">1</text><text x="46" y="40">Catalyst 1.12.0</text><text x="260" y="40">roboRIO</text><text x="392" y="40">2026-08</text>
+    </g>
+    <g class="mono" font-size="10.5" fill="#1A1E1B">
+      <text x="46" y="64">Catalyst 2.0.0-beta.2</text><text x="260" y="64">Systemcore</text><text x="392" y="64">2026-09</text>
+    </g>
+    <path d="M18 51 L26 66 L10 66 Z" fill="none" stroke="#D6412A" stroke-width="1.3"/>
+    <text class="mono" x="18" y="65" font-size="9" font-weight="700" fill="#D6412A" text-anchor="middle">2</text>
+  </g>
+
+  <g transform="translate(700,372)">
+    <rect x="0" y="0" width="516" height="232" fill="none" stroke="#1A1E1B" stroke-width="1"/>
+    <g stroke="#5C635E" stroke-width="0.5" opacity="0.6">
+      <path d="M0 46h516M0 80h516M0 114h516M0 148h516M0 182h516M0 214h516M196 46v168"/>
+    </g>
+    <text class="mono lbl" x="12" y="19" font-size="9">TITLE</text>
+    <text class="sans" x="12" y="38" font-size="25" font-weight="800" fill="#1A1E1B" letter-spacing="1">CATALYSTAPP</text>
+    <text class="mono" x="504" y="38" font-size="19" font-weight="700" fill="#D6412A" text-anchor="end">2.6</text>
+    <g class="mono lbl" font-size="9.5">
+      <text x="12" y="67">DWG NO</text><text x="12" y="101">PLATFORMS</text><text x="12" y="135">INSTALLER</text>
+      <text x="12" y="169">TESTED</text><text x="12" y="203">DRIVEN ON A ROBOT</text>
+    </g>
+    <g class="mono val">
+      <text x="208" y="67" font-weight="700">2.7.0</text>
+      <text x="208" y="101">Windows &#183; macOS</text>
+      <text x="208" y="135">signed, self-updating</text>
+    </g>
+    <rect x="208" y="159" width="11" height="11" fill="#1A1E1B"/>
+    <text class="mono val" x="227" y="169">19 tests, 0 failures</text>
+    <rect x="208" y="193" width="11" height="11" fill="none" stroke="#D6412A" stroke-width="1.3" stroke-dasharray="2.5 2"/>
+    <text class="mono" x="227" y="203" font-size="12" fill="#5C635E">the library it installs: bench only</text>
+    <g class="mono lbl" font-size="9">
+      <text x="12" y="225">DRAWN BY TEAM 5805</text>
+      <text x="504" y="225" text-anchor="end">SHEET 2 OF 3</text>
+    </g>
+  </g>
+
+  <g transform="translate(64,604)" stroke="#5C635E" stroke-width="0.75" opacity="0.8"><path d="M-6 0h12M0 -6v12"/></g>
+  <text class="mono zone" x="78" y="607">0,0</text>
+</svg>

@@ -1,16 +1,28 @@
 {
   "name": "catalyst-app",
-  "version": "1.4.3",
+  "version": "2.7.0",
   "description": "FrcCatalyst desktop companion (Tauri)",
   "private": true,
+  "type": "module",
   "scripts": {
+    "test": "node scripts/sync-tools.mjs --check && node scripts/check-identity.mjs && node --test \"src/**/*.test.js\"",
     "tauri": "tauri",
     "bundle-console": "node scripts/bundle-console.mjs",
-    "build:all": "node scripts/bundle-console.mjs && tauri build",
+    "bundle-docs": "node scripts/bundle-docs.mjs",
+    "vendor": "node scripts/vendor.mjs",
+    "prepare-resources": "node scripts/check-identity.mjs --write && node scripts/vendor.mjs && node scripts/sync-tools.mjs && node scripts/bundle-console.mjs && node scripts/bundle-docs.mjs",
     "dev": "tauri dev",
-    "build": "tauri build"
+    "build": "npm run prepare-resources && tauri build",
+    "build:all": "npm run build",
+    "sync-tools": "node scripts/sync-tools.mjs",
+    "identity": "node scripts/check-identity.mjs --write",
+    "check-identity": "node scripts/check-identity.mjs",
+    "harness": "node scripts/harness.mjs src"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2"
+    "@tauri-apps/cli": "^2",
+    "@xterm/addon-fit": "0.11.0",
+    "@xterm/xterm": "6.0.0",
+    "monaco-editor": "0.56.0"
   }
 }
