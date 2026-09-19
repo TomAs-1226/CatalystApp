@@ -106,7 +106,7 @@
       <text x="12" y="169">TESTED</text><text x="12" y="203">DRIVEN ON A ROBOT</text>
     </g>
     <g class="mono val">
-      <text x="208" y="67" font-weight="700">2.6.1</text>
+      <text x="208" y="67" font-weight="700">2.7.0</text>
       <text x="208" y="101">Windows &#183; macOS</text>
       <text x="208" y="135">signed, self-updating</text>
     </g>

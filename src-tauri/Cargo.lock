@@ -421,7 +421,7 @@ dependencies = [
 
 [[package]]
 name = "catalyst-app"
-version = "2.6.1"
+version = "2.7.0"
 dependencies = [
  "portable-pty",
  "serde",
