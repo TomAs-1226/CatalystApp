@@ -35,7 +35,7 @@ export function init() {
   $("#checkLibBtn").addEventListener("click", () => checkLib(true));
 
   // It goes to the v1.12.0 tag, not to /releases. That list is ordered newest-first and its top
-  // entry is 2.0.0-beta.1, so the button meant for teams that must not run the beta was landing
+  // entry is 2.0.0-beta.2, so the button meant for teams that must not run the beta was landing
   // them on it.
   $("#wnOneXBtn").addEventListener("click", () =>
     openExternal("https://github.com/TomAs-1226/FrcCatalyst/releases/tag/v1.12.0"));

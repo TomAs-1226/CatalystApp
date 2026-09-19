@@ -12,7 +12,7 @@ export const APP_VERSION_FALLBACK = "dev";
 // The FrcCatalyst version bundled inside this app. It must equal the `version` in
 // src-tauri/resources/FrcCatalyst.json, which is the file actually written into a project — this
 // constant only labels it.
-export const LIB_VERSION = "2.0.0-beta.1";
+export const LIB_VERSION = "2.0.0-beta.2";
 export const LIB_FRC_YEAR = "2027";
 
 // The feed for the line this build is on. Pointing at the stable vendordep would have meant a 2.x
@@ -82,12 +82,13 @@ export const AGENT_CAPS = [
 ];
 
 export const CHANGELOG = [
-  { v: "2.7.0", t: "One identity, and a workspace", date: "2026-09-15", items: [
+  { v: "2.7.0", t: "One identity, a workspace, and Catalyst 2.0.0-beta.2", date: "2026-09-19", items: [
+    "Installs Catalyst 2.0.0-beta.2: a top speed for a robot aiming while it drives, a slip-current measurement that tells a wheel carrying no weight from a robot that is rolling, and three fixes. All of it measured on a robot this week.",
     "The app, the Console, the tools and the docs now share one set of colours, type, corners and motion — the launch identity, as tokens. Status colours mean status and nothing else.",
     "A workspace: open your robot project and get its files, an editor, a terminal wired to devtools, and a Claude Code session that already knows the project and the Catalyst API.",
     "Six places in the sidebar instead of twenty. Tools are one grid, Doctor and Vendordeps are two tabs of Project health, and Install, the release notes and Updates are three tabs of Library."] },
   { v: "2.6.1", t: "Catalyst 2.0.0-beta.1, and one look across all three", date: "2026-09-09", items: [
-    "Installs Catalyst 2.0.0-beta.1. The old notice told you to wait for WPILib alpha-7 before the newer features were installable — alpha-7 arrived, so everything the app advertises is in the version it installs.",
+    "Installs Catalyst 2.0.0-beta.2. The old notice told you to wait for WPILib alpha-7 before the newer features were installable — alpha-7 arrived, so everything the app advertises is in the version it installs.",
     "It needs WPILib 2027 alpha-7 and Systemcore OS beta 14, and that pairing is not optional: a build made against alpha-7 aborts on beta 13 before your robot code runs. Flash the OS first.",
     "The app, the Console and the docs site now share one set of colours, spacing and type. Status colours mean status and nothing else, and numbers that change no longer shift width as they do."] },
   { v: "2.6.0", t: "Import a project as it is", date: "2026-09-07", items: [

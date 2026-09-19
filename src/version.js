@@ -4,7 +4,7 @@
 // pre-release cases backwards in a way nothing would have noticed until it mattered:
 //
 //   2.0.0 vs 2.0.0-alpha.1   ->  reported the finished release as OLDER than its own alpha
-//   2.0.0-beta.1 vs -alpha.1 ->  reported them as the same version
+//   2.0.0-beta.2 vs -alpha.1 ->  reported them as the same version
 //
 // It split on both dots and hyphens and ran parseInt over the pieces, so "alpha" became 0 and the
 // pre-release tag vanished into an extra numeric field. Every alpha comparison happened to work,

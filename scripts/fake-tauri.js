@@ -51,7 +51,7 @@
     list_projects: async () => {
       const { dir } = await get("/__fs/project");
       return [{
-        name: dir.split(/[\\/]/).pop(), path: dir, catalyst_version: "2.0.0-beta.1",
+        name: dir.split(/[\\/]/).pop(), path: dir, catalyst_version: "2.0.0-beta.2",
         year: "2027", agent_write: false, note: "", analysis: { kind: "release", vendordeps: ["FrcCatalyst.json", "Phoenix6.json"], notes: [] },
       }];
     },
@@ -65,10 +65,10 @@
     app_version: async () => "harness",
     console_available: async () => false,
     mcp_server_path: async () => "C:/Users/yu_th/AppData/Local/Catalyst/resources/mcp/server.js",
-    read_bundled_vendordep: async () => '{"name":"FrcCatalyst","version":"2.0.0-beta.1","frcYear":"2027"}',
+    read_bundled_vendordep: async () => '{"name":"FrcCatalyst","version":"2.0.0-beta.2","frcYear":"2027"}',
     detect_project: async ({ dir }) => ({
       project_name: dir.split(/[\\/]/).pop(), is_wpilib: true, reasons: [],
-      has_catalyst: true, catalyst_version: "2.0.0-beta.1", project_year: "2027",
+      has_catalyst: true, catalyst_version: "2.0.0-beta.2", project_year: "2027",
     }),
     diagnose_project: async () => ({
       ready: false, summary: "One thing will stop this building",
@@ -84,7 +84,7 @@
     inspect_vendordeps: async () => ({
       ready: false, summary: "One vendordep is from last season", projectYear: "2027", notes: [],
       deps: [
-        { name: "FrcCatalyst", version: "2.0.0-beta.1", frcYear: "2027", yearState: "match", file: "FrcCatalyst.json", problems: [] },
+        { name: "FrcCatalyst", version: "2.0.0-beta.2", frcYear: "2027", yearState: "match", file: "FrcCatalyst.json", problems: [] },
         { name: "PathplannerLib", version: "2026.2.1", frcYear: "2026", yearState: "mismatch", file: "PathplannerLib.json", problems: ["Declares 2026 in a 2027 project"] },
       ],
     }),

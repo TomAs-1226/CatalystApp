@@ -373,11 +373,11 @@ test("a vendordep gives up its top-level keys and none of the numbers under them
   const json = [
     "{",
     '  "name": "FrcCatalyst",',
-    '  "version": "2.0.0-beta.1",',
+    '  "version": "2.0.0-beta.2",',
     '  "javaDependencies": [',
     "    {",
     '      "artifactId": "catalyst",',
-    '      "version": "2.0.0-beta.1"',
+    '      "version": "2.0.0-beta.2"',
     "    }",
     "  ],",
     '  "frcYear": "2027"',

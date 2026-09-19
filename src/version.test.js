@@ -20,7 +20,7 @@ test("a finished release outranks its own pre-releases", () => {
 
 test("beta outranks alpha", () => {
   // Previously equal, because both tags parsed to 0.
-  newer("2.0.0-beta.1", "2.0.0-alpha.1");
+  newer("2.0.0-beta.2", "2.0.0-alpha.1");
   newer("2.0.0-rc.1", "2.0.0-beta.9");
 });
 
@@ -85,7 +85,7 @@ test("an update is offered exactly when the published version is genuinely newer
   const offers = (published) => cmpVer(published, bundled) > 0;
 
   assert.equal(offers("2.0.0-alpha.2"), true, "a newer alpha");
-  assert.equal(offers("2.0.0-beta.1"), true, "the first beta");
+  assert.equal(offers("2.0.0-beta.2"), true, "the first beta");
   assert.equal(offers("2.0.0"), true, "the real release");
   assert.equal(offers("2.0.0-alpha.1"), false, "the same build");
   assert.equal(offers("1.12.0"), false, "the old stable line is not an update");

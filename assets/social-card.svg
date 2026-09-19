@@ -87,7 +87,7 @@
       <text x="14" y="40">1</text><text x="46" y="40">Catalyst 1.12.0</text><text x="260" y="40">roboRIO</text><text x="392" y="40">2026-08</text>
     </g>
     <g class="mono" font-size="10.5" fill="#1A1E1B">
-      <text x="46" y="64">Catalyst 2.0.0-beta.1</text><text x="260" y="64">Systemcore</text><text x="392" y="64">2026-09</text>
+      <text x="46" y="64">Catalyst 2.0.0-beta.2</text><text x="260" y="64">Systemcore</text><text x="392" y="64">2026-09</text>
     </g>
     <path d="M18 51 L26 66 L10 66 Z" fill="none" stroke="#D6412A" stroke-width="1.3"/>
     <text class="mono" x="18" y="65" font-size="9" font-weight="700" fill="#D6412A" text-anchor="middle">2</text>

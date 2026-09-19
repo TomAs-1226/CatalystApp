@@ -3,7 +3,7 @@
 The desktop companion for **FrcCatalyst**: it installs the library straight into your robot project
 and puts every Catalyst tool in one window, working offline.
 
-**App 2.7.0** · installs **FrcCatalyst 2.0.0-beta.1** · Windows and macOS · built with
+**App 2.7.0** · installs **FrcCatalyst 2.0.0-beta.2** · Windows and macOS · built with
 [Tauri](https://tauri.app) — a Rust backend and a plain HTML/CSS/JS frontend, no framework. Windows
 builds locally; the macOS build runs in CI
 ([`.github/workflows/build-app.yml`](.github/workflows/build-app.yml)).
@@ -16,7 +16,7 @@ drivebase, where 2.x is being brought up on hardware.
 
 ## Before you install 2.x into a robot project
 
-Catalyst 2.0.0-beta.1 is a **pre-season beta**, pinned to a WPILib **alpha**.
+Catalyst 2.0.0-beta.2 is a **pre-season beta**, pinned to a WPILib **alpha**.
 
 | | |
 |---|---|
@@ -44,7 +44,7 @@ does not bundle 1.x; that vendordep comes from the
 |---|---|
 | Catalyst 1.12.0 on a roboRIO | **App 1.4.3**: branch `main`, release `app-v1.4.3`. This app does not bundle 1.x. |
 | Catalyst 2.0.0-alpha.3 on Systemcore OS image 13 (WPILib alpha-6), which is what runs CTRE motors today | This app's tools work; its install button does not help, because it installs beta.1. Add alpha.3 from a source build. |
-| Catalyst 2.0.0-beta.1 on Systemcore OS image 14 (WPILib alpha-7) | **App 2.7.0**: this branch, `systemcore`. Not a GitHub release yet. |
+| Catalyst 2.0.0-beta.2 on Systemcore OS image 14 (WPILib alpha-7) | **App 2.7.0**: this branch, `systemcore`. Not a GitHub release yet. |
 
 The whole map (library, Console, agent, vendor libraries and Systemcore images) is on
 [Versions and compatibility](https://tomas-1226.github.io/FrcCatalyst/versions.html).
@@ -158,7 +158,7 @@ MCP server has always had, applied to the app's own editor.
 
 ## Updating the bundled library
 
-The app ships one version of `FrcCatalyst.json` (currently **2.0.0-beta.1**). To cut a new app release that
+The app ships one version of `FrcCatalyst.json` (currently **2.0.0-beta.2**). To cut a new app release that
 installs a newer library, drop the new `FrcCatalyst.json` into `src-tauri/resources/`, bump the version
 in `tauri.conf.json` + `package.json` + `Cargo.toml`, and rebuild.
 
