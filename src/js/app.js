@@ -795,6 +795,17 @@ document.addEventListener("click", (e) => {
   if (link) go(link.dataset.go);
 });
 
+// A bundled tool asking the shell to go somewhere: Driver Config sends people to the project
+// registry to switch writing on, because it cannot switch it on for them. Same origin only, and
+// only a route that already exists - a tool page may ask for a view, never invent one.
+window.addEventListener("message", (e) => {
+  if (e.origin !== location.origin || !e.data || e.data.type !== "catalyst:navigate") return;
+  const route = String(e.data.view || "");
+  const head = route.split("/")[0];
+  if (VIEWS.includes(head)) go(route);
+  else if (TOOLS.some((t) => t.id === head)) go(`tool/${head}`);
+});
+
 document.addEventListener("DOMContentLoaded", async () => {
   document.body.classList.add("cat-app");
   buildRail();

@@ -482,3 +482,237 @@ pub fn set_project_note(dir: String, note: String) -> Result<(), String> {
         None => Err(format!("not registered: {path}")),
     }
 }
+
+// ------------------------------------------------------------------ files inside a project
+//
+// The app's own tools reach into a project through this door, and it is the same door the MCP
+// server keeps for an agent, with the same rules: the folder must be registered; writing needs that
+// project's `agent_write`, which only a person sets, on the Projects page; the path must stay inside
+// the project once links are resolved; and version control and build output are refused even then.
+// A tool that writes code into a robot project is exactly as capable of damage as an agent that
+// does, so it gets no easier way in. Driver Config is the first tool to use it.
+
+/// Paths refused even inside a project that allows writing. Must match `PROTECTED` in
+/// `resources/mcp/server.js`: the two doors into a project refuse the same rooms.
+pub const PROTECTED: [&str; 6] = [".git", "build", "target", "node_modules", ".gradle", "graphify-out"];
+
+/// A Java source file, for a tool that reads the project (Driver Config's action scan).
+#[derive(Debug, Clone, Serialize)]
+pub struct SourceFile {
+    /// Relative to the project root, with forward slashes.
+    pub path: String,
+    pub text: String,
+}
+
+/// What a write did, in the words the page shows the user.
+#[derive(Debug, Clone, Serialize)]
+pub struct WriteReport {
+    pub project: String,
+    /// Absolute path of the file written.
+    pub path: String,
+    /// The same file relative to the project root.
+    pub rel: String,
+    pub bytes: usize,
+    /// True when the file did not exist before.
+    pub created: bool,
+}
+
+const MAX_SOURCE_FILES: usize = 4000;
+const MAX_SOURCE_BYTES: usize = 32 * 1024 * 1024;
+
+fn plain(p: &Path) -> String {
+    let s = p.to_string_lossy().to_string();
+    s.strip_prefix(r"\\?\").map(str::to_string).unwrap_or(s)
+}
+
+fn registered<'a>(reg: &'a Registry, dir: &str) -> Result<&'a Project, String> {
+    let path = canonical(dir);
+    reg.projects
+        .iter()
+        .find(|p| p.path == path || canonical(&p.path) == path)
+        .ok_or_else(|| format!("{path} is not a registered project. Import it on the Projects page first."))
+}
+
+/// `rel` inside `root`, or the reason it is refused.
+///
+/// A path must be relative and plain - no `..`, no drive, no leading slash - and name no protected
+/// folder. Then the deepest part of it that already exists must resolve inside the project, so a
+/// symlink or a junction that points out of the folder is caught by the same test as `..` is.
+fn resolve_inside(root: &Path, rel: &str) -> Result<PathBuf, String> {
+    use std::path::Component;
+    if rel.trim().is_empty() {
+        return Err("No file was named.".into());
+    }
+    let mut clean = PathBuf::new();
+    for comp in Path::new(rel).components() {
+        match comp {
+            Component::Normal(seg) => {
+                let s = seg.to_string_lossy();
+                if PROTECTED.iter().any(|p| p.eq_ignore_ascii_case(&s)) {
+                    return Err(format!(
+                        "Refusing \"{rel}\": \"{s}\" is build output or version control, not source."
+                    ));
+                }
+                clean.push(seg);
+            }
+            Component::CurDir => {}
+            _ => {
+                return Err(format!(
+                    "Refusing \"{rel}\": it must be a path inside the project - no \"..\", drive or leading slash."
+                ))
+            }
+        }
+    }
+    let root_real = fs::canonicalize(root).map_err(|e| format!("Cannot open the project folder: {e}"))?;
+    let target = root_real.join(&clean);
+    let mut probe = target.clone();
+    while !probe.exists() {
+        if !probe.pop() {
+            break;
+        }
+    }
+    let probe_real = fs::canonicalize(&probe).map_err(|e| e.to_string())?;
+    if !probe_real.starts_with(&root_real) {
+        return Err(format!("Refusing \"{rel}\": it leads outside the project."));
+    }
+    Ok(target)
+}
+
+fn read_text(target: &Path, rel: &str) -> Result<Option<String>, String> {
+    match fs::read(target) {
+        Ok(bytes) => String::from_utf8(bytes)
+            .map(Some)
+            .map_err(|_| format!("{rel} is not a UTF-8 text file.")),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(e) => Err(format!("Could not read {rel}: {e}")),
+    }
+}
+
+/// Read one file of a registered project. `None` when it does not exist yet.
+pub(crate) fn read_file_in(reg: &Registry, dir: &str, rel: &str) -> Result<Option<String>, String> {
+    let p = registered(reg, dir)?;
+    let target = resolve_inside(Path::new(&p.path), rel)?;
+    read_text(&target, rel)
+}
+
+/// Write one file of a registered project, under every rule above.
+///
+/// `expected` is the file as the user last saw it in a preview, and `expect_absent` says the preview
+/// showed no file at all. If the file has changed since - an editor saved it, a pull landed - the
+/// write is refused rather than overwriting something nobody has looked at.
+pub(crate) fn write_file_in(
+    reg: &Registry,
+    dir: &str,
+    rel: &str,
+    content: &str,
+    expected: Option<&str>,
+    expect_absent: bool,
+) -> Result<WriteReport, String> {
+    let p = registered(reg, dir)?;
+    if !p.agent_write {
+        return Err(format!(
+            "Writing is off for \"{}\". Open Projects, find it, and switch on \"Let agents write\" - the same \
+             switch an AI agent needs. Nothing was written.",
+            p.name
+        ));
+    }
+    let target = resolve_inside(Path::new(&p.path), rel)?;
+    if target.is_dir() {
+        return Err(format!("{rel} is a folder, not a file."));
+    }
+    let current = read_text(&target, rel)?;
+    if expect_absent && current.is_some() {
+        return Err(format!("{rel} appeared since you previewed the change. Nothing was written; review it again."));
+    }
+    if let Some(want) = expected {
+        if current.as_deref() != Some(want) {
+            return Err(format!("{rel} changed since you previewed it. Nothing was written; review the change again."));
+        }
+    }
+    if let Some(parent) = target.parent() {
+        fs::create_dir_all(parent).map_err(|e| format!("Could not create the folder for {rel}: {e}"))?;
+    }
+    // Through a temporary file beside the target: a crash mid-write must never leave half a Java file
+    // in a robot project, because the next build fails on it and nobody knows why.
+    let name = target.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+    let tmp = target.with_file_name(format!(".{name}.catalyst-tmp"));
+    fs::write(&tmp, content.as_bytes()).map_err(|e| format!("Could not write {rel}: {e}"))?;
+    if let Err(e) = fs::rename(&tmp, &target) {
+        let _ = fs::remove_file(&tmp);
+        return Err(format!("Could not write {rel}: {e}"));
+    }
+    Ok(WriteReport {
+        project: p.name.clone(),
+        path: plain(&target),
+        rel: rel.replace('\\', "/"),
+        bytes: content.len(),
+        created: current.is_none(),
+    })
+}
+
+/// Every `.java` file under `src/main/java`, skipping protected folders and never following a link.
+pub(crate) fn java_sources_in(reg: &Registry, dir: &str) -> Result<Vec<SourceFile>, String> {
+    let p = registered(reg, dir)?;
+    let root = fs::canonicalize(&p.path).map_err(|e| format!("Cannot open the project folder: {e}"))?;
+    let mut out = Vec::new();
+    let mut total = 0usize;
+    walk_java(&root.join("src").join("main").join("java"), &root, &mut out, &mut total)?;
+    out.sort_by(|a, b| a.path.cmp(&b.path));
+    Ok(out)
+}
+
+fn walk_java(dir: &Path, root: &Path, out: &mut Vec<SourceFile>, total: &mut usize) -> Result<(), String> {
+    let entries = match fs::read_dir(dir) {
+        Ok(e) => e,
+        Err(_) => return Ok(()),
+    };
+    for entry in entries.flatten() {
+        let Ok(kind) = entry.file_type() else { continue };
+        let name = entry.file_name().to_string_lossy().to_string();
+        let path = entry.path();
+        if kind.is_symlink() {
+            continue;
+        }
+        if kind.is_dir() {
+            if !PROTECTED.iter().any(|p| p.eq_ignore_ascii_case(&name)) {
+                walk_java(&path, root, out, total)?;
+            }
+        } else if name.ends_with(".java") {
+            if out.len() >= MAX_SOURCE_FILES || *total >= MAX_SOURCE_BYTES {
+                return Err("This project has more Java than a robot project should; stopped reading it.".into());
+            }
+            let Ok(text) = fs::read_to_string(&path) else { continue };
+            *total += text.len();
+            let rel = path.strip_prefix(root).map(|r| r.to_string_lossy().replace('\\', "/")).unwrap_or(name);
+            out.push(SourceFile { path: rel, text });
+        }
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub fn read_project_file(dir: String, rel: String) -> Result<Option<String>, String> {
+    read_file_in(&load(), &dir, &rel)
+}
+
+/// The registry is re-read on every call, so a switch flipped on the Projects page a second ago is
+/// the one that counts.
+#[tauri::command]
+pub fn write_project_file(
+    dir: String,
+    rel: String,
+    content: String,
+    expected: Option<String>,
+    expect_absent: bool,
+) -> Result<WriteReport, String> {
+    write_file_in(&load(), &dir, &rel, &content, expected.as_deref(), expect_absent)
+}
+
+#[tauri::command]
+pub fn project_java_sources(dir: String) -> Result<Vec<SourceFile>, String> {
+    java_sources_in(&load(), &dir)
+}
+
+#[cfg(test)]
+#[path = "projects_tests.rs"]
+mod tests;

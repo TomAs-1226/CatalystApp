@@ -60,9 +60,10 @@ Which library, app, console and Systemcore image go together is kept on one page
 
 ## What it does
 
-- **Tools** — eleven, bundled and working offline: Builder, Motors, PID Tuner, Motion Magic, Wiring,
-  CAN IDs, Aiming, Auto, State Machine, Motor History, Autonomy 2.0. They are the same self-contained
-  pages the docs site serves.
+- **Tools** — twelve, bundled and working offline: Builder, Motors, PID Tuner, Motion Magic, Wiring,
+  CAN IDs, Aiming, Auto, State Machine, Motor History, Autonomy 2.0 and Driver Config. The first
+  eleven are the same self-contained pages the docs site serves; Driver Config writes into a robot
+  project, so it lives only in the app.
 - **Install into a project** — pick your GradleRIO project folder; the app checks it really is a
   WPILib project, tells you if Catalyst is already there (and which version), then drops
   `FrcCatalyst.json` into `vendordeps/` from a bundled copy (offline). It fetches LimelightLib in the
@@ -126,6 +127,7 @@ CatalystApp/
     styles/workspace.css    the workspace panes' own styles
     vendor/                 Monaco and xterm, put there by `npm run vendor` (gitignored)
     tools/<tool>/index.html the bundled tools, copied from the library (gitignored drift check in `npm test`)
+    tools/driverconfig/     the one tool the app owns rather than copies, with its own tests
   src-tauri/                Rust backend
     src/main.rs             the command surface
     src/projects.rs         the project registry, and the write boundary agents are held to
@@ -313,3 +315,25 @@ than once, because an ambiguous edit is the one that silently lands somewhere yo
 
 The registry lives in localStorage's place for a reason: localStorage belongs to the webview, and
 the MCP server is a separate Node process that cannot see it.
+
+## Driver Config (on the `driver-config` branch, not yet released)
+
+Set up how each driver's controller drives the robot - which stick is which, deadband, response
+curve, speed limits, slow mode and turbo, button bindings, rumble - and press **Apply to project** to
+write it into the robot project. It is under Tools, as Driver Config.
+
+It targets the Catalyst the X1 runs, 2.0.0-alpha.3 (library commit 5adc688b) on WPILib 2027 alpha-6,
+and uses only API that exists there and in 2.0.0-beta.1: `DriverProfile`, `RumbleEvents`,
+`SlewRateLimiter`, `CommandGenericHID`, `Trigger` and plain NetworkTables. The library cannot load a
+profile file at 5adc688b, so the tool generates Java: `DriverConfig.java` (profiles, buttons, rumble
+and a dashboard driver picker) and, if you want it, a constants block such as `X1Constants.Driving`
+for code that builds its own `DriverProfile`. Each lives between marker lines; the app rewrites only
+what is between them, and reads the setup back from a JSON copy it keeps inside the region.
+
+Writing goes through the project registry above: the project must be imported, *let agents write*
+must be on, and the same paths are refused as for an agent. The preview shows the exact diff first,
+and the write is refused if the file changed after the preview was taken.
+
+Controller numbers are the robot's, counted from 0 - WPILib 2027 counts buttons from 0. The DualSense
+map is the one measured on the X1 on 2026-09-10: gamepad layout, Create 4, Options 6, L1 9, D-pad up
+11, touchpad 20, four axes. Anything not measured is drawn as an assumption.

@@ -29,14 +29,20 @@ const check = args.includes("--check");
 const given = args.find((a) => !a.startsWith("--"));
 
 // The 2.0 line first, because that is the line this app ships. The library keeps its 2027 work on
-// the `systemcore` branch, which on this machine is a worktree beside the repo, and that branch has
-// tools the 1.x line does not (autonomy, history). Checking against a 1.x checkout reported drift
-// for every tool and "bundled but not in the library" for the two new ones — which is a check that
-// fails while everything is correct, and a check nobody can act on gets ignored.
+// branches that live in worktrees beside the repo, and they have tools the 1.x line does not
+// (autonomy, history). Checking against a 1.x checkout reported drift for every tool and "bundled
+// but not in the library" for the two new ones — which is a check that fails while everything is
+// correct, and a check nobody can act on gets ignored.
+//
+// The 1.x path stays last as a fallback rather than being removed: on a machine with only that
+// checkout it is the only thing to compare against, and a noisy answer beats no answer. Order is
+// what keeps it from being chosen while a 2.x worktree exists — so when a branch is renamed, its
+// path is renamed here too, or the check quietly grades the app against the wrong line.
 const candidates = given
   ? [resolve(given)]
   : [
-      resolve(root, "../_worktrees/FrcCatalyst-systemcore/docs/tools"),
+      resolve(root, "../_worktrees/FrcCatalyst-alpha6/docs/tools"),
+      resolve(root, "../_worktrees/FrcCatalyst-alpha7/docs/tools"),
       resolve(root, "../FrcCatalyst/docs/tools"),
       resolve(root, "../FrcCatalyst-v1.1.0/docs/tools"),
     ];
@@ -49,8 +55,14 @@ if (!source) {
   process.exit(0);
 }
 
+/**
+ * Tools that exist only in this app. Driver Config writes into a robot project through the app's
+ * project registry, which a docs page cannot reach, so the library has no copy to sync it from.
+ */
+const APP_ONLY = new Set(["driverconfig"]);
+
 /** The tools the app actually shows. Anything else in the docs folder is not the app's business. */
-const BUNDLED = readdirSync(dest).filter((n) => statSync(join(dest, n)).isDirectory());
+const BUNDLED = readdirSync(dest).filter((n) => statSync(join(dest, n)).isDirectory() && !APP_ONLY.has(n));
 
 /** Line endings differ between the two checkouts and mean nothing here. */
 const normalise = (s) => s.replace(/\r\n/g, "\n");
