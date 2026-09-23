@@ -83,6 +83,12 @@ export const AGENT_CAPS = [
 ];
 
 export const CHANGELOG = [
+  { v: "2.8.0", t: "The wiring tool plans ports, and draws the loom", date: "2026-09-22", items: [
+    "Wiring is a planner now, not a diagram. Pick the channel every device sits in — the board's own numbering — and get a run list naming both ends of every run: PDH 7 to BR Steer, MPM F0 to LEDs, with the gauge, the length and the voltage drop. You could not wire from the old picture, because it never said which channel anything went in.",
+    "Breakouts are first-class. An MPM, VRM, RPM or Servo Hub takes a channel on the main board and provides its own, and a device goes into one the same way it goes into the board. A device that needs regulated power will only go where regulated power exists.",
+    "The drawing shows the loom: a terminal pad per channel, runs in their own lanes at a stroke width that tracks the gauge, and breakout feeds leaving to the left toward the board they power. CAN is drawn as the daisy chain it is rather than a rail with taps.",
+    "Six times the devices — brushed motors and the controllers they need, Talon FXS and SRX, Thrifty Nova, CANrange, CANifier, Limelight cameras, switches, servos, limit switches, analog and quadrature inputs.",
+    "The tool used to attribute a regulator recommendation, a connector name and a wire gauge to Limelight, and none of the three is in any Limelight or WPILib document. The advice stays — a controller that browns out mid-match is not a mistake worth inheriting from a diagram — but it now reads as something to confirm against your hardware."] },
   { v: "2.7.0", t: "One identity, a workspace, and Catalyst 2.0.0-beta.2", date: "2026-09-19", items: [
     "Installs Catalyst 2.0.0-beta.2: a top speed for a robot aiming while it drives, a slip-current measurement that tells a wheel carrying no weight from a robot that is rolling, and three fixes. All of it measured on a robot this week.",
     "The app, the Console, the tools and the docs now share one set of colours, type, corners and motion — the launch identity, as tokens. Status colours mean status and nothing else.",
