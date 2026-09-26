@@ -31,7 +31,6 @@ impl Project {
             .file("gradle/wrapper/gradle-wrapper.properties", GRADLE_9)
             .file("vendordeps/FrcCatalyst.json", "{}")
             .file("vendordeps/Phoenix6.json", "{}")
-            .file("vendordeps/PathplannerLib.json", "{}")
     }
 
     fn diagnose(&self) -> Diagnosis {
@@ -201,6 +200,34 @@ fn a_missing_vendordep_warns_rather_than_blocks() {
 
     assert!(matches!(find(&d, "Catalyst vendordep").level, Level::Warn));
     assert!(d.ready, "a missing vendordep is not a reason to call the project broken");
+}
+
+#[test]
+fn pathplanner_is_not_asked_for() {
+    // Catalyst depends on PathPlanner `compileOnly`, so it never reaches a robot's classpath and a
+    // robot project needs neither its vendordep nor 3015's maven repository - which installing that
+    // vendordep is what adds. `healthy` therefore does not install it, and nothing may ask for it.
+    let d = Project::healthy("nopath").diagnose();
+    assert!(
+        !d.findings.iter().any(|f| f.what.to_lowercase().contains("pathplanner")),
+        "the Doctor still asks for PathPlanner: {:?}",
+        d.findings.iter().map(|f| &f.what).collect::<Vec<_>>()
+    );
+    assert!(d.ready, "{}", d.summary);
+}
+
+#[test]
+fn phoenix_is_still_asked_for_by_hand() {
+    // It is needed, it cannot be fetched, and the version matters: 26.70.0-alpha-2 is the first
+    // Phoenix built for WPILib alpha-7, and it needs matching device firmware.
+    let d = Project::new("nophoenix")
+        .file("build.gradle", GOOD_GRADLE)
+        .file("gradle/wrapper/gradle-wrapper.properties", GRADLE_9)
+        .file("vendordeps/FrcCatalyst.json", "{}")
+        .diagnose();
+    let f = find(&d, "CTRE Phoenix 6");
+    assert!(matches!(f.level, Level::Warn));
+    assert!(f.detail.contains("26.70"), "{}", f.detail);
 }
 
 // --- the migration scan -----------------------------------------------------

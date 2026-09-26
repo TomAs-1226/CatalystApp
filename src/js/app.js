@@ -15,9 +15,10 @@ const RAIL = [
   ["tools", "Tools", "tools"],
   ["project", "Project", "project"],
   ["library", "Library", "library"],
+  ["tab", "Tablet", "tablet"],
 ];
 
-const VIEWS = ["home", "workspace", "tools", "project", "library", "settings", "tool"];
+const VIEWS = ["home", "workspace", "tools", "project", "library", "tab", "settings", "tool"];
 
 /** The module behind each view, loaded the first time that view is opened. */
 const LOADERS = {
@@ -26,6 +27,7 @@ const LOADERS = {
   tools: () => import("./views/tools.js"),
   project: () => import("./views/project.js"),
   library: () => import("./views/library.js"),
+  tab: () => import("./views/tab.js"),
   settings: () => import("./views/settings.js"),
 };
 
@@ -646,6 +648,7 @@ async function openPalette() {
     { label: "Install into a project", kind: "page", go: "library/install" },
     { label: "This release", kind: "page", go: "library/release" },
     { label: "Updates", kind: "page", go: "library/updates" },
+    { label: "Catalyst Tab", kind: "page", icon: "tablet", detail: "The tablet, and Catalyst Link on this PC", go: "tab" },
     { label: "Settings", kind: "page", go: "settings/general" },
     { label: "Your projects", kind: "page", go: "settings/projects" },
     { label: "AI agents", kind: "page", go: "settings/agents" },

@@ -23,7 +23,15 @@ export const invoke = (cmd, args) => {
   return TAURI.core.invoke(cmd, args);
 };
 
-export const httpGet = async (url) => (IN_APP ? TAURI.http.fetch(url, { method: "GET" }) : fetch(url));
+/**
+ * A GET, through Tauri's HTTP plugin in the app and the webview's own fetch in a browser preview.
+ *
+ * `options` is passed through, which is how a caller adds an `AbortSignal` - the Catalyst Tab page
+ * asks a port on this machine whether anything is listening, and a probe with no deadline would sit
+ * there if something answered the socket and then said nothing.
+ */
+export const httpGet = async (url, options) =>
+  IN_APP ? TAURI.http.fetch(url, { method: "GET", ...options }) : fetch(url, options);
 
 export const settings = {
   get: (k, d) => { const v = localStorage.getItem("catalyst." + k); return v === null ? d : v; },
@@ -83,6 +91,8 @@ const ICONS = {
   driverconfig: '<line x1="6" x2="10" y1="12" y2="12"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="15" x2="15.01" y1="13" y2="13"/><line x1="18" x2="18.01" y1="11" y2="11"/><rect width="20" height="12" x="2" y="6" rx="2"/>',
   console: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.2"/><path d="M12 8.8V3"/><path d="m9.2 13.6-4.9 2.9"/><path d="m14.8 13.6 4.9 2.9"/>',
   install: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>',
+  // The Tab5 held the way it is used: landscape, with its one physical button on the short edge.
+  tablet: '<rect x="2" y="4" width="20" height="16" rx="2.5"/><line x1="18.6" x2="18.61" y1="12" y2="12"/>',
   folder: '<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',
   external: '<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
   min: '<line x1="5" x2="19" y1="12" y2="12"/>',

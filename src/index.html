@@ -220,6 +220,12 @@
               not optional: a build made against alpha-7 aborts on beta 13 before your robot code runs.
               Flash the OS first.
               <br><br>
+              <b>CTRE devices need 26.70.x firmware.</b> Phoenix 6 <code>26.70.0-alpha-2</code> is the
+              first Phoenix built for alpha-7, and it will not talk to a TalonFX, CANcoder or Pigeon
+              on older firmware — so moving a robot onto this line is an afternoon of re-flashing,
+              not a redeploy. PathPlanner is not needed: Catalyst depends on it
+              <code>compileOnly</code>, so it never reaches your robot's classpath.
+              <br><br>
               It is a beta and it has <b>never been driven on a robot</b> — pre-season and offseason
               robots only. If you are competing this season, install Catalyst 1.x (tag v1.12.0) instead.
             </div>
@@ -284,7 +290,12 @@
               <p class="hint" style="margin-top:12px"><b style="color:var(--cat-ink)">Flash the OS
                 first.</b> That pairing is not optional: a build made against alpha-7 aborts on
                 Systemcore OS beta 13 before your robot code runs. Vendor libraries are Phoenix 6
-                26.50.0-alpha-1, PathPlanner 2027.0.0-alpha-3 and LimelightLib 2.0.0-beta8-alpha7.</p>
+                <b style="color:var(--cat-ink)">26.70.0-alpha-2</b> — the first Phoenix built for
+                alpha-7, and it needs <b style="color:var(--cat-ink)">26.70.x device firmware</b> on
+                every TalonFX, CANcoder and Pigeon — and LimelightLib 2.0.0-beta8-alpha7. PathPlanner
+                is still 2027.0.0-alpha-3, built against commands v2, and is a
+                <code>compileOnly</code> dependency: it resolves but does not reach your robot's
+                classpath, so your project needs neither its vendordep nor 3015's Maven repository.</p>
 
               <div class="row" style="margin-top:16px">
                 <button class="cat-btn cat-btn--primary" data-go="library/install">Install the beta into a project</button>
@@ -327,6 +338,163 @@
                 <label class="row"><input type="radio" name="upmode" value="ask" checked><span>Ask me first <em>(recommended)</em></span></label>
                 <label class="row"><input type="radio" name="upmode" value="manual"><span>Only when I check here</span></label>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!--
+        Catalyst Tab.
+
+        The tablet is a separate product with a separate PC-side service, and this app has no
+        NetworkTables client, so there is nothing live to put here. What there is instead is the
+        three things somebody holding a Tab5 for the first time needs: whether the PC side is
+        running, how to install it if it is not, and where firmware comes from — plus what the
+        tablet is actually for, which nobody who has not held one knows.
+
+        No button starts, stops or opens Catalyst Link. It is a separate program with its own window
+        and its own state, and a button here pretending otherwise would be inventing an IPC that
+        does not exist.
+      -->
+      <section id="view-tab" class="view" data-view="tab" hidden>
+        <div class="page">
+          <div class="page-head">
+            <h1>Catalyst Tab</h1>
+            <p class="sub">A driver station that fits in a pocket: an <b>M5Stack Tab5</b> that speaks
+              the same NetworkTables Catalyst Console speaks and shows the robot in your hand — at
+              the robot, inside the bellypan, off the cart. On the PC side it pairs with
+              <b>Catalyst Link</b>, a separate app that gives it the robot project, an inbox and
+              Claude. This page finds that app, and says what the tablet does.</p>
+          </div>
+
+          <div class="cat-card">
+            <div class="cat-card__head">
+              <h2 class="cat-card__title">Catalyst Link on this PC</h2>
+              <span class="row">
+                <span class="path" id="tabLinkAddr">127.0.0.1:8765 · /link/status</span>
+                <button class="cat-btn" id="tabCheckBtn">Check again</button>
+              </span>
+            </div>
+            <div class="verdict checking" id="tabLinkVerdict">Looking for Catalyst Link…</div>
+            <div id="tabLinkFacts"></div>
+            <p class="hint" id="tabLinkNote"></p>
+          </div>
+
+          <!-- Shown only when nothing answered. The commands are Catalyst Link's own, from its
+               README — not a reconstruction of them. -->
+          <div class="cat-card" id="tabInstallCard" hidden>
+            <div class="cat-card__head"><h2 class="cat-card__title">Installing Catalyst Link</h2></div>
+            <p class="hint">Catalyst Link runs on the laptop beside the robot project's git repo. It
+              serves the tablet read-only code, turns the tablet's proposed edits into a branch in
+              their own worktree (never merged, never deployed), keeps an inbox of work orders for
+              the PC's own coding agent, receives recordings and logs off the tablet's microSD, and
+              forwards Claude through this PC so no API key ever lives on the tablet. It lives in the
+              Bezel repository, under <code>tab5/link</code>.</p>
+
+            <div class="cat-eyebrow" style="margin:20px 0 8px">THE SERVICE</div>
+            <p class="hint">Python 3.10 or newer, and git.</p>
+<pre>cd tab5/link
+python -m pip install .            <span style="color:var(--cat-faint)"># the catalyst-link command</span>
+python -m pip install zeroconf     <span style="color:var(--cat-faint)"># optional: lets the tablet find it by mDNS</span>
+python -m pip install ".[media]"   <span style="color:var(--cat-faint)"># optional, Windows: the media remote</span>
+python -m pip install ".[flash]"   <span style="color:var(--cat-faint)"># optional: esptool, for the firmware panel</span></pre>
+            <p class="hint" style="margin-top:12px">Then point it at your robot project and start it.
+              It prints its address and its token, and state lives in
+              <code>~/.catalyst-link/</code>.</p>
+<pre>catalyst-link serve --repo ~/robot --check "./gradlew compileJava"</pre>
+
+            <div class="cat-eyebrow" style="margin:20px 0 8px">THE WINDOW AND TRAY ICON</div>
+            <p class="hint">The same Link with a window around it — status, pairing, the firmware
+              panel, the recordings, the inbox, the log. Built the way this app is: Tauri 2, plain
+              HTML/CSS/JS, no bundler. Needs Node.js and Rust with the MSVC toolchain to build.</p>
+<pre>cd tab5/link/desktop
+npm install
+npm run build</pre>
+            <p class="hint" style="margin-top:12px">The installer lands in
+              <code>src-tauri/target/release/bundle/nsis/</code>. On first start it asks for the
+              robot project, and the Link starts as soon as one is set. If a Link is already
+              answering on the port it attaches to that one instead of starting a second.</p>
+
+            <div class="notice info" style="margin-top:16px">
+              <b>Pairing is how the tablet gets in.</b> On the tablet, settings → home → pair the pc;
+              it lists the Links it finds by mDNS, you tap this PC, and the Link shows a six-digit
+              code to type on the tablet. Each paired tablet gets its own token, so one can be
+              forgotten without re-pairing the others.
+            </div>
+          </div>
+
+          <div class="cat-card">
+            <div class="cat-card__head"><h2 class="cat-card__title">Flashing the tablet</h2></div>
+            <p class="hint">Not from here. Firmware lives in <code>tab5/firmware/</code>, and
+              <b>Catalyst Link's desktop app has a firmware panel</b> that writes it with a button —
+              it lists the serial ports and marks the one whose USB vendor id is Espressif's, shows
+              esptool's own output as it goes, and counts a flash as done only once esptool says it
+              verified what it wrote. That needs esptool in the Python that runs the Link
+              (<code>python -m pip install ".[flash]"</code>).</p>
+
+            <div class="notice" style="margin-top:16px">
+              <b>Use the USB-C port.</b> That port is the ESP32-P4's USB-Serial/JTAG. The
+              <b>USB-A port is the robot tether</b> — it is a host port for the Systemcore or a
+              USB-Ethernet adapter, and it cannot flash the tablet. Plugging into the wrong one looks
+              like a tablet that will not connect.
+            </div>
+
+            <p class="hint" style="margin-top:16px">Two images, and the difference matters. The merged
+              image covers the settings area, so writing it <b>erases the tablet's pairing, Wi-Fi and
+              settings</b>; the app alone leaves them. Choose "the app only" for an update.</p>
+<pre>esptool.py --chip esp32p4 -b 921600 write_flash 0x0 catalyst-tab-merged.bin   <span style="color:var(--cat-faint)"># everything, erases settings</span>
+esptool.py --chip esp32p4 -b 921600 write_flash 0x10000 catalyst_tab.bin      <span style="color:var(--cat-faint)"># the app alone</span></pre>
+            <p class="hint" style="margin-top:12px">The addresses, the other images and what to do
+              when it will not start are in <code>tab5/firmware/README.md</code>.</p>
+          </div>
+
+          <div class="cat-card">
+            <div class="cat-card__head"><h2 class="cat-card__title">What the tablet shows</h2></div>
+            <p class="hint">One screen per job, paged rather than nested, so a number can be found
+              without navigating to it. It is a pit and bellypan instrument first: everything below
+              works while you are standing at the robot rather than sitting behind the driver
+              station.</p>
+            <div class="cat-rail" style="margin-top:16px">
+              <div class="cat-rail__item"><div class="cat-rail__body"><b>Pulse</b> — the one-glance
+                overview: mode and alliance, battery and brownout risk, loop time against its budget,
+                and how many errors and warnings the robot is reporting.</div></div>
+              <div class="cat-rail__item"><div class="cat-rail__body"><b>Devices</b> — the motors,
+                cameras and controller the robot expects against the ones that actually answered, and
+                what each Limelight thinks of itself.</div></div>
+              <div class="cat-rail__item"><div class="cat-rail__body"><b>Power</b> — the power module's
+                channels and what each one feeds, with live current where the team publishes it.</div></div>
+              <div class="cat-rail__item"><div class="cat-rail__body"><b>Motion</b> and
+                <b>field</b> — where the robot thinks it is, each swerve module's target against
+                what it is doing, and the path it is following.</div></div>
+              <div class="cat-rail__item"><div class="cat-rail__body"><b>CAN</b> — utilisation and
+                health per bus, the device roster, and a CAN tap that works with the robot code dead,
+                which is the one thing no laptop on the cart can do.</div></div>
+              <div class="cat-rail__item"><div class="cat-rail__body"><b>Alerts</b> and
+                <b>health</b> — every error, warning and per-subsystem health item the robot raises,
+                with the subsystem that raised it.</div></div>
+              <div class="cat-rail__item"><div class="cat-rail__body"><b>Preflight</b> — the
+                pre-match checks and the results of the diagnostic routines, and which Driver Station
+                op mode to run for the ones it cannot run itself.</div></div>
+              <div class="cat-rail__item"><div class="cat-rail__body"><b>Tune</b> and <b>auto</b> —
+                the tunables the robot declares and the autonomous choice. These are the only two
+                things the tablet writes.</div></div>
+              <div class="cat-rail__item"><div class="cat-rail__body"><b>Controls</b> and
+                <b>states</b> — the driver bindings the robot reports, and the whole-robot state
+                machine as it moves.</div></div>
+              <div class="cat-rail__item"><div class="cat-rail__body"><b>Motors</b> — each motor by
+                serial number: lifetime hours, revolutions, peak current and temperature, and every
+                id and name it has ever carried.</div></div>
+              <div class="cat-rail__item"><div class="cat-rail__body"><b>Recorder</b> and
+                <b>logs</b> — an on-device black box that records a run and plays it back, and a
+                reader for the Driver Station logs off a microSD card.</div></div>
+            </div>
+
+            <div class="notice signal" style="margin-top:16px">
+              <b>It never controls the robot.</b> The tablet inherits Catalyst Console's rule: the
+              only writes it makes are a tunable the robot declared, the autonomous choice, and a
+              Limelight's LED to identify which camera you are looking at. Every diagnostic routine
+              is a Driver Station op mode — the tablet shows the result and says which one to run.
+              And a value the robot is not publishing reads as <b>—</b>, never as zero.
             </div>
           </div>
         </div>

@@ -41,19 +41,24 @@ export const TOOLS = [
  * `url` means the 2027 vendordep is published at a stable address and can be fetched. `manual` means
  * it is not, and the app says so instead of guessing.
  *
- * That distinction matters more than it looks. Phoenix 6 and PathPlanner both have 2027 releases, but
- * neither publishes a 2027 vendordep JSON at a discoverable URL yet — PathPlanner's canonical
- * PathplannerLib.json still reports frcYear 2026. Fetching that into a 2027 project would write a
- * file that looks installed and fails at build time, which is a worse outcome than telling someone to
- * add it from VS Code's vendor library list, so that is what this does.
+ * That distinction matters more than it looks. Phoenix 6 26.70.0-alpha-2 is the first build for
+ * WPILib alpha-7 and is what a CTRE robot needs, but CTRE publishes no 2027 vendordep JSON at a
+ * discoverable URL — and PathPlanner's canonical PathplannerLib.json still reports frcYear 2026.
+ * Fetching either into a 2027 project would write a file that looks installed and fails at build
+ * time, which is a worse outcome than telling someone to add it from VS Code's vendor library list,
+ * so that is what this does.
+ *
+ * PathPlanner is marked optional rather than needed. Catalyst depends on it `compileOnly`, so it
+ * never reaches a robot's classpath: a robot project needs neither its vendordep nor 3015's maven
+ * repository, and asking for it would be asking for a repository nobody has a use for.
  *
  * PhotonVision is gone entirely: there is no 2027 build, and Catalyst is Limelight-first on
  * Systemcore because the pipeline is built into the hardware.
  */
 export const DEPS = [
   { file: "LimelightLib.json", name: "LimelightLib", url: "https://limelightvision.github.io/limelightlib-public/LimelightLib.json" },
-  { name: "Phoenix 6", manual: "Add from VS Code: Manage Vendor Libraries → Install new libraries (online)" },
-  { name: "PathPlanner", manual: "Add from VS Code: Manage Vendor Libraries → Install new libraries (online)" },
+  { name: "Phoenix 6", manual: "Add 26.70.0-alpha-2 or later from VS Code: Manage Vendor Libraries → Install new libraries (online). It needs 26.70.x firmware on every TalonFX, CANcoder and Pigeon." },
+  { name: "PathPlanner", optional: true, manual: "Optional — Catalyst depends on it compileOnly, so it never reaches your robot's classpath. Add it from VS Code only if your own code uses it." },
 ];
 
 export const LINKS = [

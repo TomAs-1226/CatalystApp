@@ -21,16 +21,18 @@ Catalyst 2.0.0-beta.2 is a **pre-season beta**, pinned to a WPILib **alpha**.
 | | |
 |---|---|
 | Requires | WPILib 2027.0.0-alpha-7, Systemcore OS beta 14, Java 25 |
-| Beside it | LimelightLib 2.0.0-beta8-alpha7. **Phoenix 6 and PathPlannerLib have no alpha-7 release yet**; the 26.50.0-alpha-1 and 2027.0.0-alpha-3 it compiles against are alpha-5/6 builds |
+| Beside it | Phoenix 6 **26.70.0-alpha-2** — the first Phoenix built for WPILib alpha-7, published 2026-09-18, and it **needs 26.70.x device firmware**. LimelightLib 2.0.0-beta8-alpha7. PathPlannerLib is still 2027.0.0-alpha-3, an alpha-5/6 build against commands v2, and is now `compileOnly` in the library: it resolves but never reaches a robot's classpath |
 | Tests | 867, 0 failures |
 | Driven on a robot | **never.** The bench runs (a Pigeon on `can_s0`, the onboard IMU, the board's own status topics) were the alpha-6 builds before it, on OS beta 13. Swerve, mechanisms, autos and vision have not been driven. |
 
 The OS pairing is hard rather than advisory: a build made against alpha-7 aborts on Systemcore OS
 beta 13 before your robot code runs. Flash the OS first.
 
-**A robot with CTRE motors cannot run this yet.** There is no Phoenix 6 release for WPILib
-alpha-7, so on OS beta 14 its motors have nothing to run them. Keep that robot on OS beta 13 with
-Catalyst 2.0.0-alpha.3, a source build, which this app does not install. See
+**A robot with CTRE motors can run this, as of 2026-09-18.** Phoenix 6 `26.70.0-alpha-2` is the
+first Phoenix built for WPILib alpha-7, and the library moved to it. It **requires 26.70.x device
+firmware** — every TalonFX, CANcoder and Pigeon has to be re-flashed first, so moving a robot onto
+this line is an afternoon's work rather than a redeploy. A robot still on Systemcore OS image 13
+stays on Catalyst 2.0.0-alpha.5, a source build, which this app does not install. See
 [Versions and compatibility](https://tomas-1226.github.io/FrcCatalyst/versions.html).
 
 So put it on an offseason robot, over the offseason, and have the port done before January rather
@@ -43,7 +45,7 @@ does not bundle 1.x; that vendordep comes from the
 | Robot | App |
 |---|---|
 | Catalyst 1.12.0 on a roboRIO | **App 1.4.3**: release `app-v1.4.3`. This app does not bundle 1.x. |
-| Catalyst 2.0.0-alpha.3 on Systemcore OS image 13 (WPILib alpha-6), which is what runs CTRE motors today | This app's tools work; its install button does not help, because it installs beta.1. Add alpha.3 from a source build. |
+| Catalyst 2.0.0-alpha.5 on Systemcore OS image 13 (WPILib alpha-6) | This app's tools work; its install button does not help, because it installs beta.2. Add alpha.5 from a source build. Nothing new lands on that line — the two 2.x branches were merged, and `upgrade/alpha-7` is the single 2.x line now. |
 | Catalyst 2.0.0-beta.2 on Systemcore OS image 14 (WPILib alpha-7) | **App 2.8.0**: branch `main`, release `app-v2.8.0`. |
 
 The whole map (library, Console, agent, vendor libraries and Systemcore images) is on
@@ -58,10 +60,14 @@ The whole map (library, Console, agent, vendor libraries and Systemcore images) 
 - **Install into a project** — pick your GradleRIO project folder; the app checks it really is a
   WPILib project, tells you if Catalyst is already there (and which version), then drops
   `FrcCatalyst.json` into `vendordeps/` from a bundled copy (offline). It fetches LimelightLib in the
-  same click. It does not fetch Phoenix 6 or PathPlanner, and for WPILib alpha-7 there is nothing to
-  fetch yet: neither has an alpha-7 release, so a robot with CTRE devices cannot use what this
-  installs (see above). PhotonVision is not offered at
-  all — there is no 2027 build of it.
+  same click. It does not fetch Phoenix 6: `26.70.0-alpha-2` exists, but CTRE publishes no 2027
+  vendordep JSON at a discoverable URL, so the app says to add it by hand rather than fetch a 2026
+  one that installs cleanly and fails at build. PathPlanner is no longer asked for at all — the
+  library depends on it `compileOnly`, so a robot project needs neither its vendordep nor 3015's
+  Maven repository. PhotonVision is not offered either — there is no 2027 build of it.
+- **Catalyst Tab** — the page for the tablet: whether **Catalyst Link** is running on this PC, how
+  to install it if it is not, where firmware comes from, and what the tablet actually shows. See
+  [Catalyst Tab](#catalyst-tab).
 - **Auto-update** — offline-graceful checks for a newer app *and* a newer library, with an
   ask / auto / manual setting. See [Auto-update](#auto-update-phase-2).
 - **AI-agent connector** — a bundled MCP server exposing the tools and a distilled knowledge graph to
@@ -110,7 +116,7 @@ CatalystApp/
     js/app.js               the router, the rail, the command palette, the banner
     js/core.js              the bridge to Tauri, settings, the icon set
     js/data.js              the bundled library version, the tools, the changelog
-    js/views/<view>.js      one module per view (home, tools, project, library, settings, workspace)
+    js/views/<view>.js      one module per view (home, tools, project, library, tab, settings, workspace)
     js/workspace/           the workspace panes: tree, editor, terminal, agent, runner
     js/motion.js            the house springs — a copy of the library's docs/assets/motion.js
     styles/identity.css     the house tokens — a copy of the library's docs/assets/identity.css
@@ -163,6 +169,35 @@ MCP server has always had, applied to the app's own editor.
 The app ships one version of `FrcCatalyst.json` (currently **2.0.0-beta.2**). To cut a new app release that
 installs a newer library, drop the new `FrcCatalyst.json` into `src-tauri/resources/`, bump the version
 in `tauri.conf.json` + `package.json` + `Cargo.toml`, and rebuild.
+
+## Catalyst Tab
+
+[Catalyst Tab](https://github.com/TomAs-1226/Bezel) is an M5Stack Tab5 that works as a pocket driver
+station: it speaks the same NetworkTables Catalyst Console speaks and shows the robot in your hand,
+at the robot rather than behind the driver station. On the PC side it pairs with **Catalyst Link** —
+a separate Python service with its own Tauri desktop app, living in the Bezel repository under
+`tab5/link`.
+
+The **Tablet** page in this app is the bridge to all of that, and it is deliberately thin. This app
+has no NetworkTables client and never starts, stops or drives the Link; it makes exactly one network
+call, `GET http://127.0.0.1:8765/link/status`, which is the only route the Link answers without a
+token. What the page shows:
+
+- **Running** — the Link's name and version, whether pairing by code is on, and that its window is
+  its own app's (open it from its tray icon). No button here starts it or shows it; the two are
+  separate programs and an IPC between them does not exist.
+- **Not running** — that nothing is answering on 8765, which is not the same as not installed, and
+  then Catalyst Link's own install and run commands, taken from its README rather than reconstructed.
+- **Flashing** — firmware lives in `tab5/firmware/`, and Catalyst Link's desktop app has a panel that
+  writes it with a button. The tablet flashes over **USB-C**; the USB-A port is the robot tether and
+  cannot flash it. The merged image erases the tablet's pairing, Wi-Fi and settings; the app-only
+  image does not.
+- **What the tablet shows** — pulse, devices, power, motion and field, CAN, alerts and health,
+  preflight, tune and auto, controls and states, motors, recorder and logs. Plus the rule it inherits
+  from the Console: it never controls the robot, its only writes are a declared tunable, the auto
+  choice and a Limelight's LED, and a value the robot is not publishing reads as "—", never as zero.
+
+The capability file allows `http://127.0.0.1:8765/*` for that one probe and nothing else.
 
 ## Auto-update (Phase 2)
 

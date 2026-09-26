@@ -288,7 +288,8 @@ pub fn inspect_vendordeps(dir: String) -> VendordepReport {
         notes.push(warn(
             "Nothing installed",
             "The vendordeps folder is empty. A Catalyst robot needs at least FrcCatalyst, and \
-             almost always Phoenix 6 and PathPlanner alongside it.",
+             almost always Phoenix 6 alongside it. PathPlanner is optional: Catalyst depends on it \
+             compileOnly, so it never reaches a robot's classpath.",
             "Use Install into project, on the left.",
         ));
     }
@@ -430,9 +431,9 @@ fn check_years(deps: &mut [Vendordep], project_year: Option<&str>) {
                  an error naming none of this."
             ),
             &format!(
-                "Get the vendor's {project} vendordep, then delete vendordeps/{file}. Phoenix 6 and \
-                 PathPlanner have to be added by hand for 2027 — neither publishes a 2027 vendordep \
-                 at a discoverable URL yet."
+                "Get the vendor's {project} vendordep, then delete vendordeps/{file}. Phoenix 6 has \
+                 to be added by hand for 2027 — CTRE publishes no 2027 vendordep at a discoverable \
+                 URL, and the build Catalyst needs is 26.70.0-alpha-2 or later."
             ),
         ));
     }

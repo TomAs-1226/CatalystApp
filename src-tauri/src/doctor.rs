@@ -285,18 +285,23 @@ fn check_vendordeps(root: &Path, out: &mut Vec<Finding>) {
         ));
     }
 
-    // Phoenix and PathPlanner are needed but cannot be fetched: neither publishes a 2027 vendordep
-    // JSON at a discoverable URL, so the usual online install quietly fetches a 2026 one.
-    for (needle, label) in [("phoenix", "CTRE Phoenix 6"), ("pathplanner", "PathPlanner")] {
-        if !has(needle) {
-            out.push(warn(
-                label,
-                "Not installed. It has to be added by hand for 2027 - the usual online install \
-                 fetches a 2026 vendordep, which installs cleanly and fails at build with an error \
-                 naming none of this.",
-                "Add it from the vendor's own 2027 instructions.",
-            ));
-        }
+    // Phoenix is needed but cannot be fetched: CTRE publishes no 2027 vendordep JSON at a
+    // discoverable URL, so the usual online install quietly fetches a 2026 one.
+    //
+    // PathPlanner is deliberately NOT checked for. Catalyst depends on it `compileOnly`, so it never
+    // reaches a robot's classpath and a robot project needs neither its vendordep nor 3015's maven
+    // repository - which its vendordep is what adds. Warning about it told teams to install a
+    // library they do not need and a repository they do not need with it.
+    if !has("phoenix") {
+        out.push(warn(
+            "CTRE Phoenix 6",
+            "Not installed. Catalyst needs 26.70.0-alpha-2 or later - the first Phoenix built for \
+             WPILib alpha-7 - and it has to be added by hand: the usual online install fetches a \
+             2026 vendordep, which installs cleanly and fails at build with an error naming none of \
+             this. Note that 26.70.x also requires 26.70.x firmware on every TalonFX, CANcoder and \
+             Pigeon.",
+            "Add it from CTRE's own 2027 instructions.",
+        ));
     }
 }
 

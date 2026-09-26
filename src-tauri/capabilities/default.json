@@ -24,7 +24,8 @@
         { "url": "https://maven.ctr-electronics.com/*" },
         { "url": "https://3015rangerrobotics.github.io/*" },
         { "url": "https://maven.photonvision.org/*" },
-        { "url": "https://tomas-1226.github.io/*" }
+        { "url": "https://tomas-1226.github.io/*" },
+        { "url": "http://127.0.0.1:8765/*" }
       ]
     }
   ]

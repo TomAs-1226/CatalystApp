@@ -407,6 +407,10 @@ pre {
 .verdict.ready { border-left-color: var(--cat-ok); }
 .verdict.blocked { border-left-color: var(--cat-bad); }
 .verdict.checking { border-left-color: var(--cat-warn); color: var(--cat-dim); }
+/* A settled answer that is not a failure: Catalyst Link is not running, which for somebody who has
+   never installed it is the expected state. `blocked` would mark the ordinary case red, and a page
+   whose ordinary case is red is a page nobody reads. */
+.verdict.waiting { border-left-color: var(--cat-warn); }
 
 .notice {
   padding: var(--cat-space-3) var(--cat-space-4);

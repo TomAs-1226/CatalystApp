@@ -137,18 +137,26 @@ async function doInstall() {
   const log = $("#installLog");
   log.innerHTML = "";
   log.hidden = false;
-  const w = (ok, message) => log.insertAdjacentHTML("beforeend", detectRow(ok ? "ok" : "bad", escapeHtml(message)));
+  /* The level, not a boolean: a library the app cannot fetch and you do not need is not a failed
+   * install. PathPlanner used to be logged with a red ✕ beside the things that genuinely went
+   * wrong, which is how a finished install reads as a broken one. */
+  const w = (level, message) => log.insertAdjacentHTML("beforeend", detectRow(level, escapeHtml(message)));
 
   try {
     const content = await invoke("read_bundled_vendordep");
-    w(true, await invoke("write_vendordep", { dir: chosenDir, filename: "FrcCatalyst.json", content }));
+    w("ok", await invoke("write_vendordep", { dir: chosenDir, filename: "FrcCatalyst.json", content }));
   } catch (e) {
-    w(false, "FrcCatalyst: " + e);
+    w("bad", "FrcCatalyst: " + e);
   }
 
   if ($("#includeDeps").checked) {
     for (const dep of DEPS) {
-      if (dep.manual) { w(false, `${dep.name}: no 2027 vendordep is published yet. ${dep.manual}`); continue; }
+      if (dep.manual) {
+        w(dep.optional ? "ok" : "warn",
+          dep.optional ? `${dep.name}: not needed. ${dep.manual}`
+            : `${dep.name}: no 2027 vendordep is published at a fetchable URL. ${dep.manual}`);
+        continue;
+      }
       try {
         const r = await httpGet(dep.url);
         if (!r.ok) throw new Error("HTTP " + r.status);
@@ -159,15 +167,15 @@ async function doInstall() {
         if (year && seasonOf(year) !== LIB_FRC_YEAR) {
           throw new Error(`its vendordep reports frcYear ${year}, not ${LIB_FRC_YEAR}`);
         }
-        w(true, await invoke("write_vendordep", { dir: chosenDir, filename: dep.file, content }));
+        w("ok", await invoke("write_vendordep", { dir: chosenDir, filename: dep.file, content }));
       } catch (e) {
-        w(false, `${dep.name}: ${e} — add it from Manage Vendor Libraries instead`);
+        w("bad", `${dep.name}: ${e} — add it from Manage Vendor Libraries instead`);
       }
     }
   }
 
   markRecent(chosenDir);
-  w(true, "Done. Reopen the project in WPILib VS Code and build once while online.");
+  w("ok", "Done. Reopen the project in WPILib VS Code and build once while online.");
   await runDetect(chosenDir);
 }
 
