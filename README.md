@@ -342,19 +342,21 @@ than once, because an ambiguous edit is the one that silently lands somewhere yo
 The registry lives in localStorage's place for a reason: localStorage belongs to the webview, and
 the MCP server is a separate Node process that cannot see it.
 
-## Driver Config (on the `driver-config` branch, not yet released)
+## Driver Config (app 2.8.0)
 
 Set up how each driver's controller drives the robot - which stick is which, deadband, response
 curve, speed limits, slow mode and turbo, button bindings, rumble - and press **Apply to project** to
 write it into the robot project. It is under Tools, as Driver Config.
 
-It targets the Catalyst the X1 runs, 2.0.0-alpha.3 (library commit 5adc688b) on WPILib 2027 alpha-6,
-and uses only API that exists there and in 2.0.0-beta.1: `DriverProfile`, `RumbleEvents`,
-`SlewRateLimiter`, `CommandGenericHID`, `Trigger` and plain NetworkTables. The library cannot load a
-profile file at 5adc688b, so the tool generates Java: `DriverConfig.java` (profiles, buttons, rumble
-and a dashboard driver picker) and, if you want it, a constants block such as `X1Constants.Driving`
-for code that builds its own `DriverProfile`. Each lives between marker lines; the app rewrites only
-what is between them, and reads the setup back from a JSON copy it keeps inside the region.
+It was written against library commit 5adc688b, built as 2.0.0-alpha.3, on WPILib 2027 alpha-6, and
+uses only API that has not moved since: `DriverProfile`, `RumbleEvents`, `SlewRateLimiter`,
+`CommandGenericHID`, `Trigger` and plain NetworkTables. `DriverProfile` and `RumbleEvents` are
+unchanged from that commit through 2.0.0-alpha.4, which the X1 now runs, and 2.0.0-beta.2, which
+this app installs. The library still cannot load a profile file, so the tool generates Java:
+`DriverConfig.java` (profiles, buttons, rumble and a dashboard driver picker) and, if you want it, a
+constants block such as `X1Constants.Driving` for code that builds its own `DriverProfile`. Each
+lives between marker lines; the app rewrites only what is between them, and reads the setup back
+from a JSON copy it keeps inside the region.
 
 Writing goes through the project registry above: the project must be imported, *let agents write*
 must be on, and the same paths are refused as for an agent. The preview shows the exact diff first,
