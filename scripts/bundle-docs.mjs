@@ -29,10 +29,21 @@ const given = process.argv.slice(2).find((a) => !a.startsWith("--"));
 // agent writing 2.x code with the 1.12.0 API — no SubsystemBase, ChassisSpeeds and getFPGATimestamp
 // are exactly what changed between the lines, so the wrong bundle is wrong about the things it is
 // asked about most, and nothing in the build says so.
+//
+// The names above went stale exactly as predicted, and the prediction did not help: the 2.x worktree
+// was renamed, `FrcCatalyst-systemcore` stopped existing, and a routine `npm run build` silently
+// rebuilt the bundle from the 1.x docs — shipping an MCP server that answers an agent writing 2.x code
+// with the 1.12.0 API. The list is only half the fix; a list can always go stale again. So a 1.x
+// fallback is now LOUD, and refuses outright under CI.
 const candidates = given
   ? [resolve(given)]
   : [
+      // The 2.x line that ships. `systemcore-alpha6` was merged into `upgrade/alpha-7` on 2026-09-25.
+      resolve(root, "../_worktrees/FrcCatalyst-alpha7/docs"),
+      resolve(root, "../_worktrees/FrcCatalyst-alpha6/docs"),
+      // Legacy worktree names, kept for a machine checked out before the consolidations.
       resolve(root, "../_worktrees/FrcCatalyst-systemcore/docs"),
+      // 1.x, last: correct only if there is genuinely no 2.x checkout here.
       resolve(root, "../FrcCatalyst/docs"),
       resolve(root, "../FrcCatalyst-v1.1.0/docs"),
     ];
@@ -40,7 +51,26 @@ const source = candidates.find((p) => existsSync(p));
 
 if (!source) {
   console.log("bundle-docs: no FrcCatalyst checkout found, leaving the bundled docs alone");
+  console.log("  looked in:", candidates.join(", "));
   process.exit(0);
+}
+
+// `v1.1.0` and a bare `FrcCatalyst` are the 1.x checkouts. Bundling from one while the app installs a
+// 2.x library is the specific mistake this script has now made once, so say so unmissably.
+const isOneX = /FrcCatalyst(-v1[.\d]*)?[\\/]docs$/.test(source) && !source.includes("_worktrees");
+if (isOneX) {
+  console.warn("");
+  console.warn("  bundle-docs: WARNING - bundling from a 1.x checkout:");
+  console.warn("    " + source);
+  console.warn("  The app installs a 2.x library, so the bundled MCP docs would describe the wrong API:");
+  console.warn("  no SubsystemBase, ChassisSpeeds vs ChassisVelocities, getFPGATimestamp vs getTimestamp");
+  console.warn("  are exactly what an agent asks about, and it would be confidently wrong about all three.");
+  console.warn("  Set CATALYST_DOCS_DIR to a 2.x docs folder, or check out the 2.x worktree.");
+  console.warn("");
+  if (process.env.CI) {
+    console.error("bundle-docs: refusing to bundle 1.x docs under CI");
+    process.exit(2);
+  }
 }
 
 /** Every .md under the docs tree, excluding the tool pages (they are apps, not prose). */
