@@ -90,6 +90,10 @@ const ICONS = {
   autonomy: '<path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/>',
   driverconfig: '<line x1="6" x2="10" y1="12" y2="12"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="15" x2="15.01" y1="13" y2="13"/><line x1="18" x2="18.01" y1="11" y2="11"/><rect width="20" height="12" x="2" y="6" rx="2"/>',
   console: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.2"/><path d="M12 8.8V3"/><path d="m9.2 13.6-4.9 2.9"/><path d="m14.8 13.6 4.9 2.9"/>',
+  // A clipboard with one line ticked: the pit's checklist.
+  pit: '<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"/><path d="m8.5 11 1.5 1.5 3-3"/><path d="M8.5 16.5h7"/>',
+  // The field from above, with the robot on it.
+  sim: '<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M12 5v14"/><rect x="5.5" y="10" width="4" height="4" rx=".8"/>',
   install: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>',
   // The Tab5 held the way it is used: landscape, with its one physical button on the short edge.
   tablet: '<rect x="2" y="4" width="20" height="16" rx="2.5"/><line x1="18.6" x2="18.61" y1="12" y2="12"/>',

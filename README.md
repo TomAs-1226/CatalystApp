@@ -14,6 +14,10 @@ runs on the robot. **Catalyst App** installs it and holds the design-time tools.
 watches it run. [Catalyst X1](https://github.com/TomAs-1226/CatalystX1) is team 5805's swerve test
 drivebase, where 2.x is being brought up on hardware.
 
+The app is also the launcher for the rest of the suite. Home and Tools carry an **Apps** section with
+a card for each Catalyst app installed on the computer (Console, Pit, Sim, Link); pressing one starts
+it. Apps that are not installed are not listed: Catalyst Setup is the installer for all of them.
+
 ## Before you install 2.x into a robot project
 
 Catalyst 2.0.0-beta.2 is a **pre-season beta**, pinned to a WPILib **alpha**.

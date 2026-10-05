@@ -63,7 +63,12 @@
 
     // --- the rest of the app -------------------------------------------------
     app_version: async () => "harness",
-    console_available: async () => false,
+    suite_apps: async () => [
+      { id: "console", name: "Catalyst Console", version: "2.0.0" },
+      { id: "pit", name: "Catalyst Pit", version: "0.1.0" },
+      { id: "sim", name: "Catalyst Sim (MO)", version: "1.4.0" },
+    ],
+    launch_suite_app: async ({ id }) => { console.info("[harness] launch ignored:", id); return id; },
     mcp_server_path: async () => "C:/Users/yu_th/AppData/Local/Catalyst/resources/mcp/server.js",
     read_bundled_vendordep: async () => '{"name":"FrcCatalyst","version":"2.0.0-beta.2","frcYear":"2027"}',
     detect_project: async ({ dir }) => ({

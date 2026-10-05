@@ -1,4 +1,4 @@
-// Home: what this app is, the projects you were last in, and every tool.
+// Home: what this app is, the projects you were last in, the other Catalyst apps, and every tool.
 //
 // The three things a team does most are a button each, in the order they happen: open a project,
 // install the library into one, and see which version that is.
@@ -6,7 +6,7 @@
 import { $, IN_APP, invoke, settings, svg, escapeHtml } from "../core.js";
 import { LIB_VERSION } from "../data.js";
 import { go, project } from "../app.js";
-import { fillToolGrid, toolCard } from "./tools.js";
+import { fillAppGrid, fillToolGrid, toolCard } from "./tools.js";
 
 export function init() {
   $("#homeOpenBtn").innerHTML = `${svg("workspace")} Open a robot project`;
@@ -14,6 +14,7 @@ export function init() {
   $("#homeVersion").textContent = LIB_VERSION;
   $("#homeOpenBtn").onclick = () => go("workspace");
   fillToolGrid($("#homeList"));
+  fillAppGrid($("#homeAppsWrap"), $("#homeApps"));
   document.addEventListener("catalyst:project", renderRecent);
 }
 
