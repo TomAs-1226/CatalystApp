@@ -41,8 +41,8 @@ const given = args.find((a) => !a.startsWith("--"));
 const candidates = given
   ? [resolve(given)]
   : [
-      resolve(root, "../_worktrees/FrcCatalyst-alpha6/docs/tools"),
       resolve(root, "../_worktrees/FrcCatalyst-alpha7/docs/tools"),
+      resolve(root, "../_worktrees/FrcCatalyst-alpha6/docs/tools"),
       resolve(root, "../FrcCatalyst/docs/tools"),
       resolve(root, "../FrcCatalyst-v1.1.0/docs/tools"),
     ];

@@ -3,7 +3,7 @@
 The desktop companion for **FrcCatalyst**: it installs the library straight into your robot project
 and puts every Catalyst tool in one window, working offline.
 
-**App 2.8.0** · installs **FrcCatalyst 2.0.0-beta.2** · Windows and macOS · built with
+**App 2.9.1** · bundles **FrcCatalyst 2.0.0-rc.1** · Windows and macOS · built with
 [Tauri](https://tauri.app) — a Rust backend and a plain HTML/CSS/JS frontend, no framework. Windows
 builds locally; the macOS build runs in CI
 ([`.github/workflows/build-app.yml`](.github/workflows/build-app.yml)).
@@ -20,40 +20,27 @@ it. Apps that are not installed are not listed: Catalyst Setup is the installer 
 
 ## Before you install 2.x into a robot project
 
-Catalyst 2.0.0-beta.2 is a **pre-season beta**, pinned to a WPILib **alpha**.
+The bundled **FrcCatalyst 2.0.0-rc.1** is a prerelease for Systemcore and WPILib 2027 alpha-7.
+Its JitPack artifact and vendordep are published; an RC does not make every hardware/runtime
+combination supported. Match the robot's WPILib, Phoenix API, device firmware and Systemcore image
+to the library's [compatibility map](https://tomas-1226.github.io/FrcCatalyst/versions.html).
+Installing a vendordep does not flash the controller or motors, calibrate mechanisms, or validate
+a robot for competition. Keep a working robot's stack deliberate.
 
-| | |
+| Robot line | Install route |
 |---|---|
-| Requires | WPILib 2027.0.0-alpha-7, Systemcore OS beta 14, Java 25 |
-| Beside it | Phoenix 6 **26.70.0-alpha-2** — the first Phoenix built for WPILib alpha-7, published 2026-09-18, and it **needs 26.70.x device firmware**. LimelightLib 2.0.0-beta8-alpha7. PathPlannerLib is still 2027.0.0-alpha-3, an alpha-5/6 build against commands v2, and is now `compileOnly` in the library: it resolves but never reaches a robot's classpath |
-| Tests | 867, 0 failures |
-| Driven on a robot | **never.** The bench runs (a Pigeon on `can_s0`, the onboard IMU, the board's own status topics) were the alpha-6 builds before it, on OS beta 13. Swerve, mechanisms, autos and vision have not been driven. |
+| Catalyst 1.12.0, roboRIO/WPILib 2026 | Use the stable 1.x vendordep from the library's releases. The current app's bundled installer is 2.x. |
+| Catalyst 2.0.0-rc.1, Systemcore/WPILib 2027 alpha-7 | App 2.9.1 bundles its pinned prerelease vendordep, matching offline tools and MCP documentation. |
+| Historical alpha-6/Systemcore line | Use that branch's own source build and compatibility instructions; do not substitute the alpha-7 vendordep. |
 
-The OS pairing is hard rather than advisory: a build made against alpha-7 aborts on Systemcore OS
-beta 13 before your robot code runs. Flash the OS first.
+## Changes in 2.9.1
 
-**A robot with CTRE motors can run this, as of 2026-09-18.** Phoenix 6 `26.70.0-alpha-2` is the
-first Phoenix built for WPILib alpha-7, and the library moved to it. It **requires 26.70.x device
-firmware** — every TalonFX, CANcoder and Pigeon has to be re-flashed first, so moving a robot onto
-this line is an afternoon's work rather than a redeploy. A robot still on Systemcore OS image 13
-stays on Catalyst 2.0.0-alpha.5, a source build, which this app does not install. See
-[Versions and compatibility](https://tomas-1226.github.io/FrcCatalyst/versions.html).
-
-So put it on an offseason robot, over the offseason, and have the port done before January rather
-than during it. **If you are competing, stay on 1.x** — tag `v1.12.0`, WPILib 2026, roboRIO. This app
-does not bundle 1.x; that vendordep comes from the
-[library's own releases](https://github.com/TomAs-1226/FrcCatalyst/releases).
-
-## Versions and compatibility
-
-| Robot | App |
-|---|---|
-| Catalyst 1.12.0 on a roboRIO | **App 1.4.3**: release `app-v1.4.3`. This app does not bundle 1.x. |
-| Catalyst 2.0.0-alpha.5 on Systemcore OS image 13 (WPILib alpha-6) | This app's tools work; its install button does not help, because it installs beta.2. Add alpha.5 from a source build. Nothing new lands on that line — the two 2.x branches were merged, and `upgrade/alpha-7` is the single 2.x line now. |
-| Catalyst 2.0.0-beta.2 on Systemcore OS image 14 (WPILib alpha-7) | **App 2.8.0**: branch `main`, release `app-v2.8.0`. |
-
-The whole map (library, Console, agent, vendor libraries and Systemcore images) is on
-[Versions and compatibility](https://tomas-1226.github.io/FrcCatalyst/versions.html).
+- Refresh the offline library vendordep to published RC1, with matching tools, documentation and
+  structural knowledge graph for connected development agents.
+- Prefer the current alpha-7 checkout when synchronizing browser tools, preserving older fallback
+  layouts for contributors.
+- Bundle the current Console release when available during packaging. The app and Console retain
+  separate update channels; use Catalyst Setup to install the suite.
 
 ## What it does
 

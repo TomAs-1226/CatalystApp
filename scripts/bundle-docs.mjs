@@ -38,7 +38,7 @@ const given = process.argv.slice(2).find((a) => !a.startsWith("--"));
 const candidates = given
   ? [resolve(given)]
   : [
-      // The 2.x line that ships. `systemcore-alpha6` was merged into `upgrade/alpha-7` on 2026-09-25.
+      // The alpha-7 line bundled by the current app. Keep alpha-6 as a legacy fallback.
       resolve(root, "../_worktrees/FrcCatalyst-alpha7/docs"),
       resolve(root, "../_worktrees/FrcCatalyst-alpha6/docs"),
       // Legacy worktree names, kept for a machine checked out before the consolidations.
