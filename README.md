@@ -4,8 +4,7 @@ The desktop companion for **FrcCatalyst**: it installs the library straight into
 and puts every Catalyst tool in one window, working offline.
 
 **App 2.9.2** · bundles **FrcCatalyst 2.0.0-rc.1** · Windows and macOS · built with
-[Tauri](https://tauri.app) — a Rust backend and a plain HTML/CSS/JS frontend, no framework. Windows
-builds locally; the macOS build runs in CI
+[Tauri](https://tauri.app) — a Rust backend and a plain HTML/CSS/JS frontend, no framework. Windows and universal macOS release builds run in CI
 ([`.github/workflows/build-app.yml`](.github/workflows/build-app.yml)).
 
 **The Catalyst family.** [FrcCatalyst](https://github.com/TomAs-1226/FrcCatalyst) is the library that
@@ -251,6 +250,10 @@ server path resolved at runtime):
 ```json
 { "mcpServers": { "catalyst": { "command": "node", "args": ["<bundled>/resources/mcp/server.js"] } } }
 ```
+
+Refresh the bundled graph with `node scripts/bundle-graph.mjs <released-library-checkout>` after
+`graphify update` in that checkout. The script refuses a stale graph or a library version that differs
+from the bundled vendordep.
 
 **The bundled knowledge graph** (`resources/mcp/data/graph.json`) is distilled from graphify and ships
 with each app version — reachable only through the agent server, never shown in the UI. Honest scope:

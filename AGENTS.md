@@ -7,8 +7,8 @@ when Claude isn't available. For humans, `README.md` is the guide.
 
 The Catalyst desktop app, a Tauri 2 app. It installs the FrcCatalyst library into robot projects,
 ships the library's browser tools so they work offline, and carries the `catalyst` MCP server that
-AI agents use. Active work is on `systemcore` (the 2027 port); `main` is the 2026 line. Run
-`git branch --show-current` before anything else.
+AI agents use. The shipping app is on `main` and bundles the Systemcore/WPILib 2027 prerelease;
+its stable 1.x install link remains separate. Run `git branch --show-current` before anything else.
 
 | Path | What it is |
 |---|---|
