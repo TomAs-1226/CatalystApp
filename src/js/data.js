@@ -12,7 +12,7 @@ export const APP_VERSION_FALLBACK = "dev";
 // The FrcCatalyst version bundled inside this app. It must equal the `version` in
 // src-tauri/resources/FrcCatalyst.json, which is the file actually written into a project — this
 // constant only labels it.
-export const LIB_VERSION = "2.0.0-beta.2";
+export const LIB_VERSION = "2.0.0-rc.1";
 export const LIB_FRC_YEAR = "2027";
 
 // The feed for the line this build is on. Pointing at the stable vendordep would have meant a 2.x
@@ -88,6 +88,11 @@ export const AGENT_CAPS = [
 ];
 
 export const CHANGELOG = [
+  { v: "2.9.2", t: "Current RC1 tools and offline agent documentation", date: "2026-10-17", items: [
+    "Bundles FrcCatalyst 2.0.0-rc.1 with matching browser tools, 36 documentation pages and a refreshed structural knowledge graph.",
+    "Corrects the bundled-library labels and adds a contract check so the installer, release page, documentation and graph cannot silently disagree.",
+    "Catalyst 1.12.0 remains the separate stable roboRIO/WPILib 2026 route. The bundled RC1 targets Systemcore/WPILib 2027 alpha-7.",
+  ] },
   { v: "2.8.0", t: "The wiring tool plans ports, and draws the loom", date: "2026-09-22", items: [
     "Wiring is a planner now, not a diagram. Pick the channel every device sits in — the board's own numbering — and get a run list naming both ends of every run: PDH 7 to BR Steer, MPM F0 to LEDs, with the gauge, the length and the voltage drop. You could not wire from the old picture, because it never said which channel anything went in.",
     "Breakouts are first-class. An MPM, VRM, RPM or Servo Hub takes a channel on the main board and provides its own, and a device goes into one the same way it goes into the board. A device that needs regulated power will only go where regulated power exists.",

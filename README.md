@@ -3,7 +3,7 @@
 The desktop companion for **FrcCatalyst**: it installs the library straight into your robot project
 and puts every Catalyst tool in one window, working offline.
 
-**App 2.9.1** · bundles **FrcCatalyst 2.0.0-rc.1** · Windows and macOS · built with
+**App 2.9.2** · bundles **FrcCatalyst 2.0.0-rc.1** · Windows and macOS · built with
 [Tauri](https://tauri.app) — a Rust backend and a plain HTML/CSS/JS frontend, no framework. Windows
 builds locally; the macOS build runs in CI
 ([`.github/workflows/build-app.yml`](.github/workflows/build-app.yml)).
@@ -30,10 +30,10 @@ a robot for competition. Keep a working robot's stack deliberate.
 | Robot line | Install route |
 |---|---|
 | Catalyst 1.12.0, roboRIO/WPILib 2026 | Use the stable 1.x vendordep from the library's releases. The current app's bundled installer is 2.x. |
-| Catalyst 2.0.0-rc.1, Systemcore/WPILib 2027 alpha-7 | App 2.9.1 bundles its pinned prerelease vendordep, matching offline tools and MCP documentation. |
+| Catalyst 2.0.0-rc.1, Systemcore/WPILib 2027 alpha-7 | App 2.9.2 bundles its pinned prerelease vendordep, matching offline tools and MCP documentation. |
 | Historical alpha-6/Systemcore line | Use that branch's own source build and compatibility instructions; do not substitute the alpha-7 vendordep. |
 
-## Changes in 2.9.1
+## Changes in 2.9.2
 
 - Refresh the offline library vendordep to published RC1, with matching tools, documentation and
   structural knowledge graph for connected development agents.

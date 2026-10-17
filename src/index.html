@@ -221,22 +221,17 @@
 
           <div class="stack" data-panel="install">
             <div class="notice signal" id="alphaNotice">
-              <b>What this installs.</b> The bundled vendordep points at <code>v2.0.0-beta.2</code>, and
-              everything the app advertises is in it — Motor History, Autonomy 2.0, the decision cores.
-              It fetches from JitPack like any other vendordep.
+              <b>What this installs.</b> The bundled vendordep points at <code>v2.0.0-rc.1</code>,
+              a published prerelease for <b>WPILib 2027 alpha-7</b> and Systemcore. It resolves from
+              JitPack; the browser tools and agent documentation are bundled for offline use.
               <br><br>
-              It needs <b>WPILib 2027 alpha-7</b> and <b>Systemcore OS beta 14</b>, and that pairing is
-              not optional: a build made against alpha-7 aborts on beta 13 before your robot code runs.
-              Flash the OS first.
+              Match the controller image, Phoenix API and CTRE device firmware to the library's
+              compatibility guide before changing a working robot's stack. Installing this file
+              does not flash firmware or calibrate the robot.
               <br><br>
-              <b>CTRE devices need 26.70.x firmware.</b> Phoenix 6 <code>26.70.0-alpha-2</code> is the
-              first Phoenix built for alpha-7, and it will not talk to a TalonFX, CANcoder or Pigeon
-              on older firmware — so moving a robot onto this line is an afternoon of re-flashing,
-              not a redeploy. PathPlanner is not needed: Catalyst depends on it
-              <code>compileOnly</code>, so it never reaches your robot's classpath.
-              <br><br>
-              It is a beta and it has <b>never been driven on a robot</b> — pre-season and offseason
-              robots only. If you are competing this season, install Catalyst 1.x (tag v1.12.0) instead.
+              For a roboRIO/WPILib 2026 project, use the separate stable Catalyst 1.x vendordep
+              (tag <code>v1.12.0</code>).
+
             </div>
 
             <div class="cat-card">
@@ -265,49 +260,35 @@
             Not a changelog row. A changelog answers "what changed since the last one"; this answers
             "what am I holding, and should I put it on my robot" — and for this release those are
             different questions with different audiences. The limit comes second on purpose:
-            requirements fail loudly, but "never driven on a robot" fails quietly, in an elimination
-            match, and a reader who stops early must not be the one who misses it.
+            requirements must match the actual robot stack before an installation can be useful.
           -->
           <div class="stack" data-panel="release" hidden>
             <div class="cat-card">
               <div class="cat-card__head">
-                <h2 class="cat-card__title">Catalyst <span class="cat-wordmark__version">2.0.0-beta.2</span></h2>
-                <span class="path">9 September 2026</span>
+                <h2 class="cat-card__title">Catalyst <span class="cat-wordmark__version">2.0.0-rc.1</span></h2>
+                <span class="path">RC1 prerelease</span>
               </div>
-              <p style="line-height:1.55;max-width:62ch">The pre-season release: built against the
-                platform the 2027 season will run on, so your team can port over the offseason
-                instead of in January.</p>
+              <p style="line-height:1.7">The Systemcore/WPILib 2027 prerelease. This app bundles its
+                published vendordep, offline tools and reference documentation.</p>
 
               <div class="notice" style="margin-top:16px">
-                <b>Not for a robot you are competing with.</b> It has never been driven on a robot. It
-                has run on a bench — a Pigeon on <code>can_s0</code>, the onboard IMU, the board's own
-                status topics — but swerve, mechanisms, autos and vision have not moved a robot. Its
-                867 tests pass with no failures; none of them drives one. It is also a beta pinned to a
-                WPILib alpha that has changed <code>Mechanism</code> from an interface to a class and
-                back across three builds. Pre-season and offseason robots only.
-                <br><br>
-                Competing this season? <b>Stay on Catalyst 1.x</b> — tag <code>v1.12.0</code>,
-                WPILib 2026, roboRIO.
+                A release candidate is not a hardware compatibility guarantee. Check the stack
+                before changing a working robot, and verify mechanisms and calibration on the
+                actual hardware. For roboRIO/WPILib 2026, Catalyst 1.12.0 remains the stable route.
               </div>
 
-              <div class="cat-eyebrow" style="margin:20px 0 8px">BEFORE IT WILL RUN</div>
+              <div class="cat-eyebrow" style="margin:20px 0 8px">TARGET STACK</div>
               <dl class="kv-grid">
                 <dt>WPILib</dt><dd>2027.0.0-alpha-7</dd>
-                <dt>Systemcore OS</dt><dd>beta 14</dd>
+                <dt>Controller</dt><dd>Systemcore</dd>
                 <dt>Java</dt><dd>25</dd>
               </dl>
-              <p class="hint" style="margin-top:12px"><b style="color:var(--cat-ink)">Flash the OS
-                first.</b> That pairing is not optional: a build made against alpha-7 aborts on
-                Systemcore OS beta 13 before your robot code runs. Vendor libraries are Phoenix 6
-                <b style="color:var(--cat-ink)">26.70.0-alpha-2</b> — the first Phoenix built for
-                alpha-7, and it needs <b style="color:var(--cat-ink)">26.70.x device firmware</b> on
-                every TalonFX, CANcoder and Pigeon — and LimelightLib 2.0.0-beta8-alpha7. PathPlanner
-                is still 2027.0.0-alpha-3, built against commands v2, and is a
-                <code>compileOnly</code> dependency: it resolves but does not reach your robot's
-                classpath, so your project needs neither its vendordep nor 3015's Maven repository.</p>
+              <p class="hint" style="margin-top:12px">Use the documented controller image and
+                vendor firmware/API pairing. The app installs a vendordep; it does not perform
+                controller or motor firmware updates.</p>
 
               <div class="row" style="margin-top:16px">
-                <button class="cat-btn cat-btn--primary" data-go="library/install">Install the beta into a project</button>
+                <button class="cat-btn cat-btn--primary" data-go="library/install">Install RC1 into a project</button>
                 <button class="cat-btn" id="wnOneXBtn">Get Catalyst 1.12.0</button>
               </div>
             </div>

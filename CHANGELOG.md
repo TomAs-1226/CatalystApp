@@ -1,6 +1,6 @@
 # Changelog
 
-## [2.9.1] — 2026-10-17
+## [2.9.2] — 2026-10-17
 
 - Bundle the published FrcCatalyst 2.0.0-rc.1 prerelease vendordep and refresh its offline tools,
   documentation and structural MCP knowledge graph.
